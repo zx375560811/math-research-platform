@@ -15,4 +15,5 @@ void *documents_begin(sqlite3 *, struct MHD_Connection *);
 http_result documents_upload(sqlite3 *, struct MHD_Connection *, void *, const char *, size_t *);
 void documents_cleanup(void *);
 http_result documents_get(sqlite3 *, struct MHD_Connection *, const char *);
+http_result web_get(struct MHD_Connection *, const char *);
 #endif

@@ -46,7 +46,8 @@ with tempfile.TemporaryDirectory() as directory:
         db.execute("INSERT INTO subjects VALUES(1,'algebra','我的代数分类')")
     log_path = root / 'server.log'
     with log_path.open('w+') as log:
-        process = subprocess.Popen([str(binary)], cwd=root, env={**os.environ, 'MATH_PORT': str(port)},
+        process = subprocess.Popen([str(binary)], cwd=root, env={**os.environ, 'MATH_PORT': str(port),
+                                   'MATH_WEB_DIR': str(binary.parents[2] / 'frontend')},
                                    stdout=log, stderr=log)
         try:
             for _ in range(100):
@@ -61,6 +62,15 @@ with tempfile.TemporaryDirectory() as directory:
             else:
                 raise AssertionError('Server did not become ready')
             assert request('/api/subjects')[1]['subjects'][0]['name'] == '我的代数分类'
+            for asset, content_type in [('/', 'text/html'), ('/app.js', 'text/javascript'), ('/style.css', 'text/css')]:
+                with urllib.request.urlopen(base + asset, timeout=5) as response:
+                    assert response.status == 200 and response.headers.get_content_type() == content_type
+                    assert response.headers['X-Content-Type-Options'] == 'nosniff'
+                    assert response.headers['Content-Security-Policy']
+                    assert response.read()
+            assert request('/schema.h')[0] == 404
+            assert request('/data/math.db')[0] == 404
+            assert request('/../backend/src/main.c')[0] == 404
             assert request('/api/documents')[1]['documents'] == []
             code, created = upload()
             assert code == 201, (code, created)

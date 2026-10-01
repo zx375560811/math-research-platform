@@ -19,3 +19,18 @@ jobs:
         run: python3 backend/tests/schema.py
       - name: Check upload and retrieval flow
         run: python3 backend/tests/integration.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test dependencies
+        run: npm install --prefix frontend --ignore-scripts
+      - name: Install Chromium
+        run: cd frontend && npx playwright install --with-deps chromium
+      - name: Check browser upload and navigation
+        run: npm test --prefix frontend
+      - name: Save browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-screenshots
+          path: frontend/tests/artifacts/

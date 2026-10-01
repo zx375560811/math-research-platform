@@ -105,6 +105,8 @@ static http_result handle_request(void *cls, struct MHD_Connection *connection,
     if (*upload_size != 0) { *upload_size = 0; return MHD_YES; }
     if (strcmp(method, "GET") != 0)
         return reply(connection, 405, "{\"error\":\"method_not_allowed\"}");
+    if (!strcmp(url, "/") || !strcmp(url, "/index.html") || !strcmp(url, "/app.js") || !strcmp(url, "/style.css"))
+        return web_get(connection, url);
     if (strcmp(url, "/api/health") == 0) {
         if (sqlite3_exec(cls, "SELECT 1 FROM subjects LIMIT 1", NULL, NULL, NULL) != SQLITE_OK)
             return reply(connection, 503, "{\"status\":\"unhealthy\"}");

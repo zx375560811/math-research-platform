@@ -11,3 +11,5 @@ __pycache__/
 !.env.example
 *.pem
 *.key
+frontend/node_modules/
+frontend/tests/artifacts/
