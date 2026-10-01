@@ -1,0 +1,13 @@
+backend/build/
+backend/data/
+__pycache__/
+*.zip
+*.db
+*.db-wal
+*.db-shm
+*.pdf
+.env
+.env.*
+!.env.example
+*.pem
+*.key
