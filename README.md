@@ -32,7 +32,7 @@ curl -fsS http://127.0.0.1:8080/api/health
 curl -fsS http://127.0.0.1:8080/api/subjects
 ```
 
-服务仅监听本机，前台运行；正式公网部署将在后续加入服务管理、登录保护和 HTTPS。
+服务仅监听本机，前台运行。可按 [后端说明](backend/README.md#systemd-常驻运行) 配置 systemd 常驻和开机启动；登录保护与 HTTPS 后续加入。
 
 ## 更新
 
@@ -48,4 +48,6 @@ make run
 
 Git 更新源码后还需要重新编译、启动。运行数据保存在 `backend/data/`，已排除在 Git 之外，须单独备份。文献 PDF、密钥、环境配置和编译产物也不提交。
 
-详见 [后端说明](backend/README.md)。数据库初始化检查已在开发电脑验证，Linux C 编译与实际 HTTP 运行验证尚待服务器执行。
+已配置 systemd 时，更新和编译后执行 `systemctl restart math-platform`，不要使用 `make run`。
+
+详见 [后端说明](backend/README.md)。数据库初始化检查已在开发电脑验证，用户已在 Alibaba Cloud Linux 3 服务器完成编译，并验证运行状态与专业列表接口。systemd 配置尚待服务器验证。
