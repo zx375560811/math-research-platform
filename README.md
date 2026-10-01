@@ -6,6 +6,8 @@
 
 前端位于 `frontend/`，使用 HTML、CSS、JavaScript，由 C 后端直接提供页面。服务器运行网站不需要安装 Node.js 或启动额外前端服务。
 
+前端按 Anthropic frontend-design 技能重设计为带常驻专业导航的研究工作台，手机使用顶部可滚动专业导航。设计依据见 [设计说明](frontend/DESIGN.md)。
+
 ## 在电脑浏览器打开网站
 
 完成下方服务器部署后，在电脑的 PowerShell 中执行（将服务器地址替换为自己的）：

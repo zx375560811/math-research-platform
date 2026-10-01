@@ -2,6 +2,7 @@
 const $ = (id) => document.getElementById(id);
 const state = { subjects: [], subject: null, offset: 0, loading: false, upload: false, generation: 0 };
 const symbols = { algebra: 'G', 'number-theory': 'ℤ', analysis: '∫', 'geometry-topology': '∂', other: '∞' };
+const descriptions = { algebra: '结构、对称与运算', 'number-theory': '整数与算术结构', analysis: '极限、函数与变化', 'geometry-topology': '空间、形状与连续性', other: '更多数学研究方向' };
 const errors = { invalid_metadata: '请填写有效标题和作者，每项最多 500 个 UTF-8 字节。', unknown_subject: '所选专业不存在，请刷新页面。', pdf_too_large: 'PDF 不能超过 20 MB。', invalid_pdf_header: '文件不是有效的 PDF，请重新选择。', empty_or_invalid_length: '请选择一份非空 PDF。', use_application_pdf: '请选择 PDF 文件。', database_busy: '系统正在处理其他请求，请稍后重试。', file_storage_error: '文件保存失败，请稍后重试。', database_error: '资料读取或保存失败，请稍后重试。' };
 function node(tag, className, content) { const el = document.createElement(tag); if (className) el.className = className; if (content !== undefined) el.textContent = content; return el; }
 function notice(message, error = false) { $('notice').textContent = message; $('notice').classList.toggle('error', error); $('notice').hidden = !message; }
@@ -14,17 +15,24 @@ function documentRows(target, documents, empty) {
   for (const doc of documents) {
     const row = node('article', 'document-row'); const info = node('div', 'document-info');
     const date = new Date(doc.created_at); const day = Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('zh-CN');
-    info.append(node('h3', '', doc.title), node('p', '', [doc.authors || '作者未填写', formatSize(doc.file_size), day].filter(Boolean).join(' · ')));
-    const link = node('a', 'download-link', '下载 PDF ↓'); link.href = `/api/documents/${encodeURIComponent(doc.id)}/file`; link.setAttribute('download', `document-${doc.id}.pdf`);
+    const metadata = node('p', '');
+    for (const value of [doc.authors || '作者未填写', formatSize(doc.file_size), day].filter(Boolean)) metadata.append(node('span', '', value));
+    info.append(node('h3', '', doc.title), metadata);
+    const link = node('a', 'download-link', '下载 PDF'); link.href = `/api/documents/${encodeURIComponent(doc.id)}/file`; link.setAttribute('download', `document-${doc.id}.pdf`);
     row.append(node('span', 'pdf-badge', 'PDF'), info, link); target.append(row);
   }
 }
 function renderSubjects() {
-  $('subject-cards').replaceChildren(); $('document-subject').replaceChildren();
+  $('subject-cards').replaceChildren(); $('document-subject').replaceChildren(); $('subject-nav').replaceChildren();
   for (const subject of state.subjects) {
     const card = node('a', 'subject-card'); card.href = `#/subjects/${subject.id}`;
-    const bottom = node('span', 'card-bottom'); bottom.append(node('span', '', '进入专业'), node('span', '', '↗'));
-    card.append(node('span', 'subject-symbol', symbols[subject.slug] || '∞'), node('strong', '', subject.name), bottom); $('subject-cards').append(card);
+    const copy = node('span', 'subject-copy'); copy.append(node('strong', '', subject.name), node('small', '', descriptions[subject.slug] || '专业研究资料'));
+    const arrow = node('span', 'card-arrow', '›'); arrow.setAttribute('aria-hidden', 'true');
+    const symbol = node('span', 'subject-symbol', symbols[subject.slug] || '∞'); symbol.setAttribute('aria-hidden', 'true');
+    card.append(symbol, copy, arrow); $('subject-cards').append(card);
+    const nav = node('a', ''); nav.href = card.href; nav.dataset.subjectId = subject.id;
+    const navSymbol = node('span', 'nav-symbol', symbols[subject.slug] || '∞'); navSymbol.setAttribute('aria-hidden', 'true');
+    nav.append(navSymbol, node('span', '', subject.name)); $('subject-nav').append(nav);
     const option = node('option', '', subject.name); option.value = subject.id; $('document-subject').append(option);
   }
 }
@@ -41,7 +49,7 @@ async function loadDocuments() {
   try {
     const data = await api(`/api/documents?subject_id=${state.subject.id}&offset=${state.offset}`);
     if (generation !== state.generation) return;
-    documentRows($('module-documents'), data.documents, '用右侧表单上传一份 PDF，开始积累这个方向的文献。');
+    documentRows($('module-documents'), data.documents, '使用“添加文献”表单，上传这个方向的第一份 PDF。');
     $('page-label').textContent = `第 ${state.offset / 20 + 1} 页`;
     $('list-status').textContent = data.documents.length ? `本页 ${data.documents.length} 份文献` : '';
     $('previous-page').disabled = state.offset === 0; $('next-page').disabled = data.documents.length < 20;
@@ -54,6 +62,13 @@ function route() {
   const subject = match ? state.subjects.find((s) => String(s.id) === match[1]) : null;
   state.subject = subject; state.offset = 0;
   $('home-view').hidden = !!subject; $('module-view').hidden = !subject;
+  $('breadcrumb').textContent = subject ? subject.name : '研究工作台';
+  $('home-link').classList.toggle('active', !subject);
+  if (!subject) $('home-link').setAttribute('aria-current', 'page'); else $('home-link').removeAttribute('aria-current');
+  for (const link of $('subject-nav').querySelectorAll('a')) {
+    const active = !!subject && link.dataset.subjectId === String(subject.id);
+    link.classList.toggle('active', active); if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+  }
   if (subject) { $('module-title').textContent = subject.name; if (!state.upload) $('document-subject').value = subject.id; document.title = `${subject.name} · 云数学`; loadDocuments(); window.scrollTo(0, 0); }
   else { document.title = '云数学 · 数学研究平台'; if (match) notice('这个专业暂不可用，请选择已有方向。', true); recent(); }
 }
@@ -65,7 +80,7 @@ async function init() {
 function formMessage(message, error = false) { $('upload-message').textContent = message; $('upload-message').classList.toggle('error', error); }
 $('pdf-file').addEventListener('change', () => {
   const file = $('pdf-file').files[0];
-  $('file-label').textContent = file ? file.name : '选择一份 PDF'; $('file-detail').textContent = file ? formatSize(file.size) : '最大 20 MB';
+  $('file-label').textContent = file ? file.name : '选择 PDF 文件'; $('file-detail').textContent = file ? formatSize(file.size) : '最大 20 MB';
   if (file && !$('document-title').value) $('document-title').value = file.name.replace(/\.pdf$/i, '');
   formMessage('');
 });
@@ -88,12 +103,12 @@ $('upload-form').addEventListener('submit', async (event) => {
       xhr.onload = () => { let body; try { body = JSON.parse(xhr.responseText); } catch { reject(new Error('服务器响应异常，请刷新文献列表确认是否保存。')); return; } if (xhr.status === 201) resolve(body); else reject(new Error(errors[body.error] || '上传失败，请稍后重试。')); };
       xhr.onerror = () => reject(new Error('连接中断，请刷新文献列表确认是否保存。')); xhr.ontimeout = () => reject(new Error('上传超时，请刷新文献列表确认是否保存。')); xhr.send(file);
     });
-    $('upload-form').reset(); $('file-label').textContent = '选择一份 PDF'; $('file-detail').textContent = '最大 20 MB';
+    $('upload-form').reset(); $('file-label').textContent = '选择 PDF 文件'; $('file-detail').textContent = '最大 20 MB';
     notice(`文献已保存，编号 ${result.id}。`); formMessage('保存成功。');
     if (state.subject && String(state.subject.id) === subject) { state.offset = 0; await loadDocuments(); }
     else if (!$('home-view').hidden) await recent();
   } catch (error) { formMessage(friendly(error), true); }
-  finally { state.upload = false; for (const field of $('upload-form').elements) field.disabled = false; $('upload-submit').textContent = '保存到文献库 ↗'; $('upload-progress').hidden = true; if (state.subject) $('document-subject').value = state.subject.id; }
+  finally { state.upload = false; for (const field of $('upload-form').elements) field.disabled = false; $('upload-submit').textContent = '保存到文献库'; $('upload-progress').hidden = true; if (state.subject) $('document-subject').value = state.subject.id; }
 });
 $('previous-page').addEventListener('click', () => { if (!state.loading && state.offset >= 20) { state.offset -= 20; loadDocuments(); } });
 $('next-page').addEventListener('click', () => { if (!state.loading) { state.offset += 20; loadDocuments(); } });

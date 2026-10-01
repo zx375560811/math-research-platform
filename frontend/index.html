@@ -9,37 +9,43 @@
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#/"><span class="brand-mark" aria-hidden="true">∑</span><span>云数学<small>数学研究平台</small></span></a>
-    <nav aria-label="主导航"><a href="#/" id="home-link">研究工作台</a><span class="nav-note">从一个问题开始</span></nav>
-  </header>
-  <main>
-    <div id="notice" class="notice" role="status" hidden></div>
-    <section id="home-view">
-      <div class="hero">
-        <div><p class="eyebrow">你的数学研究空间</p><h1>让每一次阅读，<br>成为研究的起点。</h1><p class="hero-copy">按专业组织文献，积累问题与思路。<br>从选择一个数学方向开始。</p><a class="button primary" href="#directions">探索数学方向 <span aria-hidden="true">↗</span></a></div>
-        <div class="math-art" aria-hidden="true"><span class="orbit orbit-one"></span><span class="orbit orbit-two"></span><span class="art-equation">∫<sub>γ</sub> ω</span><span class="art-caption">Ideas, connected.</span></div>
-      </div>
-      <section class="section" id="directions" aria-labelledby="directions-title"><div class="section-heading"><div><p class="eyebrow">专业模块</p><h2 id="directions-title">选择你的研究方向</h2></div><span class="muted">共享文献 · 独立探索</span></div><div id="subject-cards" class="subject-grid" aria-live="polite"><p class="muted">正在加载数学方向…</p></div><button id="retry-subjects" class="button" hidden>重新加载</button></section>
-      <section class="section" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">最近加入的文献</h2></div><div id="recent-documents" class="document-list" aria-live="polite"></div></section>
-      <div class="future-note"><span class="future-symbol" aria-hidden="true">✧</span><div><strong>研究工具，逐步生长</strong><p>AI 文献助手与更多应用将在后续加入。</p></div><span class="pill">规划中</span></div>
-    </section>
-    <section id="module-view" hidden>
-      <a class="back-link" href="#/">← 返回研究工作台</a>
-      <div class="module-heading"><p class="eyebrow">数学专业模块</p><h1 id="module-title"></h1><p class="muted">收集这个方向的文献，从阅读开始研究。</p></div>
-      <div class="module-layout">
-        <section class="library-panel" aria-labelledby="library-title"><div class="section-heading"><h2 id="library-title">专业文献</h2><button class="button compact" id="refresh-documents">刷新</button></div><p class="list-status muted" id="list-status" role="status"></p><div id="module-documents" class="document-list"></div><div class="pagination"><button class="button compact" id="previous-page" disabled>上一页</button><span id="page-label">第 1 页</span><button class="button compact" id="next-page" disabled>下一页</button></div></section>
-        <aside class="upload-panel"><p class="eyebrow">添加研究资料</p><h2>上传文献</h2><form id="upload-form">
-          <label class="file-picker" for="pdf-file"><span class="file-symbol" aria-hidden="true">↑</span><strong id="file-label">选择一份 PDF</strong><span id="file-detail">最大 20 MB</span><input id="pdf-file" type="file" accept=".pdf,application/pdf" required></label>
-          <label for="document-title">文献标题 <span class="required">*</span></label><input id="document-title" name="title" type="text" required placeholder="输入论文或书籍标题">
-          <label for="document-authors">作者 <span class="optional">选填</span></label><input id="document-authors" name="authors" type="text" placeholder="例如：作者甲，作者乙">
-          <label for="document-subject">所属专业</label><select id="document-subject" name="subject_id" required></select>
-          <button class="button primary upload-button" id="upload-submit" type="submit">保存到文献库 <span aria-hidden="true">↗</span></button>
-          <progress id="upload-progress" max="100" value="0" aria-label="上传进度" hidden></progress><p id="upload-message" class="form-message" role="status"></p>
-        </form></aside>
-      </div>
-    </section>
-  </main>
-  <footer><span>云数学 · 数学研究平台</span><span>文献是起点，研究是方向。</span></footer>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <aside class="sidebar">
+    <a class="brand" href="#/"><span class="brand-mark" aria-hidden="true">𝓜</span><span>云数学<small>数学研究平台</small></span></a>
+    <nav aria-label="工作空间导航"><a href="#/" id="home-link" class="workspace-link"><span aria-hidden="true">⌘</span>研究工作台</a><p class="nav-heading">数学专业</p><div id="subject-nav" class="subject-nav"></div></nav>
+    <div class="sidebar-future"><span class="small-mark" aria-hidden="true">✧</span><strong>更多研究应用</strong><p>AI 文献助手与扩展模块<br>将在后续加入。</p></div>
+    <div class="sidebar-foot">把文献变成研究的起点</div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><span id="breadcrumb">研究工作台</span><span class="workspace-label"><span aria-hidden="true" class="workspace-dot"></span>数学研究空间</span></header>
+    <main id="main-content">
+      <div id="notice" class="notice" role="status" hidden></div>
+      <section id="home-view">
+        <div class="hero"><div class="hero-content"><span class="hero-kicker">思考 · 阅读 · 探索</span><h1>研究，从一个方向开始。</h1><p>选择数学专业，收集相关文献。<br>让分散的阅读，逐渐成为自己的研究积累。</p><a class="button primary" href="#directions">选择数学专业</a></div>
+          <div class="math-art" aria-hidden="true"><svg viewBox="0 0 420 245"><g class="mesh-lines"><path d="M40 154 Q133 221 202 124 T379 86M47 136 Q132 199 204 109 T372 71M54 117 Q133 178 206 94 T365 56M62 98 Q135 158 208 79 T357 42M70 81 Q137 139 210 64 T349 29M79 64 Q140 120 212 50 T340 17M90 50 Q143 103 214 37 T328 9"/><path d="M40 154 Q69 113 90 50M64 168 Q94 111 113 58M91 174 Q120 110 141 62M120 167 Q145 108 168 57M149 153 Q173 87 195 46M177 135 Q201 70 222 31M202 124 Q229 55 251 14M231 109 Q258 46 281 6M262 91 Q286 38 309 8M292 79 Q315 35 334 13M322 76 Q339 35 355 32M351 79 Q363 53 370 60M379 86 Q376 78 372 71"/></g><path class="mesh-accent" d="M40 154 Q133 221 202 124 T379 86"/><circle cx="202" cy="124" r="5"/><path class="axis" d="M27 206H389M27 206V34M27 206L114 239"/><text x="392" y="211">x</text><text x="21" y="29">z</text><text x="120" y="240">y</text><text class="formula" x="270" y="209">f : ℝ² → ℝ</text></svg></div>
+        </div>
+        <div class="home-columns">
+          <section class="directions-section" id="directions" aria-labelledby="directions-title"><div class="section-heading"><h2 id="directions-title">数学专业</h2><span class="section-description">选择方向，进入研究空间</span></div><div id="subject-cards" class="subject-grid" aria-live="polite"><p class="muted">正在加载数学方向…</p></div><button id="retry-subjects" class="button" hidden>重新加载</button></section>
+          <aside class="research-note"><span class="note-symbol" aria-hidden="true">∴</span><h2>为你的研究留出空间</h2><p>从专业文献开始。阅读笔记、数学工具与 AI 助手，之后逐步加入。</p><div class="planned-feature"><span>AI 文献助手</span><span class="pill">规划中</span></div><div class="planned-feature"><span>扩展应用</span><span class="pill">规划中</span></div></aside>
+        </div>
+        <section class="recent-section" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">最近加入的文献</h2><span class="section-description">各专业共用的研究资料</span></div><div id="recent-documents" class="document-list" aria-live="polite"></div></section>
+      </section>
+      <section id="module-view" hidden>
+        <a class="back-link" href="#/">返回研究工作台</a>
+        <div class="module-heading"><div><h1 id="module-title"></h1><p>这个方向的文献与研究资料。</p></div><span class="module-badge">专业空间</span></div>
+        <div class="module-layout">
+          <section class="library-panel" aria-labelledby="library-title"><div class="section-heading"><h2 id="library-title">专业文献</h2><button class="button compact" id="refresh-documents">刷新列表</button></div><p class="list-status muted" id="list-status" role="status"></p><div id="module-documents" class="document-list"></div><div class="pagination"><button class="button compact" id="previous-page" disabled>上一页</button><span id="page-label">第 1 页</span><button class="button compact" id="next-page" disabled>下一页</button></div></section>
+          <aside class="upload-panel"><h2>添加文献</h2><p class="upload-intro">选择电脑上的 PDF，保存到专业文献库。</p><form id="upload-form">
+            <label class="file-picker" for="pdf-file"><span class="file-symbol" aria-hidden="true">⇧</span><strong id="file-label">选择 PDF 文件</strong><span id="file-detail">最大 20 MB</span><input id="pdf-file" type="file" accept=".pdf,application/pdf" required></label>
+            <label for="document-title">文献标题 <span class="required">*</span></label><input id="document-title" name="title" type="text" required placeholder="输入文献标题">
+            <label for="document-authors">作者 <span class="optional">选填</span></label><input id="document-authors" name="authors" type="text" placeholder="输入作者姓名">
+            <label for="document-subject">所属专业</label><select id="document-subject" name="subject_id" required></select>
+            <button class="button primary upload-button" id="upload-submit" type="submit">保存到文献库</button><progress id="upload-progress" max="100" value="0" aria-label="上传进度" hidden></progress><p id="upload-message" class="form-message" role="status"></p>
+          </form></aside>
+        </div>
+      </section>
+    </main>
+    <footer><span>云数学</span><span>属于数学研究者的工作空间</span></footer>
+  </div>
 </body>
 </html>

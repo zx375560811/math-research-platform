@@ -75,12 +75,19 @@ async function main() {
     await page.goto(base);
     await page.locator('.subject-card').first().waitFor();
     assert.equal(await page.locator('.subject-card').count(), 5);
+    assert.equal(await page.locator('#subject-nav a').count(), 5);
+    assert.equal(await page.locator('#home-link').getAttribute('aria-current'), 'page');
     assert.match(await page.locator('#recent-documents').textContent(), /已有研究文献/);
     const shots = path.join(frontend, 'tests/artifacts'); fs.mkdirSync(shots, { recursive: true });
     await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('.subject-card').filter({ hasText: '代数' }).click();
     await page.locator('#module-documents h3').first().waitFor();
     assert.equal(await page.locator('#module-title').textContent(), '代数');
+    assert.equal(await page.locator('#subject-nav a[data-subject-id="1"]').getAttribute('aria-current'), 'page');
     await page.locator('#pdf-file').setInputFiles({ name: '新论文.pdf', mimeType: 'application/pdf', buffer: pdf });
     assert.equal(await page.locator('#document-title').inputValue(), '新论文');
     const title = '定理 "A" <img src=x onerror=alert(1)>';
@@ -99,6 +106,8 @@ async function main() {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.setViewportSize({ width: 320, height: 760 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.screenshot({ path: path.join(shots, 'module-desktop.png'), fullPage: true });
     for (let i = 0; i < 19; i++) await seed(`分页文献 ${i}`);
@@ -107,7 +116,7 @@ async function main() {
     await page.locator('#next-page').click(); await page.waitForFunction(() => document.getElementById('page-label').textContent === '第 2 页');
     assert.equal(await page.locator('#module-documents .document-row').count(), 1);
     await page.locator('#previous-page').click(); await page.waitForFunction(() => document.getElementById('page-label').textContent === '第 1 页');
-    await page.locator('.back-link').click(); await page.locator('.subject-card').filter({ hasText: '数论' }).click();
+    await page.locator('#subject-nav a[data-subject-id="2"]').click();
     await page.locator('#module-documents .empty-state').waitFor();
     assert.equal(await page.locator('#document-subject').inputValue(), '2');
     await page.route('**/api/documents?subject_id=2*', route => route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"database_error"}' }));
