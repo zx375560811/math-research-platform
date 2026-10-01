@@ -1,12 +1,61 @@
 # 数学研究平台：C 后端起步版
 
-本阶段只有三个 GET 接口：
+当前接口：
 
 - `/api/health`：服务与数据库运行状态。
 - `/api/subjects`：从 SQLite 返回五个数学专业分类。
 - `/api/ai/status`：明确返回尚未接入 AI，不调用模型。
+- `POST /api/documents`：上传 PDF 并保存标题、作者、所属专业。
+- `GET /api/documents`：文献列表，支持专业筛选与分页。
+- `GET /api/documents/{id}`：文献详情。
+- `GET /api/documents/{id}/file`：下载 PDF。
 
-尚未实现文献上传、登录、前端和实际 AI 问答。
+尚未实现登录、前端和实际 AI 问答。服务只监听本机。
+
+## 文献上传与查询
+
+启动时自动增加文献表及文献与专业的关联表，保留已有专业和文献数据。PDF 存在工作目录下的 `data/files/`，数据库只保存元数据和文件关联。备份时需同时备份数据库与文件目录。
+
+本阶段每次上传选择一个已有专业，底层关联表允许以后扩展为多个专业。文件不超过 20 MiB，检查 `application/pdf` 类型和 `%PDF-` 文件头；这不是完整 PDF 内容解析。标题必填，作者可省略，两者各最多 500 个 UTF-8 字节。文件名由服务器生成，与上传文件名及标题无关。
+
+元数据放在 URL 参数中（非 ASCII 内容需 URL 编码），请求体为 PDF 原始字节，不使用 multipart。前端接入时可用 `URLSearchParams` 构造参数，以 `File` 作为请求体。
+
+把 `/root/paper.pdf` 替换为服务器上实际存在的 PDF 路径，在 SSH 终端执行：
+
+```bash
+curl -fsS -X POST \
+  -H 'Content-Type: application/pdf' \
+  --data-binary @/root/paper.pdf \
+  'http://127.0.0.1:8080/api/documents?title=Test%20paper&authors=Author&subject_id=1'
+```
+
+成功返回 HTTP 201 和文献编号，例如 `{"id":1,"file_url":"/api/documents/1/file"}`。再查询或下载（编号替换为实际返回值）：
+
+```bash
+curl -fsS 'http://127.0.0.1:8080/api/documents?subject_id=1'
+curl -fsS 'http://127.0.0.1:8080/api/documents/1'
+curl -fS 'http://127.0.0.1:8080/api/documents/1/file' -o /root/downloaded-paper.pdf
+```
+
+列表按编号倒序，每页最多 20 条；下一页使用 `offset=20`，再下一页 `offset=40`。无 `subject_id` 时返回所有专业的文献。
+
+文件传输完成后才写入数据库；数据库事务失败或上传连接中断时清理本次临时文件。进程被强制终止或服务器掉电仍可能留下未关联文件，当前版本尚无自动清理工具。API 尚无修改、删除或去重功能。
+
+### 已配置 systemd 的服务器更新
+
+先拉取源码；成功后停止服务、编译，只有编译成功才启动：
+
+```bash
+cd /opt/math-platform
+git pull --ff-only
+systemctl stop math-platform
+cd backend
+make && systemctl start math-platform
+systemctl status math-platform --no-pager
+curl -fsS http://127.0.0.1:8080/api/health
+```
+
+停止服务后编译是为了避免覆盖正在使用的可执行文件。编译失败时修正错误，再执行 `make && systemctl start math-platform`。
 
 ## Alibaba Cloud Linux 3
 
@@ -86,4 +135,13 @@ journalctl -u math-platform -n 50 --no-pager
 python3 tests/smoke.py
 ```
 
-脚本验证数据库状态、分类、错误路由、请求方法及 AI 未配置状态。用户已在 Alibaba Cloud Linux 3 完成编译并验证运行状态与专业列表；完整 HTTP 检查及 systemd 配置尚待服务器执行。
+脚本验证数据库状态、分类、错误路由、请求方法及 AI 未配置状态。用户已在 Alibaba Cloud Linux 3 完成旧版编译、运行状态与专业列表验证，并启用 systemd 服务。
+
+新增的完整集成检查使用临时目录和独立端口，不修改服务器的正式数据库：
+
+```bash
+python3 tests/schema.py
+python3 tests/integration.py
+```
+
+GitHub Actions 也执行 C 编译、数据库检查和上传/查询/下载集成检查。新增功能是否通过，以实际检查结果为准。

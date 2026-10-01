@@ -10,18 +10,12 @@
 #include <sys/stat.h>
 #include <time.h>
 #include "schema.h"
-
-/* Older distribution packages use int for HTTP callbacks. */
-#if MHD_VERSION >= 0x00097100
-typedef enum MHD_Result http_result;
-#else
-typedef int http_result;
-#endif
+#include "http.h"
 
 static volatile sig_atomic_t stopping = 0;
 static void stop_server(int sig) { (void)sig; stopping = 1; }
 
-static http_result reply(struct MHD_Connection *connection,
+http_result reply(struct MHD_Connection *connection,
                          unsigned int status, const char *json)
 {
     struct MHD_Response *response = MHD_create_response_from_buffer(
@@ -29,14 +23,12 @@ static http_result reply(struct MHD_Connection *connection,
     if (!response) return MHD_NO;
     MHD_add_response_header(response, "Content-Type", "application/json; charset=utf-8");
     MHD_add_response_header(response, "Cache-Control", "no-store");
-    if (status == 405) MHD_add_response_header(response, "Allow", "GET");
     http_result result = MHD_queue_response(connection, status, response);
     MHD_destroy_response(response);
     return result;
 }
 
-struct json_buffer { char data[16384]; size_t length; };
-static int append(struct json_buffer *buffer, const char *value)
+int append(struct json_buffer *buffer, const char *value)
 {
     size_t n = strlen(value);
     if (n >= sizeof(buffer->data) - buffer->length) return 0;
@@ -45,7 +37,7 @@ static int append(struct json_buffer *buffer, const char *value)
     return 1;
 }
 
-static int append_json_string(struct json_buffer *buffer, const unsigned char *value)
+int append_json_string(struct json_buffer *buffer, const unsigned char *value)
 {
     if (!value || !append(buffer, "\"")) return 0;
     for (; *value; ++value) {
@@ -88,16 +80,28 @@ static http_result subjects(sqlite3 *db, struct MHD_Connection *connection)
     return reply(connection, 200, buffer.data);
 }
 
+static int read_only_request;
+static void request_completed(void *cls, struct MHD_Connection *connection,
+    void **context, enum MHD_RequestTerminationCode reason)
+{
+    (void)cls; (void)connection; (void)reason;
+    if (*context && *context != &read_only_request) documents_cleanup(*context);
+    *context = NULL;
+}
+
 static http_result handle_request(void *cls, struct MHD_Connection *connection,
     const char *url, const char *method, const char *version,
     const char *upload_data, size_t *upload_size, void **request_context)
 {
-    (void)version; (void)upload_data;
-    static int marker;
+    (void)version;
+    int uploading = strcmp(url, "/api/documents") == 0 && strcmp(method, "POST") == 0;
     if (!*request_context) {
-        *request_context = &marker;
+        *request_context = uploading ? documents_begin(cls, connection) : &read_only_request;
+        if (!*request_context) return MHD_NO;
         return MHD_YES;
     }
+    if (uploading)
+        return documents_upload(cls, connection, *request_context, upload_data, upload_size);
     if (*upload_size != 0) { *upload_size = 0; return MHD_YES; }
     if (strcmp(method, "GET") != 0)
         return reply(connection, 405, "{\"error\":\"method_not_allowed\"}");
@@ -107,6 +111,8 @@ static http_result handle_request(void *cls, struct MHD_Connection *connection,
         return reply(connection, 200, "{\"status\":\"ok\",\"database\":\"ok\"}");
     }
     if (strcmp(url, "/api/subjects") == 0) return subjects(cls, connection);
+    if (strcmp(url, "/api/documents") == 0 || strncmp(url, "/api/documents/", 15) == 0)
+        return documents_get(cls, connection, url);
     if (strcmp(url, "/api/ai/status") == 0)
         return reply(connection, 200, "{\"enabled\":false,\"status\":\"not_configured\"}");
     return reply(connection, 404, "{\"error\":\"not_found\"}");
@@ -125,6 +131,9 @@ int main(void)
     }
     if (mkdir("data", 0700) != 0 && errno != EEXIST) {
         perror("mkdir data"); return EXIT_FAILURE;
+    }
+    if (mkdir("data/files", 0700) != 0 && errno != EEXIST) {
+        perror("mkdir data/files"); return EXIT_FAILURE;
     }
     sqlite3 *db = NULL;
     if (sqlite3_open(db_path, &db) != SQLITE_OK) {
@@ -154,6 +163,7 @@ int main(void)
         MHD_OPTION_SOCK_ADDR, &address,
         MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int)15,
         MHD_OPTION_CONNECTION_LIMIT, (unsigned int)64,
+        MHD_OPTION_NOTIFY_COMPLETED, request_completed, NULL,
         MHD_OPTION_END);
     if (!daemon) {
         fprintf(stderr, "Cannot start HTTP server\n"); sqlite3_close(db); return EXIT_FAILURE;
