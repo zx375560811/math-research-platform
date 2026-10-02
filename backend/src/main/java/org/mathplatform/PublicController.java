@@ -54,10 +54,15 @@ public class PublicController {
 
     @GetMapping({"/", "/index.html", "/app.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js"})
     public ResponseEntity<InputStreamResource> web(HttpServletRequest request) {
+        if (!java.util.Set.of("/", "/index.html", "/app.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js").contains(request.getRequestURI()))
+            throw new ApiProblem(404, "not_found");
         String name = request.getRequestURI().equals("/") ? "index.html" : request.getRequestURI().substring(1);
         String type = name.endsWith(".html") ? "text/html; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8";
         return resource(Path.of(LibraryRepository.setting("MATH_WEB_DIR", "../frontend")).resolve(name), type, 503, true).build();
     }
+
+    @GetMapping("/**")
+    public Map<String, String> missing() { throw new ApiProblem(404, "not_found"); }
 
     /** Hold a non-following channel open throughout response streaming. */
     private static FileBody resource(Path file, String type, int failureStatus, boolean staticAsset) {

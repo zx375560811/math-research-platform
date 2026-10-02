@@ -26,7 +26,7 @@ def request(path, method='GET', data=None):
         response = error
     with response:
         raw = response.read()
-        return response.status, raw if response.headers.get_content_type() == 'application/pdf' else json.loads(raw)
+        return response.status, json.loads(raw) if 'json' in response.headers.get_content_type() else raw
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     (root / 'data/files').mkdir(parents=True)
@@ -70,7 +70,9 @@ with tempfile.TemporaryDirectory() as directory:
                 assert set((root / 'data/files').iterdir()) == before
             assert len(request('/api/documents')[1]['documents']) == 2
             assert request('/api/documents/41')[1]['authors'] == 'Original author'
-            for path in ['/schema.h', '/data/math.db', '/admin/import_document.py', '/../backend/src/main.c', '/api/documents/999999/file']: assert request(path)[0] == 404
+            for path in ['/schema.h', '/data/math.db', '/admin/import_document.py', '/api/documents/999999/file']: assert request(path)[0] == 404
+            # Tomcat rejects traversal before Spring routing; both rejection statuses protect the boundary.
+            assert request('/../backend/src/main.c')[0] in (400, 404)
             assert request('/api/documents?offset=-1')[0] == 400
             assert request('/api/documents?subject_id=1%20OR%201=1')[0] == 400
         finally:
