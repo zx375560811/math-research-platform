@@ -1,5 +1,5 @@
 [Unit]
-Description=Math Research Platform C Backend
+Description=Math Research Platform Java Backend
 After=network.target
 
 [Service]
@@ -7,7 +7,7 @@ Type=simple
 User=math-platform
 Group=math-platform
 WorkingDirectory=/opt/math-platform/backend
-ExecStart=/opt/math-platform/backend/build/math-server
+ExecStart=/usr/bin/java -Xms64m -Xmx256m -jar /opt/math-platform/backend/target/math-server.jar
 Environment=MATH_PORT=8080
 Environment=MATH_DB_PATH=/opt/math-platform/backend/data/math.db
 Restart=on-failure

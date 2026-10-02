@@ -1,4 +1,4 @@
-name: C backend checks
+name: Java backend checks
 on:
   push:
   pull_request:
@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libmicrohttpd-dev libsqlite3-dev
-      - name: Compile C backend
-        run: make -C backend
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Build Java backend
+        run: cd backend && ./mvnw -B package
       - name: Check database initialization
         run: python3 backend/tests/schema.py
       - name: Check read-only API and administrator import

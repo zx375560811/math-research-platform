@@ -36,14 +36,14 @@ async function main() {
     } else {
       const probe = http.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve)); port = probe.address().port; await new Promise(resolve => probe.close(resolve));
       temp = fs.mkdtempSync(path.join(os.tmpdir(), 'math-ui-'));
-      child = spawn(path.join(repo, 'backend/build/math-server'), [], { cwd: temp, env: { ...process.env, MATH_PORT: String(port), MATH_WEB_DIR: frontend } });
+      child = spawn('java', ['-jar', path.join(repo, 'backend/target/math-server.jar')], { cwd: temp, env: { ...process.env, MATH_PORT: String(port), MATH_WEB_DIR: frontend } });
       child.stdout.on('data', chunk => logs += chunk); child.stderr.on('data', chunk => logs += chunk); child.on('error', error => logs += error.message);
     }
     const base = `http://127.0.0.1:${port}`;
     for (let i = 0; ; i++) {
       try { if ((await fetch(`${base}/api/health`)).ok) break; } catch {}
-      if (i >= 100) throw new Error(`Server did not start: ${logs}`);
-      await new Promise(resolve => setTimeout(resolve, 50));
+      if (i >= 300) throw new Error(`Server did not start: ${logs}`);
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     if (temp) {
       fs.writeFileSync(path.join(temp, 'source.pdf'), pdf);

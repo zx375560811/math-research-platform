@@ -18,33 +18,54 @@
 
 公共 HTTP 服务仅支持 GET；POST/PUT/PATCH/DELETE 均返回 405，没有管理员 HTTP 上传入口。文献管理采用服务器本地命令，不依赖浏览器或公开 API。已有 SQLite 数据和 PDF 不迁移、不删除。
 
-前端使用 HTML/CSS/JavaScript 和本地 Morphicons，由 C 后端提供，不需要服务器 Node.js。视觉依据见 [设计说明](frontend/DESIGN.md)。
+前端使用 HTML/CSS/JavaScript 和本地 Morphicons，由 Java / Spring Boot 后端提供，不需要服务器 Node.js。视觉依据见 [设计说明](frontend/DESIGN.md)。
 
 ## 部署和更新
 
 Alibaba Cloud Linux 3：
 
 ```bash
-dnf install -y git gcc make pkgconf-pkg-config sqlite-devel libmicrohttpd-devel python3
+dnf install -y git java-17-openjdk-devel curl python3
 git clone https://github.com/zx375560811/math-research-platform.git /opt/math-platform
 cd /opt/math-platform/backend
-make
-make run
+./mvnw -B package
+java -jar target/math-server.jar
 ```
 
 首次启动初始化数据库。服务仅监听 127.0.0.1:8080。常驻配置见 [后端说明](backend/README.md#systemd-常驻运行)。公网反向代理与 HTTPS 尚未配置。
 
-已配置 systemd 的服务器更新：
+## 从旧 C 后端迁移到 Java
+
+前端仍为原生 HTML/CSS/JavaScript；Java 17 + Spring Boot 4.1.1 + Maven Wrapper 3.9.11 替换 C 服务。沿用 SQLite 文件、文献 ID、PDF 路径、只读 API 和服务账号。不需要转换数据库。
+
+在服务器执行：
 
 ```bash
+dnf install -y java-17-openjdk-devel curl python3
 cd /opt/math-platform
 git pull --ff-only
-systemctl stop math-platform
 cd backend
-make && systemctl start math-platform
+./mvnw -B package
 ```
 
-这次必须重新编译并重启，才能关闭旧版上传接口。Git 更新不会修改 `backend/data/`，该目录必须单独备份。
+**仅当构建成功后**，备份并切换服务（新服务文件必须替换旧 ExecStart）：
+
+```bash
+systemctl stop math-platform
+cp -a data "data-backup-before-java-$(date +%Y%m%d-%H%M%S)"
+cp /etc/systemd/system/math-platform.service /etc/systemd/system/math-platform.service.before-java
+install -m 644 deploy/math-platform.service /etc/systemd/system/math-platform.service
+systemctl daemon-reload
+systemctl start math-platform
+systemctl status math-platform --no-pager
+curl -fsS http://127.0.0.1:8080/api/health
+```
+
+服务仍使用 `/opt/math-platform/backend` 工作目录和 `data/math.db`。如果旧服务使用自定义 MATH_DB_PATH，切换前将同一配置写入新 service。服务账号必须能读写 data 目录；旧有部署已具备这些权限。管理员入库脚本保持兼容。
+
+以后更新 Java 服务：先 git pull、`./mvnw -B package` 构建成功，再 `systemctl restart math-platform`。运行数据不进入 Git，须单独备份。
+
+回退此次迁移：恢复 `/etc/systemd/system/math-platform.service.before-java`，daemon-reload 后重启；旧 `build/math-server` 编译产物未被更新命令删除。不要在 Java 运行时覆盖数据库备份。
 
 ## 在电脑打开网站
 

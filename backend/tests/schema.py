@@ -4,8 +4,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-header = (Path(__file__).resolve().parents[1] / 'src/schema.h').read_text(encoding='utf-8')
-sql = ''.join(ast.literal_eval(s) for s in re.findall(r'"(?:\\.|[^"\\])*"', header))
+sql = (Path(__file__).resolve().parents[1] / 'src/main/resources/schema.sql').read_text(encoding='utf-8')
 with sqlite3.connect(':memory:') as db:
     db.executescript(sql)
     assert db.execute('SELECT COUNT(*) FROM subjects').fetchone()[0] == 5

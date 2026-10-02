@@ -1,4 +1,4 @@
-# C 后端与管理员文献库
+# Java 后端与管理员文献库
 
 网页应用以文献库为内容来源；文献管理不向公共用户开放。HTTP 服务只读，管理员在服务器通过本地脚本入库。
 
@@ -6,11 +6,13 @@
 
 ```bash
 cd /opt/math-platform/backend
-make
-make run
+./mvnw -B package
+java -jar target/math-server.jar
 ```
 
-依赖：gcc、make、pkg-config、libmicrohttpd、SQLite。管理员脚本另需 Python 3 标准库，无需 pip 包。编译严格使用 C11 和 Werror。
+依赖：Java 17（OpenJDK）和 curl 或 wget。Maven Wrapper 固定 Maven 3.9.11，首次构建下载工具和依赖并校验工具 SHA-256。无需服务器全局安装 Maven。Spring Boot 4.1.1 提供 HTTP 服务，SQLite JDBC 3.53.4.0 访问原有数据库。管理员本地维护脚本继续使用 Python 3 标准库。
+
+代码分层：`PublicController` 接口与静态页面、`ResearchService` 应用内容、`LibraryRepository` 共享文献库、`PublicBoundary` 公共只读约束。请求数据库连接设置 `PRAGMA query_only=ON`；启动时仅执行幂等 schema 初始化。AI 接口继续预留，未加入模型调用。
 
 环境变量：`MATH_PORT` 默认 8080；`MATH_DB_PATH` 默认 `data/math.db`；`MATH_WEB_DIR` 默认 `../frontend`。工作目录必须为 backend，文件路径以此为基准。服务仅监听 127.0.0.1。
 
@@ -46,7 +48,7 @@ rm /tmp/math-import.pdf
 
 ## systemd 常驻运行
 
-使用 `deploy/math-platform.service`，服务账号 math-platform，工作目录 `/opt/math-platform/backend`。部署前创建账号并将 `backend/data/` 授权给该账号；源码与构建文件只需可读/可执行。注册服务后：
+使用 `deploy/math-platform.service`，服务账号 math-platform，工作目录 `/opt/math-platform/backend`。部署前创建账号并将 `backend/data/` 授权给该账号；源码与 JAR 文件只需可读。注册服务后：
 
 ```bash
 systemctl daemon-reload
@@ -54,7 +56,7 @@ systemctl enable --now math-platform
 systemctl status math-platform --no-pager
 ```
 
-更新源码后先停服务、重新 make，再启动。日志：`journalctl -u math-platform -n 30 --no-pager -l`。检查 HTTP 写入已关闭：
+从 C 迁移时须替换 service 的 ExecStart 为 Java JAR，详见根目录 README；以后的 Java 更新先构建成功，再重启。日志：`journalctl -u math-platform -n 30 --no-pager -l`。检查 HTTP 写入已关闭：
 
 ```bash
 curl -i -X POST http://127.0.0.1:8080/api/documents
@@ -65,9 +67,9 @@ curl -i -X POST http://127.0.0.1:8080/api/documents
 ## 验证
 
 ```bash
-make
+./mvnw -B package
 python3 tests/schema.py
 python3 tests/integration.py
 ```
 
-集成检查覆盖只读写入拒绝、管理员入库、失败清理、既有分类保留、分类过滤、原文一致性与静态文件边界。GitHub Actions 另运行真实 C 后端浏览器测试，覆盖应用入口、分页、错误恢复、XSS 文本输出和手机布局。
+集成检查覆盖只读写入拒绝、管理员入库、失败清理、既有分类保留、分类过滤、原文一致性与静态文件边界。GitHub Actions 另运行真实 Java 后端浏览器测试，覆盖应用入口、分页、错误恢复、XSS 文本输出和手机布局。
