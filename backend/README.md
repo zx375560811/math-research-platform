@@ -79,7 +79,7 @@ python3 tests/integration.py
 | 方法 | 地址 | 用途 |
 | --- | --- | --- |
 | GET | /api/auth/csrf | 创建/读取会话 CSRF token，返回 token 和 header 名 |
-| POST | /api/auth/register | JSON username/password，创建固定 USER 账号 |
+| POST | /api/auth/register | JSON username/password/invitation，凭有效邀请码创建 USER 账号 |
 | POST | /api/auth/login | 登录，轮换会话 ID，保存 Spring Security 上下文 |
 | GET | /api/auth/me | 当前登录状态，不返回密码哈希 |
 | POST | /api/auth/logout | 清除会话和 Cookie |
@@ -87,3 +87,19 @@ python3 tests/integration.py
 POST 必须携带同一会话 GET /api/auth/csrf 返回的 header/token；每次提交前重新获取，登录会轮换 token。Cookie HttpOnly、SameSite=Lax，仅使用 Cookie 追踪会话。网站入口直接显示独立登录/注册表单，登录后才能进入工作台。研究方向 /api/subjects 和资料接口 /api/documents 及其子路径未登录返回 401；健康状态、账号入口和必要的网页资产公开。账号哈希保存在同一个 math.db 的 users 表。没有默认账号、默认密码或网页管理员。注册不赋予底层文献管理能力。
 
 注册按来源地址限制每小时 10 次提交，登录每 15 分钟 30 次提交（含成功和失败），返回 429。限制为单进程内存状态，重启会重置；后续代理部署时再配置可信来源地址。
+
+
+### 邀请注册与旧账号切换
+
+升级到邀请注册版本后，首次启动会执行一次 `invite_only_v1` 迁移，**删除所有原有账号**。文献、文件和分类保持不变。会话不跨重启保存，旧用户必须重新获得邀请码注册。迁移记录写入同一数据库，后续重启保留新账号；不要删除迁移记录。
+
+注册请求增加 `invitation` 字段，必须是管理员提供的有效邀请码。随机码仅保存 SHA-256 哈希，注册与消耗邀请码在同一事务内完成；过期、已用和未知码返回 `invalid_invitation`，注册失败不消耗邀请码。没有生成邀请码的公开 HTTP 接口。
+
+先构建并重启新版本，然后在服务器执行：
+
+```bash
+cd /opt/math-platform/backend
+python3 admin/create_invitation.py
+```
+
+每次输出一个仅可注册一次、默认 7 天有效的邀请码。复制给获准注册的人，也给自己生成一个。可用 `--days 30` 设置 1–365 天有效期，`--database /absolute/path/math.db` 指定数据库。完整邀请码只在生成时输出，不要提交到 GitHub。

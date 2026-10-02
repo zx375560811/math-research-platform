@@ -24,4 +24,13 @@ username TEXT NOT NULL UNIQUE,
 password_hash TEXT NOT NULL,
 role TEXT NOT NULL DEFAULT 'USER' CHECK(role='USER'),
 created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
+CREATE TABLE IF NOT EXISTS invitations (
+code_hash TEXT PRIMARY KEY,
+expires_at INTEGER,
+used_at TEXT,
+used_by TEXT REFERENCES users(username) ON DELETE SET NULL,
+created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
+CREATE TABLE IF NOT EXISTS account_migrations (
+name TEXT PRIMARY KEY,
+applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
 COMMIT;

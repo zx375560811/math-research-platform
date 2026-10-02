@@ -13,7 +13,7 @@ const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'nu
 async function main() {
   let browser, server, child, temp; let logs = '';
   try {
-    let port;
+    let port; let invitation = 'I'.repeat(43); let invitationUsed = false;
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
       const users = new Map(); const sessions = new Map();
@@ -30,7 +30,7 @@ async function main() {
           if (!session || req.headers['x-csrf-token'] !== session.token) return json({ error: 'invalid_csrf' }, 403);
           const parts = []; for await (const part of req) parts.push(part); const body = JSON.parse(Buffer.concat(parts));
           const name = (body.username || '').toLowerCase();
-          if (url.pathname.endsWith('/register')) { if (users.has(name)) return json({ error: 'username_taken' }, 409); users.set(name, body.password); return json({ user: { username: name, role: 'USER' } }, 201); }
+          if (url.pathname.endsWith('/register')) { if (body.invitation !== invitation || invitationUsed) return json({ error: 'invalid_invitation' }, 400); if (users.has(name)) return json({ error: 'username_taken' }, 409); users.set(name, body.password); invitationUsed = true; return json({ user: { username: name, role: 'USER' } }, 201); }
           if (url.pathname.endsWith('/logout')) { delete session.user; return json({ status: 'ok' }); }
           if (users.get(name) !== body.password) return json({ error: 'invalid_credentials' }, 401);
           session.user = { username: name, role: 'USER' }; return json({ user: session.user });
@@ -63,6 +63,7 @@ async function main() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     if (temp) {
+      const issued = spawnSync('python3', [path.join(repo, 'backend/admin/create_invitation.py')], { cwd: temp, encoding: 'utf8' }); assert.equal(issued.status, 0, issued.stderr); invitation = issued.stdout.trim();
       fs.writeFileSync(path.join(temp, 'source.pdf'), pdf);
       for (const doc of documents) {
         const result = spawnSync('python3', [path.join(repo, 'backend/admin/import_document.py'), 'source.pdf', '--title', doc.title, '--authors', doc.authors, '--subject-id', '1'], { cwd: temp, encoding: 'utf8' });
@@ -87,9 +88,13 @@ async function main() {
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'register-mobile.png'), fullPage: true });
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.locator('#account-invitation').fill(invitation);
     await page.locator('#account-username').fill('browser_reader'); await page.locator('#account-password').fill('BrowserPass123!'); await page.locator('#account-confirm').fill('DifferentPass123!');
     await page.locator('#account-submit').click(); await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('不一致'));
-    await page.locator('#account-confirm').fill('BrowserPass123!'); await page.locator('#account-submit').click();
+    await page.locator('#account-confirm').fill('BrowserPass123!');
+    await page.locator('#account-invitation').fill('invalid-code'); await page.locator('#account-submit').click();
+    await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('邀请码无效'));
+    await page.locator('#account-invitation').fill(invitation); await page.locator('#account-submit').click();
     await page.waitForFunction(() => location.hash === '#/login');
     await page.screenshot({ path: path.join(shots, 'login-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 320, height: 844 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);

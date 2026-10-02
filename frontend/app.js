@@ -4,7 +4,7 @@ const state = { subjects: [], subject: null, offset: 0, generation: 0, loading: 
 const descriptions = { algebra: '结构、对称与运算', 'number-theory': '整数与算术结构', analysis: '极限、函数与变化', 'geometry-topology': '空间、形状与连续性', other: '更多数学研究方向' };
 mountIcons();
 function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
-const accountErrors = { invalid_username: '用户名需为 3–32 位字母、数字或下划线。', invalid_password: '密码至少 12 个字符，最多 72 个 UTF-8 字节。', username_taken: '这个用户名已被使用，请换一个。', invalid_credentials: '用户名或密码不正确。', invalid_csrf: '登录状态已更新，请重新提交。', too_many_attempts: '操作过于频繁，请稍后再试。', login_required: '请先登录。' };
+const accountErrors = { invalid_invitation: '邀请码无效、已使用或已过期，请联系管理员。', invalid_username: '用户名需为 3–32 位字母、数字或下划线。', invalid_password: '密码至少 12 个字符，最多 72 个 UTF-8 字节。', username_taken: '这个用户名已被使用，请换一个。', invalid_credentials: '用户名或密码不正确。', invalid_csrf: '登录状态已更新，请重新提交。', too_many_attempts: '操作过于频繁，请稍后再试。', login_required: '请先登录。' };
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
   if (!response.ok) {
@@ -62,6 +62,7 @@ function route() {
   document.body.classList.toggle('auth-page', inAuth);
   $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inAuth; $('module-view').hidden = !inApp;
   $('auth-title').textContent = registering ? '注册云数学账号' : '登录云数学'; $('account-submit').textContent = registering ? '注册账号' : '登录';
+  $('invitation-label').hidden = !registering; $('account-invitation').hidden = !registering; $('account-invitation').required = registering;
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
   $('account-password').autocomplete = registering ? 'new-password' : 'current-password'; $('account-password').minLength = registering ? 12 : 1;
   $('login-tab').classList.toggle('active', !registering); $('register-tab').classList.toggle('active', registering);
@@ -92,9 +93,9 @@ $('account-form').addEventListener('submit', async event => {
   state.authBusy = true; for (const field of $('account-form').elements) field.disabled = true;
   authMessage(registering ? '正在注册…' : '正在登录…');
   try {
-    const body = await authPost(registering ? '/api/auth/register' : '/api/auth/login', { username, password });
+    const body = await authPost(registering ? '/api/auth/register' : '/api/auth/login', { username, password, ...(registering ? { invitation: $('account-invitation').value.trim() } : {}) });
     $('account-password').value = ''; $('account-confirm').value = '';
-    if (registering) { authMessage('注册成功，请登录。'); location.hash = '#/login'; }
+    if (registering) { $('account-invitation').value = ''; authMessage('注册成功，请登录。'); location.hash = '#/login'; }
     else { state.user = body.user; accountDisplay(); await loadSubjects(); authMessage(''); location.hash = state.returnTo; }
   } catch (error) { authMessage(friendly(error), true); }
   finally { state.authBusy = false; for (const field of $('account-form').elements) field.disabled = false; }

@@ -32,9 +32,16 @@ public class LibraryRepository {
             if (resource == null) throw new IOException("Missing schema.sql");
             schema = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
         }
-        // Only idempotent initialization writes; every request gets a query-only connection.
+        // Library requests are query-only; account operations use separate write transactions.
         try (Connection connection = connect(false); var statement = connection.createStatement()) {
             for (String sql : schema.split(";")) if (!sql.isBlank()) statement.execute(sql);
+            // One-time transition requested by the owner: discard open-registration accounts.
+            statement.execute("BEGIN IMMEDIATE");
+            try {
+                int applied = statement.executeUpdate("INSERT OR IGNORE INTO account_migrations(name) VALUES('invite_only_v1')");
+                if (applied == 1) statement.executeUpdate("DELETE FROM users");
+                statement.execute("COMMIT");
+            } catch (SQLException failure) { statement.execute("ROLLBACK"); throw failure; }
         }
     }
 

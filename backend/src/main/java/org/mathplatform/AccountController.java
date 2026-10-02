@@ -30,7 +30,7 @@ public class AccountController {
     private final SecurityContextRepository contexts;
     private final Map<String, Attempt> attempts = new LinkedHashMap<>();
     private record Attempt(long start, int count) {}
-    public record Credentials(String username, String password) {}
+    public record Credentials(String username, String password, String invitation) {}
     AccountController(UserRepository users, PasswordEncoder passwords, AuthenticationManager authentication, SecurityContextRepository contexts) {
         this.users = users; this.passwords = passwords; this.authentication = authentication; this.contexts = contexts;
     }
@@ -52,7 +52,7 @@ public class AccountController {
     @PostMapping("/api/auth/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody Credentials credentials, HttpServletRequest request) throws SQLException {
         limit("register:" + request.getRemoteAddr(), 10, 3600000);
-        return ResponseEntity.status(201).body(Map.of("user", users.register(credentials.username, credentials.password, passwords)));
+        return ResponseEntity.status(201).body(Map.of("user", users.register(credentials.username, credentials.password, credentials.invitation, passwords)));
     }
     @PostMapping("/api/auth/login")
     public Map<String, Object> login(@RequestBody Credentials credentials, HttpServletRequest request, HttpServletResponse response) {

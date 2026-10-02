@@ -1,4 +1,5 @@
 """Read-only HTTP and administrator import, against an isolated database."""
+import concurrent.futures
 import importlib.util
 import http.cookiejar
 import json
@@ -15,6 +16,8 @@ backend = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('admin', backend / 'admin/import_document.py')
 admin = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(admin)
+invite_spec = importlib.util.spec_from_file_location('invitations', backend / 'admin/create_invitation.py')
+invitations = importlib.util.module_from_spec(invite_spec); invite_spec.loader.exec_module(invitations)
 pdf = b'%PDF-1.4\n%%EOF\n'
 with socket.socket() as sock:
     sock.bind(('127.0.0.1', 0))
@@ -43,6 +46,9 @@ with tempfile.TemporaryDirectory() as directory:
         db.execute("UPDATE subjects SET name='我的代数分类' WHERE id=1")
         db.execute("INSERT INTO documents(id,title,authors,file_path,file_size) VALUES(41,'Existing C library','Original author','data/files/upload-legacy',?)", (len(pdf),))
         db.execute('INSERT INTO document_subjects VALUES(41,1)')
+        db.commit()
+        db.executescript((backend / 'src/main/resources/schema.sql').read_text(encoding='utf-8'))
+        db.execute("INSERT INTO users(username,password_hash) VALUES('old_reader','legacy-hash')")
     with (root / 'server.log').open('w+') as log:
         process = subprocess.Popen(['java', '-jar', str(backend / 'target/math-server.jar')], cwd=root, env={**os.environ, 'MATH_PORT': str(port), 'MATH_WEB_DIR': str(backend.parent / 'frontend')}, stdout=log, stderr=log)
         previous = Path.cwd()
@@ -61,12 +67,29 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents')[0] == 401
             assert request('/api/documents/41/file')[0] == 401
             assert request('/api/auth/me')[1] == {'authenticated': False}
-            credentials = {'username': 'Reader_1', 'password': 'ResearchPass123!'}
+            with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0
+            code = invitations.create_invitation(str(root / 'data/math.db'))
+            credentials = {'username': 'Reader_1', 'password': 'ResearchPass123!', 'invitation': code}
             assert request('/api/auth/register', 'POST', json.dumps(credentials).encode(), {'Content-Type': 'application/json'})[0] == 403
             assert auth('/api/auth/register', {**credentials, 'password': 'short'})[0] == 400
-            assert auth('/api/auth/register', {**credentials, 'username': '<img src=x>'})[0] == 400
+            assert auth('/api/auth/register', {'username': 'Reader_1', 'password': 'ResearchPass123!'})[0] == 400
+            assert auth('/api/auth/register', {**credentials, 'invitation': 'X' * 43})[0] == 400
+            expired = invitations.create_invitation(str(root / 'data/math.db'))
+            with sqlite3.connect(root / 'data/math.db') as db: db.execute('UPDATE invitations SET expires_at=0 WHERE code_hash=?', (invitations.hashlib.sha256(expired.encode()).hexdigest(),))
+            assert auth('/api/auth/register', {**credentials, 'invitation': expired})[0] == 400
             assert auth('/api/auth/register', credentials)[0] == 201
-            assert auth('/api/auth/register', {**credentials, 'username': 'reader_1'})[0] == 409
+            assert auth('/api/auth/register', {**credentials, 'username': 'another_reader'})[0] == 400
+            unused = invitations.create_invitation(str(root / 'data/math.db'))
+            assert auth('/api/auth/register', {**credentials, 'username': 'reader_1', 'invitation': unused})[0] == 409
+            assert auth('/api/auth/register', {**credentials, 'username': 'reader_2', 'invitation': unused})[0] == 201
+            concurrent_code = invitations.create_invitation(str(root / 'data/math.db'))
+            def concurrent_register(name):
+                opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+                token = json.load(opener.open(base + '/api/auth/csrf'))
+                payload = json.dumps({**credentials, 'username': name, 'invitation': concurrent_code}).encode()
+                try: return opener.open(urllib.request.Request(base + '/api/auth/register', data=payload, headers={'Content-Type': 'application/json', token['header']: token['token']})).status
+                except urllib.error.HTTPError as error: return error.code
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool: assert sorted(pool.map(concurrent_register, ['race_one', 'race_two'])) == [201,400]
             assert auth('/api/auth/login', {**credentials, 'password': 'WrongPassword123!'})[0] == 401
             before_session = next(c.value for c in cookies if c.name == 'JSESSIONID')
             assert auth('/api/auth/login', credentials)[1]['user']['role'] == 'USER'
@@ -108,6 +131,20 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/auth/me')[1] == {'authenticated': False}
             assert request('/api/documents')[0] == 401 and request('/api/documents/41/file')[0] == 401
             assert auth('/api/auth/login', credentials)[0] == 200
+            assert request('/api/documents/41/file') == (200, pdf)
+            process.terminate(); process.wait(timeout=10)
+            process = subprocess.Popen(['java', '-jar', str(backend / 'target/math-server.jar')], cwd=root, env={**os.environ, 'MATH_PORT': str(port), 'MATH_WEB_DIR': str(backend.parent / 'frontend')}, stdout=log, stderr=log)
+            for _ in range(300):
+                try:
+                    if request('/api/health')[0] == 200: break
+                except (OSError, urllib.error.URLError): time.sleep(.1)
+            else: raise AssertionError('Restart failed')
+            assert request('/api/documents')[0] == 401
+            assert auth('/api/auth/login', credentials)[0] == 200
+            with sqlite3.connect(root / 'data/math.db') as db:
+                assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 3
+                assert db.execute("SELECT COUNT(*) FROM users WHERE username='old_reader'").fetchone()[0] == 0
+                assert db.execute('SELECT code_hash FROM invitations WHERE used_by=?', ('reader_1',)).fetchone()[0] == invitations.hashlib.sha256(code.encode()).hexdigest()
             assert request('/api/documents/41/file') == (200, pdf)
 
         finally:
