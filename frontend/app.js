@@ -4,6 +4,7 @@ const $ = (id) => document.getElementById(id);
 const state = { subjects: [], subject: null, offset: 0, loading: false, upload: false, generation: 0 };
 const symbols = { algebra: 'algebra', 'number-theory': 'number', analysis: 'analysis', 'geometry-topology': 'geometry', other: 'infinity' };
 mountIcons();
+const notation = { algebra: 'G', 'number-theory': 'ℤ', analysis: '∫', 'geometry-topology': 'M', other: '∞' };
 const descriptions = { algebra: '结构、对称与运算', 'number-theory': '整数与算术结构', analysis: '极限、函数与变化', 'geometry-topology': '空间、形状与连续性', other: '更多数学研究方向' };
 const errors = { invalid_metadata: '请填写有效标题和作者，每项最多 500 个 UTF-8 字节。', unknown_subject: '所选专业不存在，请刷新页面。', pdf_too_large: 'PDF 不能超过 20 MB。', invalid_pdf_header: '文件不是有效的 PDF，请重新选择。', empty_or_invalid_length: '请选择一份非空 PDF。', use_application_pdf: '请选择 PDF 文件。', database_busy: '系统正在处理其他请求，请稍后重试。', file_storage_error: '文件保存失败，请稍后重试。', database_error: '资料读取或保存失败，请稍后重试。' };
 function node(tag, className, content) { const el = document.createElement(tag); if (className) el.className = className; if (content !== undefined) el.textContent = content; return el; }
@@ -27,12 +28,13 @@ function documentRows(target, documents, empty) {
 function renderSubjects() {
   $('subject-cards').replaceChildren(); $('document-subject').replaceChildren(); $('subject-nav').replaceChildren();
   for (const subject of state.subjects) {
-    const card = node('a', 'subject-card'); card.href = `#/subjects/${subject.id}`;
+    const card = node('a', 'subject-card'); card.href = `#/subjects/${subject.id}`; card.dataset.slug = subject.slug;
     const copy = node('span', 'subject-copy'); copy.append(node('strong', '', subject.name), node('small', '', descriptions[subject.slug] || '专业研究资料'));
     const arrow = node('span', 'card-arrow'); arrow.setAttribute('aria-hidden', 'true');
     arrow.append(icon('forward'));
     const symbol = node('span', 'subject-symbol'); symbol.append(icon(symbols[subject.slug] || 'infinity')); symbol.setAttribute('aria-hidden', 'true');
-    card.append(symbol, copy, arrow); $('subject-cards').append(card);
+    const math = node('span', 'subject-notation', notation[subject.slug] || '∞'); math.setAttribute('aria-hidden', 'true');
+    card.append(symbol, copy, arrow, math); $('subject-cards').append(card);
     const nav = node('a', ''); nav.href = card.href; nav.dataset.subjectId = subject.id;
     const navSymbol = node('span', 'nav-symbol'); navSymbol.append(icon(symbols[subject.slug] || 'infinity')); navSymbol.setAttribute('aria-hidden', 'true');
     nav.append(navSymbol, node('span', '', subject.name)); $('subject-nav').append(nav);

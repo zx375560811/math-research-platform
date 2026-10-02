@@ -71,6 +71,7 @@ async function main() {
     if (process.env.MATH_BROWSER_EXECUTABLE) options.executablePath = process.env.MATH_BROWSER_EXECUTABLE;
     browser = await chromium.launch(options);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(base);
@@ -95,12 +96,14 @@ async function main() {
       window.iconObserver.observe(document.querySelector('#file-icon path'), { attributes: true, attributeFilter: ['d'] });
     });
     await page.locator('#pdf-file').setInputFiles({ name: '新论文.pdf', mimeType: 'application/pdf', buffer: pdf });
-    await page.waitForFunction(async () => {
+    const filePath = await page.evaluate(async () => {
       const { canonicalD } = await import('/vendor/morphicons/dom.js');
       const { paths } = await import('/icons.js');
-      return document.querySelector('#file-icon path').getAttribute('d') === canonicalD(paths.file);
+      return canonicalD(paths.file);
     });
-    assert.ok(await page.evaluate(() => new Set(window.iconFrames).size > 2), 'Morphicons should produce intermediate path frames');
+    await page.waitForFunction(d => document.querySelector('#file-icon path').getAttribute('d') === d, filePath);
+    const motionFrames = await page.evaluate(() => new Set(window.iconFrames).size);
+    assert.ok(motionFrames > 2, `Morphicons should produce intermediate path frames (got ${motionFrames}; errors: ${errors.join(', ')})`);
     await page.evaluate(() => window.iconObserver.disconnect());
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.locator('#pdf-file').setInputFiles([]);

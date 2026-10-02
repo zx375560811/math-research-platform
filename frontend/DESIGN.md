@@ -44,3 +44,17 @@ professional navigation | subject title
 ```
 
 Review: retain the surface mesh as the single memorable visual. Remove the decorative hero eyebrow; make the headline about research through reading. Differentiate the directory, future applications and upload form through spacing and surfaces. Do not expose a nonfunctional search or AI action. Mobile preserves the horizontal subject selector and stacks the upload form above literature.
+
+## Stronger visual direction
+
+Feedback: the pale blue workbench feels too quiet. Create a mathematical atlas: a substantial blue surface drawing, a midnight navigation rail, and a professional directory with visible mathematical notation.
+
+Palette: midnight #152D50, atlas blue #254FCE, paper #FFFFFF, canvas #EDF1F7, warm section curve #FFC596, muted text #526783. Body: Microsoft YaHei/PingFang SC for a clear sans-serif Chinese voice; Cambria Math for mathematical notation only. Hero headline 44–50px desktop, 32px mobile. Left alignment throughout.
+
+```text
+midnight rail | headline + high-contrast saddle surface z=xy
+              | professional atlas tiles | future applications
+              | recent literature
+```
+
+Review before building: a dark navigation rail alone would still be a generic dashboard. Use a correctly projected hyperbolic paraboloid, including its highlighted cross-section, as the visual anchor. Give subject tiles notation derived from their disciplines. Keep the literature list and forms quiet and readable. No artificial metrics, fake features, neon, or automatic background animation. Retain Morphicons for actual upload state changes and respect reduced motion.
