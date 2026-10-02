@@ -76,7 +76,9 @@ async function main() {
     await page.locator('#next-page').click(); await page.waitForFunction(() => document.getElementById('page-label').textContent === '第 2 页');
     assert.equal(await page.locator('.document-row').count(), 1);
     await page.locator('#previous-page').click(); await page.waitForFunction(() => document.getElementById('page-label').textContent === '第 1 页');
-    await page.locator('[data-subject-id="1"]').click(); await page.locator('#module-documents h3').first().waitFor();
+    await page.locator('[data-subject-id="1"]').click();
+    await page.waitForFunction(() => document.getElementById('topic-title').textContent === '代数');
+    await page.locator('#module-documents h3').first().waitFor();
     assert.equal(await page.locator('#topic-title').textContent(), '代数');
     await page.screenshot({ path: path.join(shots, 'module-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });
