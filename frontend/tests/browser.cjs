@@ -85,6 +85,12 @@ async function main() {
     await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card').click();
     await page.locator('#auth-view').waitFor();
     await page.locator('#register-tab').click();
+    await page.waitForFunction(() => document.body.classList.contains('registration-page'));
+    for (const selector of ['.sidebar', '.topbar', '.auth-intro', '.workspace>footer']) assert.equal(await page.locator(selector).isVisible(), false);
+    await page.screenshot({ path: path.join(shots, 'register-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'register-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('#account-username').fill('browser_reader'); await page.locator('#account-password').fill('BrowserPass123!'); await page.locator('#account-confirm').fill('DifferentPass123!');
     await page.locator('#account-submit').click(); await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('不一致'));
     await page.locator('#account-confirm').fill('BrowserPass123!'); await page.locator('#account-submit').click();

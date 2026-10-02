@@ -58,6 +58,7 @@ function route() {
   const inApp = !!match;
   if (inApp && state.ready && !state.user) { state.returnTo = location.hash; location.hash = '#/login'; return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
+  document.body.classList.toggle('registration-page', registering);
   $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inAuth; $('module-view').hidden = !inApp;
   $('auth-title').textContent = registering ? '注册云数学账号' : '登录云数学'; $('account-submit').textContent = registering ? '注册账号' : '登录';
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
@@ -68,7 +69,7 @@ function route() {
   for (const tab of $('subject-cards').querySelectorAll('a')) { const active = subject ? tab.dataset.subjectId === String(subject.id) : !tab.dataset.subjectId; tab.classList.toggle('active', active); if (active) tab.setAttribute('aria-current', 'page'); else tab.removeAttribute('aria-current'); }
   $('topic-title').textContent = subject ? subject.name : '全部方向';
   $('topic-description').textContent = subject ? descriptions[subject.slug] || '阅读这个方向的研究资料，追溯原始文献。' : '从平台提供的研究资料中，选择感兴趣的内容开始阅读。';
-  document.title = inApp ? `${subject ? subject.name + ' · ' : ''}数学与应用数学 · 云数学` : '云数学 · 数学研究平台';
+  document.title = inAuth ? `${registering ? '注册' : '登录'} · 云数学` : inApp ? `${subject ? subject.name + ' · ' : ''}数学与应用数学 · 云数学` : '云数学 · 数学研究平台';
   if (inApp && state.ready && state.user) loadContent(); window.scrollTo(0, 0);
 }
 async function init() {
