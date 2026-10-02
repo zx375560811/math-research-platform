@@ -16,10 +16,27 @@ async function main() {
     let port;
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
-      server = http.createServer((req, res) => {
+      const users = new Map(); const sessions = new Map();
+      server = http.createServer(async (req, res) => {
         const url = new URL(req.url, 'http://localhost');
         const json = (body, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
+        const sessionId = (req.headers.cookie || '').match(/TESTSESSION=([^;]+)/)?.[1]; let session = sessions.get(sessionId);
+        if (url.pathname === '/api/auth/csrf') {
+          if (!session) { const id = String(sessions.size + 1); session = { token: 'token' + id }; sessions.set(id, session); res.setHeader('Set-Cookie', `TESTSESSION=${id}; Path=/; HttpOnly; SameSite=Lax`); }
+          return json({ header: 'X-CSRF-TOKEN', token: session.token });
+        }
+        if (url.pathname === '/api/auth/me') return json(session?.user ? { authenticated: true, user: session.user } : { authenticated: false });
+        if (req.method === 'POST' && ['/api/auth/register', '/api/auth/login', '/api/auth/logout'].includes(url.pathname)) {
+          if (!session || req.headers['x-csrf-token'] !== session.token) return json({ error: 'invalid_csrf' }, 403);
+          const parts = []; for await (const part of req) parts.push(part); const body = JSON.parse(Buffer.concat(parts));
+          const name = (body.username || '').toLowerCase();
+          if (url.pathname.endsWith('/register')) { if (users.has(name)) return json({ error: 'username_taken' }, 409); users.set(name, body.password); return json({ user: { username: name, role: 'USER' } }, 201); }
+          if (url.pathname.endsWith('/logout')) { delete session.user; return json({ status: 'ok' }); }
+          if (users.get(name) !== body.password) return json({ error: 'invalid_credentials' }, 401);
+          session.user = { username: name, role: 'USER' }; return json({ user: session.user });
+        }
         if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
+        if (url.pathname.startsWith('/api/documents') && !session?.user) return json({ error: 'login_required' }, 401);
         if (url.pathname === '/api/health') return json({ status: 'ok' });
         if (url.pathname === '/api/subjects') return json({ subjects });
         if (url.pathname === '/api/documents') {
@@ -66,6 +83,18 @@ async function main() {
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card').click();
+    await page.locator('#auth-view').waitFor();
+    await page.locator('#register-tab').click();
+    await page.locator('#account-username').fill('browser_reader'); await page.locator('#account-password').fill('BrowserPass123!'); await page.locator('#account-confirm').fill('DifferentPass123!');
+    await page.locator('#account-submit').click(); await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('不一致'));
+    await page.locator('#account-confirm').fill('BrowserPass123!'); await page.locator('#account-submit').click();
+    await page.waitForFunction(() => location.hash === '#/login');
+    await page.screenshot({ path: path.join(shots, 'login-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 320, height: 844 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.locator('#account-password').fill('WrongPassword123!'); await page.locator('#account-submit').click();
+    await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('不正确'));
+    await page.locator('#account-password').fill('BrowserPass123!'); await page.locator('#account-submit').click();
     await page.locator('#module-documents h3').first().waitFor();
     assert.equal(await page.locator('#module-title').textContent(), '数学与应用数学');
     assert.equal(await page.locator('#math-app-link').getAttribute('aria-current'), 'page');
@@ -88,6 +117,12 @@ async function main() {
     await page.route('**/api/documents?*', route => route.fulfill({ status: 500, body: '{}' }));
     await page.locator('#refresh-documents').click(); await page.waitForFunction(() => document.getElementById('list-status').textContent.includes('失败'));
     await page.unroute('**/api/documents?*'); await page.locator('#refresh-documents').click(); await page.locator('.empty-state').waitFor();
+    await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
+    await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/');
+    assert.equal(await page.locator('#auth-link').isVisible(), true);
+    assert.equal((await page.request.get(base + '/api/documents')).status(), 401);
+    assert.equal((await page.request.get(base + '/api/documents/1/file')).status(), 401);
+    await page.locator('.application-card').click(); await page.locator('#auth-view').waitFor();
     assert.deepEqual(errors, []); console.log('Application entry, read-only reading, source retrieval, filtering, pagination and mobile checks passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));

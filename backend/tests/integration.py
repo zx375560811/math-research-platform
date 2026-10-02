@@ -1,5 +1,6 @@
 """Read-only HTTP and administrator import, against an isolated database."""
 import importlib.util
+import http.cookiejar
 import json
 import os
 from pathlib import Path
@@ -19,14 +20,20 @@ with socket.socket() as sock:
     sock.bind(('127.0.0.1', 0))
     port = sock.getsockname()[1]
 base = 'http://127.0.0.1:{}'.format(port)
-def request(path, method='GET', data=None):
+cookies = http.cookiejar.CookieJar()
+client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
+def request(path, method='GET', data=None, headers=None):
     try:
-        response = urllib.request.urlopen(urllib.request.Request(base + path, data=data, method=method), timeout=5)
+        response = client.open(urllib.request.Request(base + path, data=data, method=method, headers=headers or {}), timeout=5)
     except urllib.error.HTTPError as error:
         response = error
     with response:
         raw = response.read()
         return response.status, json.loads(raw) if 'json' in response.headers.get_content_type() else raw
+def auth(path, body):
+    token = request('/api/auth/csrf')[1]
+    return request(path, 'POST', json.dumps(body).encode(), {'Content-Type': 'application/json', token['header']: token['token']})
+
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     (root / 'data/files').mkdir(parents=True)
@@ -51,6 +58,22 @@ with tempfile.TemporaryDirectory() as directory:
                     assert response.status == 200 and response.headers['Content-Security-Policy'] and response.read()
             for endpoint in ['/api/documents?title=attack&subject_id=1', '/api/admin/documents', '/api/documents/1']:
                 for method in ['POST', 'PUT', 'PATCH', 'DELETE']: assert request(endpoint, method, pdf)[0] == 405
+            assert request('/api/documents')[0] == 401
+            assert request('/api/documents/41/file')[0] == 401
+            assert request('/api/auth/me')[1] == {'authenticated': False}
+            credentials = {'username': 'Reader_1', 'password': 'ResearchPass123!'}
+            assert request('/api/auth/register', 'POST', json.dumps(credentials).encode(), {'Content-Type': 'application/json'})[0] == 403
+            assert auth('/api/auth/register', {**credentials, 'password': 'short'})[0] == 400
+            assert auth('/api/auth/register', {**credentials, 'username': '<img src=x>'})[0] == 400
+            assert auth('/api/auth/register', credentials)[0] == 201
+            assert auth('/api/auth/register', {**credentials, 'username': 'reader_1'})[0] == 409
+            assert auth('/api/auth/login', {**credentials, 'password': 'WrongPassword123!'})[0] == 401
+            before_session = next(c.value for c in cookies if c.name == 'JSESSIONID')
+            assert auth('/api/auth/login', credentials)[1]['user']['role'] == 'USER'
+            after_session = next(c for c in cookies if c.name == 'JSESSIONID')
+            assert before_session != after_session.value
+            assert 'HttpOnly' in after_session._rest and after_session._rest.get('SameSite', '').lower() == 'lax'
+            assert request('/api/auth/me')[1]['user']['username'] == 'reader_1'
             assert request('/api/documents')[1]['documents'][0]['id'] == 41
             assert request('/api/documents/41/file') == (200, pdf)
             assert [p.name for p in (root / 'data/files').iterdir()] == ['upload-legacy']
@@ -75,6 +98,17 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/../backend/src/main.c')[0] in (400, 404)
             assert request('/api/documents?offset=-1')[0] == 400
             assert request('/api/documents?subject_id=1%20OR%201=1')[0] == 400
+            with sqlite3.connect(root / 'data/math.db') as db:
+                username, hashed, role = db.execute('SELECT username,password_hash,role FROM users').fetchone()
+                assert username == 'reader_1' and hashed.startswith('$2') and hashed != credentials['password'] and role == 'USER'
+            assert request('/api/auth/logout', 'POST', b'{}', {'Content-Type': 'application/json'})[0] == 403
+            assert request('/api/auth/me')[1]['authenticated']
+            assert auth('/api/auth/logout', {})[0] == 200
+            assert request('/api/auth/me')[1] == {'authenticated': False}
+            assert request('/api/documents')[0] == 401 and request('/api/documents/41/file')[0] == 401
+            assert auth('/api/auth/login', credentials)[0] == 200
+            assert request('/api/documents/41/file') == (200, pdf)
+
         finally:
             os.chdir(previous); process.terminate(); process.wait(timeout=10)
 print('Read-only HTTP, administrator import, schema preservation and retrieval checks passed.')

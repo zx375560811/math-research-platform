@@ -182,3 +182,23 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
   .topic-tabs { gap: 8px; }.topic-tabs .subject-card { padding: 8px 11px; font-size: 11px; }
   .topic-intro { padding: 20px; }
 }
+.account-controls { display: flex; align-items: center; gap: 12px; min-width: 0; }
+#account-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.auth-view { max-width: 920px; display: grid; grid-template-columns: 1fr 1fr; margin: 25px auto; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+.auth-intro { position: relative; padding: 45px 35px; color: #fff; background: var(--blue); overflow: hidden; }
+.auth-intro h1 { font-size: 32px; line-height: 1.5; margin-top: 30px; }
+.auth-intro p { font-size: 13px; color: #e0e8ff; max-width: 22em; }
+.auth-math { font: 240px var(--math); opacity: .16; position: absolute; bottom: -55px; right: 15px; }
+.auth-panel { padding: 35px; }.auth-panel h2 { margin: 26px 0 20px; }
+.auth-tabs { display: flex; gap: 25px; border-bottom: 1px solid var(--line); }
+.auth-tabs a { padding-bottom: 10px; color: var(--muted); }.auth-tabs a.active { color: var(--blue); border-bottom: 2px solid var(--blue); }
+#account-form .primary { width: 100%; margin-top: 24px; }
+.form-message { min-height: 24px; color: #8a4133; font-size: 12px; overflow-wrap: anywhere; }
+.auth-panel .back-link { margin-top: 16px; }
+@media (max-width: 800px) { .auth-view { grid-template-columns: 1fr; }.auth-intro { padding: 25px; }.auth-intro h1 { font-size: 25px; margin: 15px 0 8px; }.auth-math { font-size: 140px; right: 20px; bottom: -35px; }.auth-panel { padding: 25px; } }
+@media (max-width: 600px) { .account-controls { gap: 6px; }#account-name { max-width: 70px; font-size: 10px; }.auth-view { margin-top: 0; } }
+.auth-panel form>label { display: block; font-size: 12px; margin: 18px 0 7px; }
+.auth-panel form>input { display: block; width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #cbd6e7; border-radius: 6px; background: #fff; color: var(--ink); font-size: 14px; }
+.auth-panel { min-width: 0; }.auth-panel input::placeholder { color: #62748c; font-size: 12px; }
+.auth-panel .form-message { color: var(--muted); }.auth-panel .form-message.error { color: #8a4133; }
+@media (max-width: 600px) { .auth-panel form>input { font-size: 16px; } }

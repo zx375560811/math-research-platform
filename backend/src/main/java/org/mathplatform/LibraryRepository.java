@@ -38,7 +38,7 @@ public class LibraryRepository {
         }
     }
 
-    private Connection connect(boolean readOnly) throws SQLException {
+    Connection connect(boolean readOnly) throws SQLException {
         Connection connection = DriverManager.getConnection(url);
         try (var statement = connection.createStatement()) {
             statement.execute("PRAGMA busy_timeout=3000");

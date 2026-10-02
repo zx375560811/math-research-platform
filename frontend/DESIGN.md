@@ -63,3 +63,8 @@ Review before building: a dark navigation rail alone would still be a generic da
 ## Application boundary correction
 
 The public homepage is an application launcher, not the literature library. Mathematics and Applied Mathematics contains subject reading, driven by the shared library. Remove all upload controls and browser write code. Public HTTP is read-only; literature ingestion belongs to a server administrator command. Retain the blue mathematical surface, midnight rail and Morphicons static action artwork; upload animation is no longer part of the public experience. Do not imply summaries, AI or knowledge extraction already exist.
+
+
+## Accounts
+
+Keep the application homepage. Put login/register and the signed-in name in the topbar. The account view pairs the mathematical blue identity with a simple white form; it stacks on mobile. Login-required application visits return to their original topic after authentication. Registration creates an ordinary application reader, never a literature administrator. No upload or admin entry is reintroduced.

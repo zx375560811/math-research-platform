@@ -18,4 +18,10 @@ subject_id INTEGER NOT NULL REFERENCES subjects(id),
 PRIMARY KEY(document_id,subject_id));
 CREATE INDEX IF NOT EXISTS idx_document_subjects_subject 
 ON document_subjects(subject_id,document_id);
+CREATE TABLE IF NOT EXISTS users (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+username TEXT NOT NULL UNIQUE,
+password_hash TEXT NOT NULL,
+role TEXT NOT NULL DEFAULT 'USER' CHECK(role='USER'),
+created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
 COMMIT;
