@@ -1,70 +1,40 @@
 # 数学研究平台
 
-数学专业模块共享文献库，并为 AI 文献检索与问答预留接口。
+面向用户的网站是应用平台，文献库是共享底层，由服务器管理员维护。
 
-当前阶段：数学研究工作台与 C 文献后端。首页提供数学专业入口；专业页可上传 PDF、填写标题与作者、查看分页文献列表并下载文件。AI 接口预留，登录和模型接入后续实现。
-
-前端位于 `frontend/`，使用 HTML、CSS、JavaScript，由 C 后端直接提供页面。服务器运行网站不需要安装 Node.js 或启动额外前端服务。
-
-前端按 Anthropic frontend-design 技能重设计为带常驻专业导航的研究工作台，手机使用顶部可滚动专业导航。设计依据见 [设计说明](frontend/DESIGN.md)。
-
-## 在电脑浏览器打开网站
-
-完成下方服务器部署后，在电脑的 PowerShell 中执行（将服务器地址替换为自己的）：
-
-```powershell
-ssh -N -L 127.0.0.1:18080:127.0.0.1:8080 root@你的服务器公网IP
+```text
+数学研究平台
+├─ 应用工作台
+├─ 数学与应用数学
+│  └─ 专题阅读：按研究方向阅读参考资料，追溯原文
+├─ 后续研发应用（规划中）
+└─ 共享底层（不在公共网页提供管理功能）
+   ├─ 文献元数据与 PDF
+   ├─ 研究方向分类
+   └─ AI 接口预留
 ```
 
-保持该窗口打开，浏览器访问 `http://127.0.0.1:18080/`。此时网页和 API 都通过 SSH 隧道访问服务器。不要在服务器 SSH 会话中执行这条隧道命令。
+当前提供一个可用应用：数学与应用数学的专题阅读。内容直接来自管理员维护的文献库；知识条目、研究工具、内容提炼与 AI 问答尚未实现。首页展示应用入口，不展示最近入库列表或文献管理表单。用户只能阅读和获取应用引用的原文。
 
-当前仍仅监听服务器本机，尚无登录保护；公网开放与 HTTPS 在后续完成。
+公共 HTTP 服务仅支持 GET；POST/PUT/PATCH/DELETE 均返回 405，没有管理员 HTTP 上传入口。文献管理采用服务器本地命令，不依赖浏览器或公开 API。已有 SQLite 数据和 PDF 不迁移、不删除。
 
-## 从 GitHub 部署到 Alibaba Cloud Linux 3
+前端使用 HTML/CSS/JavaScript 和本地 Morphicons，由 C 后端提供，不需要服务器 Node.js。视觉依据见 [设计说明](frontend/DESIGN.md)。
 
-在服务器安装依赖：
+## 部署和更新
 
-```bash
-dnf install -y git gcc make pkgconf-pkg-config sqlite-devel libmicrohttpd-devel
-```
-
-如果找不到包，请保留错误输出，通过 `dnf repolist` 检查实际仓库。
-
-将下面的 `<仓库地址>` 替换成实际 GitHub 克隆地址：
+Alibaba Cloud Linux 3：
 
 ```bash
-git clone <仓库地址> /opt/math-platform
+dnf install -y git gcc make pkgconf-pkg-config sqlite-devel libmicrohttpd-devel python3
+git clone https://github.com/zx375560811/math-research-platform.git /opt/math-platform
 cd /opt/math-platform/backend
 make
 make run
 ```
 
-私有仓库需要在服务器配置有权读取该仓库的凭据，例如仅限该仓库的只读 SSH Deploy Key。
+首次启动初始化数据库。服务仅监听 127.0.0.1:8080。常驻配置见 [后端说明](backend/README.md#systemd-常驻运行)。公网反向代理与 HTTPS 尚未配置。
 
-在服务器另一个终端验证：
-
-```bash
-curl -fsS http://127.0.0.1:8080/api/health
-curl -fsS http://127.0.0.1:8080/api/subjects
-```
-
-服务仅监听本机，前台运行。可按 [后端说明](backend/README.md#systemd-常驻运行) 配置 systemd 常驻和开机启动；登录保护与 HTTPS 后续加入。
-
-## 更新
-
-停止当前前台服务（Ctrl+C），然后执行（仅用于未启用 systemd 的情况）：
-
-```bash
-cd /opt/math-platform
-git pull --ff-only
-cd backend
-make
-make run
-```
-
-Git 更新源码后还需要重新编译、启动。运行数据保存在 `backend/data/`，已排除在 Git 之外，须单独备份。文献 PDF、密钥、环境配置和编译产物也不提交。
-
-已配置 systemd 时，先拉取更新，然后停止服务、编译并启动，不要使用 `make run`：
+已配置 systemd 的服务器更新：
 
 ```bash
 cd /opt/math-platform
@@ -74,4 +44,18 @@ cd backend
 make && systemctl start math-platform
 ```
 
-详见 [后端说明](backend/README.md)。用户已在 Alibaba Cloud Linux 3 服务器验证旧版运行状态、专业列表与 systemd 常驻服务。新增文献功能由 GitHub Actions 编译和集成验证，部署到阿里云后仍需确认。
+这次必须重新编译并重启，才能关闭旧版上传接口。Git 更新不会修改 `backend/data/`，该目录必须单独备份。
+
+## 在电脑打开网站
+
+在电脑 PowerShell 执行，保持窗口开启：
+
+```powershell
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的服务器公网IP
+```
+
+浏览器访问 `http://127.0.0.1:18080/`。
+
+## 管理员维护文献库
+
+见 [本地入库命令](backend/README.md#管理员入库)。不要将后台管理写入功能接入公共应用。将来添加管理界面时，应独立设计身份认证、授权和发布流程。

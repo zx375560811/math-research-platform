@@ -17,7 +17,7 @@ jobs:
         run: make -C backend
       - name: Check database initialization
         run: python3 backend/tests/schema.py
-      - name: Check upload and retrieval flow
+      - name: Check read-only API and administrator import
         run: python3 backend/tests/integration.py
       - uses: actions/setup-node@v4
         with:
@@ -26,7 +26,7 @@ jobs:
         run: npm install --prefix frontend --ignore-scripts
       - name: Install Chromium
         run: cd frontend && npx playwright install --with-deps chromium
-      - name: Check browser upload and navigation
+      - name: Check application reading and navigation
         run: npm test --prefix frontend
       - name: Save browser screenshots
         if: always()

@@ -85,7 +85,6 @@ static void request_completed(void *cls, struct MHD_Connection *connection,
     void **context, enum MHD_RequestTerminationCode reason)
 {
     (void)cls; (void)connection; (void)reason;
-    if (*context && *context != &read_only_request) documents_cleanup(*context);
     *context = NULL;
 }
 
@@ -94,14 +93,10 @@ static http_result handle_request(void *cls, struct MHD_Connection *connection,
     const char *upload_data, size_t *upload_size, void **request_context)
 {
     (void)version;
-    int uploading = strcmp(url, "/api/documents") == 0 && strcmp(method, "POST") == 0;
     if (!*request_context) {
-        *request_context = uploading ? documents_begin(cls, connection) : &read_only_request;
-        if (!*request_context) return MHD_NO;
+        *request_context = &read_only_request;
         return MHD_YES;
     }
-    if (uploading)
-        return documents_upload(cls, connection, *request_context, upload_data, upload_size);
     if (*upload_size != 0) { *upload_size = 0; return MHD_YES; }
     if (strcmp(method, "GET") != 0)
         return reply(connection, 405, "{\"error\":\"method_not_allowed\"}");

@@ -58,3 +58,8 @@ midnight rail | headline + high-contrast saddle surface z=xy
 ```
 
 Review before building: a dark navigation rail alone would still be a generic dashboard. Use a correctly projected hyperbolic paraboloid, including its highlighted cross-section, as the visual anchor. Give subject tiles notation derived from their disciplines. Keep the literature list and forms quiet and readable. No artificial metrics, fake features, neon, or automatic background animation. Retain Morphicons for actual upload state changes and respect reduced motion.
+
+
+## Application boundary correction
+
+The public homepage is an application launcher, not the literature library. Mathematics and Applied Mathematics contains subject reading, driven by the shared library. Remove all upload controls and browser write code. Public HTTP is read-only; literature ingestion belongs to a server administrator command. Retain the blue mathematical surface, midnight rail and Morphicons static action artwork; upload animation is no longer part of the public experience. Do not imply summaries, AI or knowledge extraction already exist.
