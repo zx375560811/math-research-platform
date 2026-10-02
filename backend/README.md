@@ -12,7 +12,7 @@ java -jar target/math-server.jar
 
 依赖：Java 17（OpenJDK）和 curl 或 wget。Maven Wrapper 固定 Maven 3.9.11，首次构建下载工具和依赖并校验工具 SHA-256。无需服务器全局安装 Maven。Spring Boot 4.1.1 提供 HTTP 服务，SQLite JDBC 3.53.4.0 访问原有数据库。管理员本地维护脚本继续使用 Python 3 标准库。
 
-代码分层：`PublicController` 接口与静态页面、`ResearchService` 应用内容、`LibraryRepository` 共享文献库、`PublicBoundary` 公共只读约束。文献请求数据库连接设置 `PRAGMA query_only=ON`；账号注册通过独立 UserRepository 写入 users 表，启动执行幂等 schema 初始化。AI 接口继续预留，未加入模型调用。
+代码分层：`PublicController` 接口与静态页面、`ResearchService` 应用内容、`LibraryRepository` 共享文献库、`PublicBoundary` 文献只读与受限个人写入约束、`LearningController` 学习接口、`LearningRepository` 教材/个人学习数据。文献请求数据库连接设置 `PRAGMA query_only=ON`；账号注册通过独立 UserRepository 写入 users 表，启动执行幂等 schema 初始化。AI 接口继续预留，未加入模型调用。
 
 环境变量：`MATH_PORT` 默认 8080；`MATH_DB_PATH` 默认 `data/math.db`；`MATH_WEB_DIR` 默认 `../frontend`。工作目录必须为 backend，文件路径以此为基准。服务仅监听 127.0.0.1。
 
@@ -27,7 +27,7 @@ java -jar target/math-server.jar
 | GET | /api/documents/1/file | 获取原文 PDF |
 | GET | /api/ai/status | AI 接入状态，目前未配置 |
 
-文献和应用内容的 HTTP 写入方法返回 405，包括原先的 POST /api/documents 和猜测的管理员接口。账号 POST 接口仅允许注册、登录和退出，并校验 CSRF。数据库和管理脚本不能经静态文件路由访问。服务不能生成文献摘要或数学知识；目前应用展示真实资料标题、作者和原文。
+文献 HTTP 写入方法返回 405，包括原先的 POST /api/documents 和猜测的管理员接口。账号注册/登录/退出及个人学习进度/标注写入均校验 CSRF。数据库和管理脚本不能经静态文件路由访问。服务不能生成文献摘要或数学知识；学习模块展示问题与递进教材，并提供个人 PDF 阅读。
 
 ## 管理员入库
 
@@ -103,3 +103,39 @@ python3 admin/create_invitation.py
 ```
 
 每次输出一个仅可注册一次、默认 7 天有效的邀请码。复制给获准注册的人，也给自己生成一个。可用 `--days 30` 设置 1–365 天有效期，`--database /absolute/path/math.db` 指定数据库。完整邀请码只在生成时输出，不要提交到 GitHub。
+
+
+### 数学与应用数学学习模块
+
+入口突出分析、几何与拓扑、代数，保留另外五个方向。每个方向只展示核心大问题和按阶段排列的推荐教材。教材目录保存在 `learning_books`，通过 `document_id` 关联共享文献库；研究论文不会自动变成教材。初始推荐覆盖各方向的一条学习线，并非该方向的全部分支。
+
+PDF.js 5.6.205 本地托管，提供目录、页码、缩放、选中文字高亮及高亮笔记。扫描页无文字层时明确提示，当前不自动 OCR。位置按账号和教材保存，包括页码、页内滚动位置及缩放；阅读位置不等于知识掌握程度。高亮用页面归一化矩形保存，缩放后仍定位。个人进度与标注在 SQLite 中保存，同账号跨设备可继续阅读；原 PDF 不修改。
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | /api/learning/directions | 八个方向及主次展示标记 |
+| GET | /api/learning/directions/{slug} | 大问题、递进教材及自己的进度 |
+| GET | /api/learning/books/{id} | 教材与自己的进度 |
+| PUT | /api/learning/books/{id}/progress | 保存自己的阅读位置 |
+| GET / POST | /api/learning/books/{id}/annotations | 读取 / 创建自己的高亮 |
+| PATCH / DELETE | /api/learning/books/{id}/annotations/{mark} | 更新笔记 / 删除自己的标注 |
+
+所有学习接口都要求登录，写入要求 CSRF。身份从会话读取，不接受指定其他用户；标注每人每书最多 1000 条，每条正文/笔记最多 4000 字符、最多 100 个矩形。写请求限制 64 KiB，包括无 Content-Length 的请求；文献 HTTP 上传与管理仍被禁用。
+
+部署并启动后，可导入作者提供的两本开放教材：
+
+```bash
+cd /opt/math-platform/backend
+runuser -u math-platform -- python3 admin/install_open_textbooks.py
+```
+
+该命令从 https://measure.axler.net/ 和 https://linear.axler.net/ 获取原版 PDF，导入底层库并关联教材，重复执行跳过已有绑定。保留作者、来源及原 PDF 许可；这两本开放版采用非商业使用许可。程序不会从第三方来源自动下载其他教材。
+
+其他教材由管理员导入并关联，例：
+
+```bash
+runuser -u math-platform -- python3 admin/import_document.py /tmp/textbook.pdf --title '教材名称' --authors '作者' --subject-id 3
+runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返回的文献ID
+```
+
+可在服务器用 sqlite3/Python 查询 `SELECT id,title,document_id FROM learning_books` 获取教材 ID。绑定后用户看到“开始学习”，无 PDF 时显示“PDF 待接入”。已有绑定禁止换成不同文献，避免旧进度和标注错位。

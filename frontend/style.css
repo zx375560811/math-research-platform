@@ -219,3 +219,66 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 .auth-brand { justify-content: center; padding: 0; margin-bottom: 30px; font-size: 24px; }
 .auth-brand .brand-mark { background: var(--blue); color: #fff; }
 .auth-brand small { color: var(--muted); }
+
+/* Mathematics learning: three visual anchors, then quieter secondary directions. */
+.direction-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 22px; }
+.direction-card { position: relative; display: block; padding: 30px; min-height: 250px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+.direction-card[data-direction=analysis] { background: var(--blue); color: #fff; border-color: var(--blue); }
+.direction-card[data-direction=geometry-topology] { background: #dae5f8; }
+.direction-card[data-direction=algebra] { background: #f2e4d8; }
+.direction-card h3 { font-size: 27px; margin: 54px 0 7px; position: relative; }
+.direction-card p { font-size: 13px; position: relative; }
+.direction-art { position: absolute; right: 24px; top: -22px; font: 170px var(--math); opacity: .17; }
+.direction-enter { display: inline-block; margin-top: 18px; font-size: 12px; font-weight: 600; }
+.direction-card:hover { border-color: var(--ink); }
+.more-directions-title { font-size: 16px; margin: 30px 0 14px; }
+.more-directions { display: flex; flex-wrap: wrap; gap: 10px; }
+.direction-small { background: #fff; padding: 11px 18px; border: 1px solid var(--line); border-radius: 7px; font-size: 12px; }
+.direction-small:hover { border-color: var(--blue); color: var(--blue); }
+.direction-heading { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+.direction-heading h2 { font-size: 35px; margin: 0; }.direction-heading p { margin-top: 7px; }
+.direction-symbol { font: 80px var(--math); color: var(--blue); line-height: 1; }
+.questions-section { padding: 26px 30px; border-left: 3px solid var(--blue); background: #e2e9f8; margin: 20px 0 35px; border-radius: 0 12px 12px 0; }
+.questions-section h2 { margin: 0 0 18px; font-size: 18px; }
+.big-questions { margin: 0; padding-left: 22px; }.big-questions li { padding: 5px 0 5px 8px; font-size: 15px; }
+.big-questions li::marker { color: var(--blue); font-weight: 600; }
+.textbook-context { margin: -8px 0 20px; font-size: 12px; }.textbook-list { display: grid; gap: 15px; }
+.textbook-row { display: grid; grid-template-columns: 75px minmax(0,1fr) auto; gap: 23px; align-items: center; padding: 24px; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+.book-spine { height: 108px; background: #193557; border-radius: 2px 8px 8px 2px; border-left: 5px solid #385578; color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 9px 12px; }
+.book-spine>span:first-child { font-size: 11px; letter-spacing: 2px; }.book-spine>span:last-child { font: 46px var(--math); align-self: flex-end; }
+.book-stage { color: var(--blue); font-size: 11px; font-weight: 700; }.textbook-info h3 { margin: 6px 0; font-size: 17px; overflow-wrap: anywhere; }
+.textbook-info p { margin: 5px 0; font-size: 12px; color: var(--muted); }.textbook-info .book-prerequisites { font-size: 11px; }
+.textbook-actions { display: grid; justify-items: end; gap: 13px; }.textbook-actions .primary { font-size: 12px; }
+.book-source { color: var(--muted); font-size: 11px; }.book-unavailable { padding: 9px 13px; background: var(--canvas); color: var(--muted); font-size: 12px; border-radius: 5px; }
+/* Reader: the paper stays central; controls and personal notes sit outside it. */
+.reading-page #main-content { max-width: none; padding: 22px 25px; }.reading-page .workspace>footer { display: none; }
+.reader-heading { display: flex; align-items: center; gap: 25px; margin-bottom: 16px; }.reader-heading h1 { font-size: 17px; margin: 0; overflow-wrap: anywhere; }.reader-heading .back-link { margin: 0; white-space: nowrap; }
+.reader-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; background: #fff; padding: 12px 15px; border: 1px solid var(--line); border-radius: 9px 9px 0 0; font-size: 12px; }
+.reader-toolbar input, .reader-toolbar select { background: #fff; border: 1px solid #bbc9dc; color: var(--ink); border-radius: 4px; padding: 5px; }.reader-toolbar input { width: 60px; }.reader-toolbar label { white-space: nowrap; }
+.reader-layout { display: flex; min-width: 0; height: calc(100vh - 245px); min-height: 400px; background: #d4dce8; border: 1px solid var(--line); border-top: 0; }
+.reader-scroll { flex: 1; min-width: 0; overflow: auto; padding: 16px; overscroll-behavior: contain; }
+.pdf-page { position: relative; margin: 0 auto; background: #fff; box-shadow: 0 2px 10px #172e5020; }
+#pdf-canvas { display: block; }.pdf-page .textLayer { z-index: 2; }.pdf-highlights { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.pdf-highlight { position: absolute; opacity: .45; mix-blend-mode: multiply; }.pdf-highlight.yellow { background: #ffd94a; }.pdf-highlight.blue { background: #6ab7ef; }.pdf-highlight.pink { background: #f499b8; }
+.reader-outline { width: 205px; flex-shrink: 0; background: #fff; overflow: auto; padding: 15px 8px; border-right: 1px solid var(--line); }
+.outline-entry { display: block; background: none; color: var(--ink); border: 0; text-align: left; width: 100%; font-size: 12px; padding: 8px 12px; }.outline-entry:hover { background: var(--soft-blue); }
+.reader-notes { width: 260px; flex-shrink: 0; padding: 20px 16px; overflow: auto; background: #f8faff; border-left: 1px solid var(--line); }.reader-notes h2 { font-size: 15px; margin: 0 0 12px; }.reader-notes p { font-size: 11px; }
+#selection-tools { border: 1px solid #bfceeb; padding: 12px; border-radius: 6px; margin: 15px 0; background: #fff; }#selection-quote { max-height: 100px; overflow: auto; white-space: pre-wrap; }
+.highlight-colors { display: flex; flex-wrap: wrap; gap: 5px; }.highlight-colors .button { padding: 5px 9px; font-size: 11px; }
+[data-highlight=yellow] { background: #fff3bb; }[data-highlight=blue] { background: #d9efff; }[data-highlight=pink] { background: #ffe1ec; }
+.annotation-item { padding: 15px 0; border-top: 1px solid var(--line); }.annotation-jump { padding: 0; border: 0; color: var(--blue); background: none; font-size: 11px; }
+.annotation-item blockquote { margin: 9px 0; padding-left: 10px; border-left: 2px solid #e5b540; font-size: 12px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.annotation-note { width: 100%; font: inherit; font-size: 12px; resize: vertical; border: 1px solid #c8d5e9; padding: 8px; border-radius: 4px; color: var(--ink); background: #fff; }
+.annotation-actions { display: flex; justify-content: space-between; margin-top: 7px; gap: 7px; }.annotation-actions .button { font-size: 10px; padding: 5px 8px; }.annotation-delete { border: 0; background: none; color: #8a4133; font-size: 11px; }
+.reader-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 11px; padding: 12px 0; color: var(--muted); }.reader-foot .save-error { color: #8a4133; }
+@media (max-width: 1100px) { .reader-notes { width: 230px; }.direction-card { padding: 24px; }.direction-card h3 { font-size: 23px; } }
+@media (max-width: 800px) { .reader-layout { height: 65vh; }.reader-outline { width: 160px; }.reader-heading { align-items: flex-start; }.textbook-row { grid-template-columns: 60px minmax(0,1fr); }.textbook-actions { grid-column: 2; justify-items: start; display: flex; align-items: center; flex-wrap: wrap; }.book-spine { height: 95px; } }
+@media (max-width: 600px) {
+  .direction-grid { grid-template-columns: 1fr; gap: 12px; }.direction-card { min-height: 150px; padding: 22px; }.direction-card h3 { margin: 8px 0; }.direction-card p { margin: 8px 0; }.direction-art { top: -30px; font-size: 150px; }.direction-enter { margin-top: 9px; }
+  .direction-small { padding: 9px 12px; font-size: 11px; }.direction-heading h2 { font-size: 28px; }.questions-section { padding: 22px 20px; }.big-questions li { font-size: 13px; }
+  .textbook-row { padding: 18px 14px; gap: 14px; grid-template-columns: 48px minmax(0,1fr); }.book-spine { height: 85px; padding: 8px; }.book-spine>span:last-child { font-size: 31px; }.textbook-info h3 { font-size: 14px; }.textbook-context { margin-top: 0; }
+  .reading-page #main-content { padding: 18px 10px; }.reader-heading { display: block; }.reader-heading h1 { margin-top: 10px; font-size: 15px; }.reader-toolbar { gap: 8px; padding: 10px; }.reader-toolbar .button { padding: 6px 8px; font-size: 11px; }.reader-toolbar input, .reader-toolbar select { font-size: 16px; }
+  .reader-layout { height: auto; min-height: 0; flex-wrap: wrap; }.reader-scroll { flex-basis: 100%; height: 65vh; padding: 12px; }.reader-notes, .reader-outline { width: 100%; max-height: 300px; border-left: 0; border-right: 0; }.reader-outline { order: -1; }.reader-notes { border-top: 1px solid var(--line); }.annotation-note { font-size: 16px; }
+}
+
+.skip-link:not(:focus) { clip-path: inset(50%); width: 1px; height: 1px; padding: 0; overflow: hidden; white-space: nowrap; }

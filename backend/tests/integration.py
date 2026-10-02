@@ -2,6 +2,7 @@
 import concurrent.futures
 import importlib.util
 import http.cookiejar
+import http.client
 import json
 import os
 from pathlib import Path
@@ -33,9 +34,9 @@ def request(path, method='GET', data=None, headers=None):
     with response:
         raw = response.read()
         return response.status, json.loads(raw) if 'json' in response.headers.get_content_type() else raw
-def auth(path, body):
+def auth(path, body, method='POST'):
     token = request('/api/auth/csrf')[1]
-    return request(path, 'POST', json.dumps(body).encode(), {'Content-Type': 'application/json', token['header']: token['token']})
+    return request(path, method, json.dumps(body).encode(), {'Content-Type': 'application/json', token['header']: token['token']})
 
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
@@ -64,6 +65,8 @@ with tempfile.TemporaryDirectory() as directory:
                     assert response.status == 200 and response.headers['Content-Security-Policy'] and response.read()
             for endpoint in ['/api/documents?title=attack&subject_id=1', '/api/admin/documents', '/api/documents/1']:
                 for method in ['POST', 'PUT', 'PATCH', 'DELETE']: assert request(endpoint, method, pdf)[0] == 405
+            assert request('/api/learning/directions')[0] == 401
+            assert request('/api/learning/books/7')[0] == 401
             assert request('/api/documents')[0] == 401
             assert request('/api/documents/41/file')[0] == 401
             assert request('/api/auth/me')[1] == {'authenticated': False}
@@ -98,6 +101,49 @@ with tempfile.TemporaryDirectory() as directory:
             assert 'HttpOnly' in after_session._rest and after_session._rest.get('SameSite', '').lower() == 'lax'
             assert request('/api/auth/me')[1]['user']['username'] == 'reader_1'
             assert request('/api/subjects')[1]['subjects'][0]['name'] == '我的代数分类'
+            directions = request('/api/learning/directions')[1]['directions']
+            assert len(directions) == 8 and sum(d['featured'] for d in directions) == 3
+            assert [d['slug'] for d in directions[:3]] == ['analysis','geometry-topology','algebra']
+            algebra = request('/api/learning/directions/algebra')[1]
+            assert len(algebra['questions']) == 3 and [b['stage'] for b in algebra['books']] == ['基础入门','核心理论','进阶学习']
+            assert request('/api/learning/directions/unknown')[0] == 404
+            assert request('/api/learning/books/7')[1]['available'] is False
+            position = {'page':2,'total_pages':10,'position':.35,'zoom':1.25}
+            assert auth('/api/learning/books/7/progress',position,'PUT')[0] == 409
+            with sqlite3.connect(root / 'data/math.db') as db:
+                db.execute('UPDATE learning_books SET document_id=41 WHERE id=7')
+            assert request('/api/learning/books/7/progress','PUT',json.dumps(position).encode(),{'Content-Type':'application/json'})[0] == 403
+            assert auth('/api/learning/books/7/progress',{**position,'page':11},'PUT')[0] == 400
+            assert auth('/api/learning/books/7/progress',position,'PUT')[0] == 200
+            assert request('/api/learning/books/7')[1]['progress'] == position
+            mark = {'page':2,'quote':'Selected theorem','note':'My proof <img src=x>','color':'yellow','rects':[{'x':.1,'y':.2,'width':.3,'height':.04}]}
+            assert auth('/api/learning/books/7/annotations',{**mark,'rects':[{'x':.9,'y':.2,'width':.3,'height':.04}]})[0] == 400
+            assert auth('/api/learning/books/7/annotations',{**mark,'color':'evil'})[0] == 400
+            assert auth('/api/learning/books/7/annotations',{**mark,'note':'a'*4001})[0] == 400
+            status,created = auth('/api/learning/books/7/annotations',mark);assert status == 200
+            mark_id = created['id']
+            assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['rects'] == mark['rects']
+            assert auth('/api/learning/books/7/annotations/'+str(mark_id),{'note':'Edited note'},'PATCH')[0] == 200
+            oversized = json.dumps({**mark,'note':'a'*70000}).encode()
+            assert request('/api/learning/books/7/annotations','POST',oversized,{'Content-Type':'application/json'})[0] == 413
+            chunked = http.client.HTTPConnection('127.0.0.1', port, timeout=5)
+            chunked.request('POST','/api/learning/books/7/annotations',body=iter([oversized]),headers={'Content-Type':'application/json'},encode_chunked=True)
+            response = chunked.getresponse(); assert response.status == 413; response.read(); chunked.close()
+            assert auth('/api/auth/logout',{})[0] == 200
+            assert auth('/api/auth/login',{**credentials,'username':'reader_2'})[0] == 200
+            assert request('/api/learning/books/7')[1]['progress'] is None
+            assert request('/api/learning/books/7/annotations')[1]['annotations'] == []
+            assert auth('/api/learning/books/7/annotations/'+str(mark_id),{'note':'steal'},'PATCH')[0] == 404
+            assert auth('/api/learning/books/7/annotations/'+str(mark_id),{},'DELETE')[0] == 404
+            assert auth('/api/learning/books/7/progress',{**position,'page':3},'PUT')[0] == 200
+            assert auth('/api/auth/logout',{})[0] == 200
+            assert auth('/api/auth/login',credentials)[0] == 200
+            assert request('/api/learning/books/7')[1]['progress']['page'] == 2
+            assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['note'] == 'Edited note'
+            assert auth('/api/learning/books/7/annotations/'+str(mark_id),{},'DELETE')[0] == 200
+            assert request('/api/learning/books/7/annotations')[1]['annotations'] == []
+            with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM learning_mark_rects').fetchone()[0] == 0
+            retained_mark = auth('/api/learning/books/7/annotations',mark)[1]['id']
             assert request('/api/documents')[1]['documents'][0]['id'] == 41
             assert request('/api/documents/41/file') == (200, pdf)
             assert [p.name for p in (root / 'data/files').iterdir()] == ['upload-legacy']
@@ -146,6 +192,8 @@ with tempfile.TemporaryDirectory() as directory:
                 assert db.execute("SELECT COUNT(*) FROM users WHERE username='old_reader'").fetchone()[0] == 0
                 assert db.execute('SELECT code_hash FROM invitations WHERE used_by=?', ('reader_1',)).fetchone()[0] == invitations.hashlib.sha256(code.encode()).hexdigest()
             assert request('/api/documents/41/file') == (200, pdf)
+            assert request('/api/learning/books/7')[1]['progress'] == position
+            assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['id'] == retained_mark
 
         finally:
             os.chdir(previous); process.terminate(); process.wait(timeout=10)

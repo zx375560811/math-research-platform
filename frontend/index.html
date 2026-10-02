@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light">
   <title>云数学 · 数学研究平台</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/vendor/pdfjs/text_layer.css">
   <script src="/app.js" type="module"></script>
 </head>
 <body class="auth-page">
@@ -45,13 +46,36 @@
       </section>
       <section id="module-view" hidden>
         <a class="back-link" href="#/"><span data-icon="back" aria-hidden="true"></span>返回应用工作台</a>
-        <div class="module-heading"><div><h1 id="module-title">数学与应用数学</h1><p>按数学方向探索研究专题与参考资料。</p></div><span class="module-badge">专题阅读</span></div>
-        <section aria-labelledby="topics-title"><div class="section-heading"><h2 id="topics-title">研究方向</h2></div><div id="subject-cards" class="topic-tabs" aria-live="polite"></div><button id="retry-subjects" class="button" hidden>重新加载研究方向</button></section>
-        <section class="topic-content" aria-labelledby="topic-title"><div class="topic-intro"><div><h2 id="topic-title">全部方向</h2><p id="topic-description">从平台提供的研究资料中，选择感兴趣的内容开始阅读。</p></div><span data-icon="book" aria-hidden="true"></span></div>
-          <div class="section-heading"><h2 id="library-title">参考资料</h2><button class="button compact" id="refresh-documents"><span data-icon="refresh" aria-hidden="true"></span>刷新内容</button></div>
-          <p class="list-status muted" id="list-status" role="status"></p><div id="module-documents" class="document-list"></div>
-          <div class="pagination"><button class="button compact" id="previous-page" disabled>上一页</button><span id="page-label">第 1 页</span><button class="button compact" id="next-page" disabled>下一页</button></div>
+        <div class="module-heading"><div><h1 id="module-title">数学与应用数学</h1><p>从大问题出发，用教材建立理解。</p></div><span class="module-badge">问题 · 教材 · 学习</span></div>
+        <section id="direction-overview" aria-labelledby="directions-title">
+          <div class="section-heading"><h2 id="directions-title">主要研究方向</h2><span class="muted">选择一个方向，开始深入</span></div>
+          <div id="featured-directions" class="direction-grid"></div>
+          <h2 class="more-directions-title">更多研究方向</h2><div id="more-directions" class="more-directions"></div>
         </section>
+        <section id="direction-detail" hidden>
+          <a href="#/apps/mathematics" class="back-link">← 全部研究方向</a>
+          <div class="direction-heading"><div><h2 id="direction-title"></h2><p id="direction-description" class="muted"></p></div><span id="direction-symbol" class="direction-symbol" aria-hidden="true"></span></div>
+          <section class="questions-section" aria-labelledby="questions-title"><h2 id="questions-title">这个方向要解决什么？</h2><ol id="direction-questions" class="big-questions"></ol></section>
+          <section aria-labelledby="textbooks-title"><div class="section-heading"><h2 id="textbooks-title">递进教材</h2><span class="muted">按基础选择起点</span></div><p class="muted textbook-context">先从这一条学习线开始；教材阶段表示推荐顺序，不代表必须读完上一册。</p><div id="textbook-list" class="textbook-list"></div></section>
+        </section>
+        <p id="learning-status" class="list-status" role="status"></p><button id="retry-learning" class="button" hidden>重新加载</button>
+      </section>
+      <section id="reader-view" hidden aria-labelledby="reader-title">
+        <div class="reader-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics">← 返回教材</a><h1 id="reader-title">教材阅读</h1></div>
+        <div class="reader-toolbar">
+          <button id="reader-outline-toggle" class="button compact" aria-expanded="false">目录</button>
+          <button id="reader-prev" class="button compact">上一页</button>
+          <label class="reader-page-control">第 <input id="reader-page" type="number" min="1" value="1" aria-label="页码"> / <span id="reader-pages">—</span> 页</label>
+          <button id="reader-next" class="button compact">下一页</button>
+          <label class="reader-zoom-control">缩放 <select id="reader-zoom"><option value="0.75">75%</option><option value="1" selected>适合宽度</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+          <button id="reader-notes-toggle" class="button compact" aria-expanded="true">高亮笔记</button>
+        </div>
+        <div class="reader-layout">
+          <aside id="reader-outline" class="reader-outline" hidden aria-label="教材目录"></aside>
+          <div id="reader-scroll" class="reader-scroll" tabindex="0" aria-label="PDF 阅读区域"><div id="pdf-page" class="pdf-page"><canvas id="pdf-canvas" aria-label="PDF 页面"></canvas><div id="pdf-highlights" class="pdf-highlights" aria-hidden="true"></div><div id="pdf-text" class="textLayer"></div></div></div>
+          <aside id="reader-notes" class="reader-notes"><h2>我的高亮与笔记</h2><p class="muted">选中文字，再点击高亮。笔记仅自己可见。</p><div id="selection-tools" hidden><p id="selection-quote"></p><div class="highlight-colors"><button class="button compact" data-highlight="yellow">黄色</button><button class="button compact" data-highlight="blue">蓝色</button><button class="button compact" data-highlight="pink">粉色</button></div></div><div id="annotation-list"></div></aside>
+        </div>
+        <div class="reader-foot"><span id="reader-status" role="status">正在打开教材…</span><span id="reader-save-status" role="status"></span></div>
       </section>
     </main>
     <footer><span>云数学</span><span>属于数学研究者的工作空间</span></footer>

@@ -52,12 +52,12 @@ public class PublicController {
     @GetMapping("/api/ai/status")
     public Map<String, Object> ai() { return Map.of("enabled", false, "status", "not_configured"); }
 
-    @GetMapping({"/", "/index.html", "/app.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js"})
+    @GetMapping({"/", "/index.html", "/app.js", "/learning.js", "/reader.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js", "/vendor/pdfjs/**"})
     public ResponseEntity<InputStreamResource> web(HttpServletRequest request) {
-        if (!java.util.Set.of("/", "/index.html", "/app.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js").contains(request.getRequestURI()))
+        if (!java.util.Set.of("/", "/index.html", "/app.js", "/learning.js", "/reader.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js").contains(request.getRequestURI()) && !request.getRequestURI().matches("/vendor/pdfjs/(pdf(?:\\.worker)?\\.mjs|text_layer\\.css|cmaps/[A-Za-z0-9_-]+\\.bcmap|standard_fonts/[A-Za-z0-9_-]+\\.(?:pfb|ttf))"))
             throw new ApiProblem(404, "not_found");
         String name = request.getRequestURI().equals("/") ? "index.html" : request.getRequestURI().substring(1);
-        String type = name.endsWith(".html") ? "text/html; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8";
+        String type = name.endsWith(".bcmap") || name.endsWith(".pfb") || name.endsWith(".ttf") ? "application/octet-stream" : name.endsWith(".html") ? "text/html; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8";
         return resource(Path.of(LibraryRepository.setting("MATH_WEB_DIR", "../frontend")).resolve(name), type, 503, true).build();
     }
 
@@ -70,7 +70,7 @@ public class PublicController {
             if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Unavailable file");
             var channel = Files.newByteChannel(file, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS);
             long size = channel.size();
-            if (staticAsset && size > 2097152) { channel.close(); throw new IOException("Oversized asset"); }
+            if (staticAsset && size > 8388608) { channel.close(); throw new IOException("Oversized asset"); }
             return new FileBody(new InputStreamResource(Channels.newInputStream(channel)), type, size);
         } catch (IOException failure) { throw new ApiProblem(failureStatus, staticAsset ? "web_unavailable" : "file_unavailable"); }
     }

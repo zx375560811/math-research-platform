@@ -35,6 +35,10 @@ public class LibraryRepository {
         // Library requests are query-only; account operations use separate write transactions.
         try (Connection connection = connect(false); var statement = connection.createStatement()) {
             for (String sql : schema.split(";")) if (!sql.isBlank()) statement.execute(sql);
+            try (var catalog = getClass().getResourceAsStream("/learning.sql")) {
+                if (catalog == null) throw new IOException("Missing learning.sql");
+                for (String sql : new String(catalog.readAllBytes(), StandardCharsets.UTF_8).split(";")) if (!sql.isBlank()) statement.execute(sql);
+            }
             // One-time transition requested by the owner: discard open-registration accounts.
             statement.execute("BEGIN IMMEDIATE");
             try {

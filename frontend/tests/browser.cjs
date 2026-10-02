@@ -8,7 +8,10 @@ const { spawn, spawnSync } = require('node:child_process');
 const { chromium } = require('playwright');
 const frontend = path.resolve(__dirname, '..');
 const repo = path.resolve(frontend, '..');
-const pdf = Buffer.from('%PDF-1.4\n%%EOF\n');
+const { fixturePdf } = require('./fixture.cjs');
+const pdf = fixturePdf();
+const directions = [['analysis','分析',true],['geometry-topology','几何与拓扑',true],['algebra','代数',true],['number-theory','数论',false],['probability-statistics','概率与统计',false],['computational','计算数学与数值方法',false],['optimization','优化与数学建模',false],['discrete-foundations','离散数学与数学基础',false]].map(([slug,name,featured]) => ({slug,name,featured,description:'研究结构与数学问题'}));
+const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:false,file_url:null}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
 const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'number-theory', name: '数论' }, { id: 3, slug: 'analysis', name: '分析' }, { id: 4, slug: 'geometry-topology', name: '几何与拓扑' }, { id: 5, slug: 'other', name: '其他数学方向' }];
 async function main() {
   let browser, server, child, temp; let logs = '';
@@ -16,7 +19,7 @@ async function main() {
     let port; let invitation = 'I'.repeat(43); let invitationUsed = false;
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
-      const users = new Map(); const sessions = new Map();
+      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); let annotationId = 0;
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, 'http://localhost');
         const json = (body, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
@@ -35,6 +38,27 @@ async function main() {
           if (users.get(name) !== body.password) return json({ error: 'invalid_credentials' }, 401);
           session.user = { username: name, role: 'USER' }; return json({ user: session.user });
         }
+        if (url.pathname.startsWith('/api/learning')) {
+          if (!session?.user) return json({error:'login_required'},401);
+          const user = session.user.username; const bookPath = url.pathname.match(/^\/api\/learning\/books\/(\d+)(?:\/(progress|annotations)(?:\/(\d+))?)?$/);
+          if (req.method === 'GET') {
+            if (url.pathname === '/api/learning/directions') return json({directions});
+            if (url.pathname.startsWith('/api/learning/directions/')) { const slug = url.pathname.split('/').pop(); const direction = directions.find(d => d.slug === slug); return direction ? json({...direction,questions:['如何研究运算与代数结构？','如何描述和理解对称性？','如何分类与表示代数结构？'],books:mockBooks.filter(b => b.direction === slug).map(b => ({...b,progress:progress.get(user+':'+b.id)||null}))}) : json({error:'not_found'},404); }
+          }
+          if (bookPath) {
+            const book = mockBooks.find(b => b.id === Number(bookPath[1])); if (!book) return json({error:'not_found'},404);
+            const key = user+':'+book.id;
+            if (req.method === 'GET' && !bookPath[2]) return json({...book,progress:progress.get(key)||null});
+            if (req.method === 'GET' && bookPath[2] === 'annotations') return json({annotations:annotations.get(key)||[]});
+            if (req.headers['x-csrf-token'] !== session.token) return json({error:'invalid_csrf'},403);
+            const parts=[];for await(const part of req)parts.push(part);const raw=Buffer.concat(parts).toString();const body=raw?JSON.parse(raw):{};
+            if (req.method === 'PUT' && bookPath[2] === 'progress') {progress.set(key,body);return json({status:'ok'});}
+            if (req.method === 'POST' && bookPath[2] === 'annotations') {const mark={...body,id:++annotationId};annotations.set(key,[...(annotations.get(key)||[]),mark]);return json({id:mark.id});}
+            const marks=annotations.get(key)||[];const mark=marks.find(m=>m.id===Number(bookPath[3]));if(!mark)return json({error:'not_found'},404);
+            if(req.method==='PATCH'){mark.note=body.note;return json({status:'ok'});}if(req.method==='DELETE'){annotations.set(key,marks.filter(m=>m.id!==mark.id));return json({status:'ok'});}
+          }
+          return json({error:'not_found'},404);
+        }
         if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
         if ((url.pathname.startsWith('/api/documents') || url.pathname === '/api/subjects') && !session?.user) return json({ error: 'login_required' }, 401);
         if (url.pathname === '/api/health') return json({ status: 'ok' });
@@ -44,10 +68,11 @@ async function main() {
           return json({ documents: documents.filter(d => !id || d.subject_ids.includes(id)).slice().reverse().slice(offset, offset + 20), limit: 20, offset });
         }
         if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { res.writeHead(200, { 'Content-Type': 'application/pdf' }); return res.end(pdf); }
-        const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
+        const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
         for (const name of ['icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
-        res.writeHead(200, { 'Content-Type': asset[1], 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'" }); res.end(fs.readFileSync(path.join(frontend, asset[0])));
+        res.writeHead(200, { 'Content-Type': asset[1], 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'" }); res.end(fs.readFileSync(path.join(frontend, asset[0])));
       });
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); port = server.address().port;
     } else {
@@ -65,10 +90,8 @@ async function main() {
     if (temp) {
       const issued = spawnSync('python3', [path.join(repo, 'backend/admin/create_invitation.py')], { cwd: temp, encoding: 'utf8' }); assert.equal(issued.status, 0, issued.stderr); invitation = issued.stdout.trim();
       fs.writeFileSync(path.join(temp, 'source.pdf'), pdf);
-      for (const doc of documents) {
-        const result = spawnSync('python3', [path.join(repo, 'backend/admin/import_document.py'), 'source.pdf', '--title', doc.title, '--authors', doc.authors, '--subject-id', '1'], { cwd: temp, encoding: 'utf8' });
-        assert.equal(result.status, 0, result.stderr);
-      }
+      const imported = spawnSync('python3', [path.join(repo, 'backend/admin/import_document.py'), 'source.pdf', '--title', 'Test textbook', '--authors', 'Test author', '--subject-id', '1'], { cwd: temp, encoding: 'utf8' }); assert.equal(imported.status,0,imported.stderr);
+      const linked = spawnSync('python3', [path.join(repo, 'backend/admin/link_textbook.py'),'7',String(JSON.parse(imported.stdout).id)],{cwd:temp,encoding:'utf8'});assert.equal(linked.status,0,linked.stderr);
     }
     assert.equal((await fetch(base + '/api/documents', { method: 'POST', body: pdf })).status, 405);
     const options = { headless: true }; if (process.env.MATH_BROWSER_EXECUTABLE) options.executablePath = process.env.MATH_BROWSER_EXECUTABLE;
@@ -102,33 +125,51 @@ async function main() {
     await page.locator('#account-password').fill('WrongPassword123!'); await page.locator('#account-submit').click();
     await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('不正确'));
     await page.locator('#account-password').fill('BrowserPass123!'); await page.locator('#account-submit').click();
-    await page.locator('#module-documents h3').first().waitFor();
+    await page.locator('#featured-directions .direction-card').first().waitFor();
+    assert.equal(await page.locator('#featured-directions .direction-card').count(),3);
+    assert.equal(await page.locator('#more-directions .direction-small').count(),5);
     await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
     await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
     await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card').click();
-    await page.locator('#module-documents h3').first().waitFor();
-    assert.equal(await page.locator('#module-title').textContent(), '数学与应用数学');
-    assert.equal(await page.locator('#math-app-link').getAttribute('aria-current'), 'page');
-    assert.equal(await page.locator('#module-documents h3').first().textContent(), documents[20].title);
-    assert.equal(await page.locator('#module-documents img').count(), 0);
-    const downloadPromise = page.waitForEvent('download'); await page.locator('.download-link').first().click();
-    assert.deepEqual(fs.readFileSync(await (await downloadPromise).path()), pdf);
-    await page.locator('#next-page').click(); await page.waitForFunction(() => document.getElementById('page-label').textContent === '第 2 页');
-    assert.equal(await page.locator('.document-row').count(), 1);
-    await page.locator('#previous-page').click(); await page.waitForFunction(() => document.getElementById('page-label').textContent === '第 1 页');
-    await page.locator('[data-subject-id="1"]').click();
-    await page.waitForFunction(() => document.getElementById('topic-title').textContent === '代数');
-    await page.locator('#module-documents h3').first().waitFor();
-    assert.equal(await page.locator('#topic-title').textContent(), '代数');
     await page.screenshot({ path: path.join(shots, 'module-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });
-    for (const width of [390, 320]) { await page.setViewportSize({ width, height: 844 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false); }
-    await page.locator('[data-subject-id="2"]').click(); await page.locator('.empty-state').waitFor();
-    assert.doesNotMatch(await page.locator('.empty-state').textContent(), /上传|添加文献/);
-    await page.route('**/api/documents?*', route => route.fulfill({ status: 500, body: '{}' }));
-    await page.locator('#refresh-documents').click(); await page.waitForFunction(() => document.getElementById('list-status').textContent.includes('失败'));
-    await page.unroute('**/api/documents?*'); await page.locator('#refresh-documents').click(); await page.locator('.empty-state').waitFor();
+    await page.locator('[data-direction="algebra"]').click(); await page.locator('.textbook-row').first().waitFor();
+    assert.equal(await page.locator('#direction-questions li').count(),3);
+    assert.equal(await page.locator('.textbook-row').count(),3);
+    assert.equal(await page.locator('[data-book="7"]').textContent(),'开始学习');
+    assert.equal(await page.locator('input[type=file],#upload-form').count(),0);
+    await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
+    await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('[data-book="7"]').click();
+    await page.waitForFunction(() => document.querySelector('#pdf-text span')?.textContent.includes('Mathematics'));
+    assert.equal(await page.locator('#reader-pages').textContent(),'2');
+    await page.evaluate(() => {const span=document.querySelector('#pdf-text span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
+    await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="yellow"]').click();
+    await page.locator('.annotation-item').waitFor(); assert.ok(await page.locator('.pdf-highlight').count()>0);
+    const noteText='My proof <img src=x onerror=alert(1)>';
+    await page.locator('.annotation-note').fill(noteText); await page.locator('.annotation-actions .button').click();
+    await page.waitForFunction(() => document.getElementById('reader-status').textContent==='笔记已保存');
+    await page.locator('#reader-zoom').selectOption('1.25');
+    await page.waitForFunction(() => document.getElementById('reader-status').textContent.includes('选中文字即可'));
+    assert.ok(await page.locator('.pdf-highlight').count()>0);
+    await page.screenshot({path:path.join(shots,'reader-desktop.png'),fullPage:true});
+    await page.locator('#reader-outline-toggle').click(); await page.locator('.outline-entry').last().click();
+    await page.waitForFunction(() => document.getElementById('reader-page').value==='2');
+    await page.waitForFunction(() => document.getElementById('reader-save-status').textContent==='阅读位置已保存');
+    await page.reload(); await page.waitForFunction(() => document.getElementById('reader-page').value==='2' && document.querySelector('#pdf-text span')?.textContent==='Mathematics 2');
+    assert.equal(await page.locator('.annotation-note').inputValue(),noteText);assert.equal(await page.locator('#annotation-list img').count(),0);
+    const secondContext=await browser.newContext({viewport:{width:390,height:844}});const second=await secondContext.newPage();
+    await second.goto(base+'/#/apps/mathematics/read/7');await second.waitForFunction(()=>location.hash==='#/login');
+    await second.locator('#account-username').fill('browser_reader');await second.locator('#account-password').fill('BrowserPass123!');await second.locator('#account-submit').click();
+    await second.waitForFunction(()=>document.getElementById('reader-page').value==='2' && document.querySelector('#pdf-text span')?.textContent==='Mathematics 2');
+    assert.equal(await second.locator('.annotation-note').inputValue(),noteText);
+    await second.locator('.annotation-jump').click();await second.waitForFunction(()=>document.getElementById('reader-page').value==='1' && document.querySelector('.pdf-highlight'));
+    await second.screenshot({path:path.join(shots,'reader-mobile.png'),fullPage:true});
+    await second.setViewportSize({width:320,height:568});assert.equal(await second.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await second.locator('.annotation-delete').click();await second.waitForFunction(()=>!document.querySelector('.annotation-item'));
+    await secondContext.close();
+    await page.locator('#reader-back').click();await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
@@ -136,7 +177,7 @@ async function main() {
     assert.equal((await page.request.get(base + '/api/documents')).status(), 401);
     assert.equal((await page.request.get(base + '/api/documents/1/file')).status(), 401);
     await page.goto(base + '/#/'); await page.waitForFunction(() => location.hash === '#/login'); await page.locator('#auth-view').waitFor();
-    assert.deepEqual(errors, []); console.log('Application entry, read-only reading, source retrieval, filtering, pagination and mobile checks passed.');
+    assert.deepEqual(errors, []); console.log('Invitation login, direction hierarchy, staged textbooks, PDF rendering, highlighter, note editing/deletion, reload, cross-device progress and mobile checks passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));
     if (child && child.exitCode === null && child.signalCode === null) { const stopped = new Promise(resolve => child.once('exit', resolve)); child.kill('SIGTERM'); await stopped; }
