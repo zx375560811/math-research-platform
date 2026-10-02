@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory() as directory:
                     if request('/api/health')[0] == 200: break
                 except (OSError, urllib.error.URLError): time.sleep(.1)
             else: raise AssertionError('Server not ready')
-            assert request('/api/subjects')[1]['subjects'][0]['name'] == '我的代数分类'
+            assert request('/api/subjects')[0] == 401
             for asset in ['/', '/app.js', '/style.css', '/icons.js', '/vendor/morphicons/dom.js', '/vendor/morphicons/spring-CFHloqPP.js', '/vendor/morphicons/normalize-CYnN3Npw.js']:
                 with urllib.request.urlopen(base + asset) as response:
                     assert response.status == 200 and response.headers['Content-Security-Policy'] and response.read()
@@ -74,6 +74,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert before_session != after_session.value
             assert 'HttpOnly' in after_session._rest and after_session._rest.get('SameSite', '').lower() == 'lax'
             assert request('/api/auth/me')[1]['user']['username'] == 'reader_1'
+            assert request('/api/subjects')[1]['subjects'][0]['name'] == '我的代数分类'
             assert request('/api/documents')[1]['documents'][0]['id'] == 41
             assert request('/api/documents/41/file') == (200, pdf)
             assert [p.name for p in (root / 'data/files').iterdir()] == ['upload-legacy']

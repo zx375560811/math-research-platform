@@ -202,16 +202,16 @@ footer { display: flex; justify-content: space-between; gap: 15px; padding: 21px
 .auth-panel { min-width: 0; }.auth-panel input::placeholder { color: #62748c; font-size: 12px; }
 .auth-panel .form-message { color: var(--muted); }.auth-panel .form-message.error { color: #8a4133; }
 @media (max-width: 600px) { .auth-panel form>input { font-size: 16px; } }
-.registration-page .sidebar,
-.registration-page .topbar,
-.registration-page .workspace>footer,
-.registration-page .auth-intro,
-.registration-page .auth-panel>.back-link,
-.registration-page #notice { display: none; }
-.registration-page .workspace { margin-left: 0; }
-.registration-page #main-content { display: grid; place-items: center; max-width: none; min-height: 100vh; min-height: 100svh; padding: 24px; }
-.registration-page .auth-view { width: 100%; max-width: 440px; grid-template-columns: 1fr; margin: 0; }
+.auth-page .sidebar,
+.auth-page .topbar,
+.auth-page .workspace>footer,
+.auth-page .auth-intro,
+.auth-page .auth-panel>.back-link,
+.auth-page #notice { display: none; }
+.auth-page .workspace { margin-left: 0; }
+.auth-page #main-content { display: grid; place-items: center; max-width: none; min-height: 100vh; min-height: 100svh; padding: 24px; }
+.auth-page .auth-view { width: 100%; max-width: 440px; grid-template-columns: 1fr; margin: 0; }
 @media (max-width: 600px) {
-  .registration-page #main-content { padding: 20px 16px; }
-  .registration-page .auth-panel { padding: 25px; }
+  .auth-page #main-content { padding: 20px 16px; }
+  .auth-page .auth-panel { padding: 25px; }
 }

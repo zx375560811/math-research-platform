@@ -36,7 +36,7 @@ async function main() {
           session.user = { username: name, role: 'USER' }; return json({ user: session.user });
         }
         if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
-        if (url.pathname.startsWith('/api/documents') && !session?.user) return json({ error: 'login_required' }, 401);
+        if ((url.pathname.startsWith('/api/documents') || url.pathname === '/api/subjects') && !session?.user) return json({ error: 'login_required' }, 401);
         if (url.pathname === '/api/health') return json({ status: 'ok' });
         if (url.pathname === '/api/subjects') return json({ subjects });
         if (url.pathname === '/api/documents') {
@@ -74,18 +74,14 @@ async function main() {
     browser = await chromium.launch(options);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
-    await page.goto(base); await page.locator('#subject-cards a').first().waitFor({ state: 'attached' });
-    assert.equal(await page.locator('input[type=file], #upload-form, #recent-documents').count(), 0);
-    assert.equal(await page.locator('.application-card').count(), 1);
-    assert.equal(await page.locator('#home-link').getAttribute('aria-current'), 'page');
+    await page.goto(base); await page.waitForFunction(() => location.hash === '#/login');
+    for (const selector of ['#home-view', '#module-view', '.sidebar', '.topbar', '.auth-intro', '.workspace>footer']) assert.equal(await page.locator(selector).isVisible(), false);
+    assert.equal((await fetch(base + '/api/subjects')).status, 401);
+    await page.goto(base + '/#/apps/mathematics'); await page.waitForFunction(() => location.hash === '#/login');
+    assert.equal(await page.locator('#module-view').isVisible(), false);
     const shots = path.join(frontend, 'tests/artifacts'); fs.mkdirSync(shots, { recursive: true });
-    await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card').click();
-    await page.locator('#auth-view').waitFor();
     await page.locator('#register-tab').click();
-    await page.waitForFunction(() => document.body.classList.contains('registration-page'));
+    await page.waitForFunction(() => document.body.classList.contains('auth-page'));
     for (const selector of ['.sidebar', '.topbar', '.auth-intro', '.workspace>footer']) assert.equal(await page.locator(selector).isVisible(), false);
     await page.screenshot({ path: path.join(shots, 'register-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'register-mobile.png'), fullPage: true });
@@ -101,6 +97,11 @@ async function main() {
     await page.locator('#account-password').fill('WrongPassword123!'); await page.locator('#account-submit').click();
     await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('不正确'));
     await page.locator('#account-password').fill('BrowserPass123!'); await page.locator('#account-submit').click();
+    await page.locator('#module-documents h3').first().waitFor();
+    await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
+    await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card').click();
     await page.locator('#module-documents h3').first().waitFor();
     assert.equal(await page.locator('#module-title').textContent(), '数学与应用数学');
     assert.equal(await page.locator('#math-app-link').getAttribute('aria-current'), 'page');
@@ -124,11 +125,12 @@ async function main() {
     await page.locator('#refresh-documents').click(); await page.waitForFunction(() => document.getElementById('list-status').textContent.includes('失败'));
     await page.unroute('**/api/documents?*'); await page.locator('#refresh-documents').click(); await page.locator('.empty-state').waitFor();
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
-    await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/');
-    assert.equal(await page.locator('#auth-link').isVisible(), true);
+    await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
+    assert.equal(await page.locator('#home-view').isVisible(), false);
+    assert.equal(await page.locator('.sidebar').isVisible(), false);
     assert.equal((await page.request.get(base + '/api/documents')).status(), 401);
     assert.equal((await page.request.get(base + '/api/documents/1/file')).status(), 401);
-    await page.locator('.application-card').click(); await page.locator('#auth-view').waitFor();
+    await page.goto(base + '/#/'); await page.waitForFunction(() => location.hash === '#/login'); await page.locator('#auth-view').waitFor();
     assert.deepEqual(errors, []); console.log('Application entry, read-only reading, source retrieval, filtering, pagination and mobile checks passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));

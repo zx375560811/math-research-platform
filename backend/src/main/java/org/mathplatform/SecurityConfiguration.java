@@ -25,7 +25,7 @@ public class SecurityConfiguration {
     @Bean SecurityFilterChain security(HttpSecurity http, SecurityContextRepository repository) throws Exception {
         http.securityContext(context -> context.securityContextRepository(repository))
             .csrf(csrf -> csrf.csrfTokenRepository(new HttpSessionCsrfTokenRepository()))
-            .authorizeHttpRequests(requests -> requests.requestMatchers("/api/documents", "/api/documents/**").authenticated().anyRequest().permitAll())
+            .authorizeHttpRequests(requests -> requests.requestMatchers("/api/auth/**", "/api/health").permitAll().requestMatchers("/api/**").authenticated().anyRequest().permitAll())
             .formLogin(form -> form.disable()).httpBasic(basic -> basic.disable())
             .requestCache(cache -> cache.disable())
             .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, failure) -> {

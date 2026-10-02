@@ -84,6 +84,6 @@ python3 tests/integration.py
 | GET | /api/auth/me | 当前登录状态，不返回密码哈希 |
 | POST | /api/auth/logout | 清除会话和 Cookie |
 
-POST 必须携带同一会话 GET /api/auth/csrf 返回的 header/token；每次提交前重新获取，登录会轮换 token。Cookie HttpOnly、SameSite=Lax，仅使用 Cookie 追踪会话。资料接口 /api/documents 及其子路径未登录返回 401；健康状态和网页资产公开。账号哈希保存在同一个 math.db 的 users 表。没有默认账号、默认密码或网页管理员。注册不赋予底层文献管理能力。
+POST 必须携带同一会话 GET /api/auth/csrf 返回的 header/token；每次提交前重新获取，登录会轮换 token。Cookie HttpOnly、SameSite=Lax，仅使用 Cookie 追踪会话。网站入口直接显示独立登录/注册表单，登录后才能进入工作台。研究方向 /api/subjects 和资料接口 /api/documents 及其子路径未登录返回 401；健康状态、账号入口和必要的网页资产公开。账号哈希保存在同一个 math.db 的 users 表。没有默认账号、默认密码或网页管理员。注册不赋予底层文献管理能力。
 
 注册按来源地址限制每小时 10 次提交，登录每 15 分钟 30 次提交（含成功和失败），返回 429。限制为单进程内存状态，重启会重置；后续代理部署时再配置可信来源地址。

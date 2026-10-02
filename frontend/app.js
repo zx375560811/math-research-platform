@@ -1,6 +1,6 @@
 import { icon, mountIcons } from './icons.js';
 const $ = id => document.getElementById(id);
-const state = { subjects: [], subject: null, offset: 0, generation: 0, loading: false, user: null, ready: false, returnTo: '#/apps/mathematics', authBusy: false };
+const state = { subjects: [], subject: null, offset: 0, generation: 0, loading: false, user: null, ready: false, returnTo: '#/', authBusy: false };
 const descriptions = { algebra: '结构、对称与运算', 'number-theory': '整数与算术结构', analysis: '极限、函数与变化', 'geometry-topology': '空间、形状与连续性', other: '更多数学研究方向' };
 mountIcons();
 function node(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
@@ -8,7 +8,7 @@ const accountErrors = { invalid_username: '用户名需为 3–32 位字母、�
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
   if (!response.ok) {
-    if (body.error === 'login_required') { state.user = null; accountDisplay(); if (location.hash.startsWith('#/apps/')) { state.returnTo = location.hash; location.hash = '#/login'; } }
+    if (body.error === 'login_required') { state.user = null; accountDisplay(); state.returnTo = location.hash; location.hash = '#/login'; route(); }
     throw new Error(accountErrors[body.error] || '请求失败，请稍后重试。');
   }
   return body;
@@ -51,14 +51,15 @@ async function loadContent() {
   finally { if (generation === state.generation) { state.loading = false; $('refresh-documents').disabled = false; } }
 }
 function route() {
+  if (!state.ready) { document.body.classList.add('auth-page'); $('home-view').hidden = true; $('module-view').hidden = true; $('auth-view').hidden = true; return; }
   ++state.generation; state.loading = false; state.offset = 0;
   const match = location.hash.match(/^#\/apps\/mathematics(?:\/subjects\/(\d+))?$/);
   const subject = match && match[1] ? state.subjects.find(s => String(s.id) === match[1]) : null;
   state.subject = subject;
   const inApp = !!match;
-  if (inApp && state.ready && !state.user) { state.returnTo = location.hash; location.hash = '#/login'; return; }
+  if (!state.user && !['#/login', '#/register'].includes(location.hash)) { state.returnTo = location.hash || '#/'; location.replace('#/login'); route(); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
-  document.body.classList.toggle('registration-page', registering);
+  document.body.classList.toggle('auth-page', inAuth);
   $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inAuth; $('module-view').hidden = !inApp;
   $('auth-title').textContent = registering ? '注册云数学账号' : '登录云数学'; $('account-submit').textContent = registering ? '注册账号' : '登录';
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
@@ -72,12 +73,15 @@ function route() {
   document.title = inAuth ? `${registering ? '注册' : '登录'} · 云数学` : inApp ? `${subject ? subject.name + ' · ' : ''}数学与应用数学 · 云数学` : '云数学 · 数学研究平台';
   if (inApp && state.ready && state.user) loadContent(); window.scrollTo(0, 0);
 }
-async function init() {
+async function loadSubjects() {
   $('retry-subjects').hidden = true;
-  const results = await Promise.allSettled([api('/api/auth/me'), api('/api/subjects')]);
-  if (results[0].status === 'fulfilled') state.user = results[0].value.authenticated ? results[0].value.user : null;
-  if (results[1].status === 'fulfilled') { state.subjects = results[1].value.subjects; renderSubjects(); }
-  else { $('subject-cards').replaceChildren(node('p', 'muted', friendly(results[1].reason))); $('retry-subjects').hidden = false; }
+  try { state.subjects = (await api('/api/subjects')).subjects; renderSubjects(); }
+  catch (error) { $('subject-cards').replaceChildren(node('p', 'muted', friendly(error))); $('retry-subjects').hidden = false; }
+}
+async function init() {
+  try { const me = await api('/api/auth/me'); state.user = me.authenticated ? me.user : null; }
+  catch { state.user = null; }
+  if (state.user) await loadSubjects();
   state.ready = true; accountDisplay(); route();
 }
 function authMessage(text, error = false) { $('account-message').textContent = text; $('account-message').classList.toggle('error', error); }
@@ -91,19 +95,19 @@ $('account-form').addEventListener('submit', async event => {
     const body = await authPost(registering ? '/api/auth/register' : '/api/auth/login', { username, password });
     $('account-password').value = ''; $('account-confirm').value = '';
     if (registering) { authMessage('注册成功，请登录。'); location.hash = '#/login'; }
-    else { state.user = body.user; accountDisplay(); authMessage(''); location.hash = state.returnTo; }
+    else { state.user = body.user; accountDisplay(); await loadSubjects(); authMessage(''); location.hash = state.returnTo; }
   } catch (error) { authMessage(friendly(error), true); }
   finally { state.authBusy = false; for (const field of $('account-form').elements) field.disabled = false; }
 });
 $('logout-button').addEventListener('click', async () => {
   $('logout-button').disabled = true;
-  try { await authPost('/api/auth/logout'); state.user = null; ++state.generation; $('module-documents').replaceChildren(); accountDisplay(); location.hash = '#/'; route(); }
+  try { await authPost('/api/auth/logout'); state.user = null; state.subjects = []; $('subject-cards').replaceChildren(); ++state.generation; $('module-documents').replaceChildren(); accountDisplay(); location.hash = '#/login'; route(); }
   catch (error) { $('notice').textContent = friendly(error); $('notice').hidden = false; }
   finally { $('logout-button').disabled = false; }
 });
 $('previous-page').addEventListener('click', () => { if (!state.loading && state.offset >= 20) { state.offset -= 20; loadContent(); } });
 $('next-page').addEventListener('click', () => { if (!state.loading) { state.offset += 20; loadContent(); } });
 $('refresh-documents').addEventListener('click', loadContent);
-$('retry-subjects').addEventListener('click', init);
+$('retry-subjects').addEventListener('click', loadSubjects);
 window.addEventListener('hashchange', route);
 route(); init();
