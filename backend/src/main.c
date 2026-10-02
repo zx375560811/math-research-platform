@@ -92,7 +92,7 @@ static http_result handle_request(void *cls, struct MHD_Connection *connection,
     const char *url, const char *method, const char *version,
     const char *upload_data, size_t *upload_size, void **request_context)
 {
-    (void)version;
+    (void)version; (void)upload_data;
     if (!*request_context) {
         *request_context = &read_only_request;
         return MHD_YES;
