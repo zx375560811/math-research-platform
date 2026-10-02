@@ -14,6 +14,14 @@ http_result web_get(struct MHD_Connection *connection, const char *url)
         name = "index.html"; type = "text/html; charset=utf-8";
     } else if (!strcmp(url, "/app.js")) {
         name = "app.js"; type = "text/javascript; charset=utf-8";
+    } else if (!strcmp(url, "/icons.js")) {
+        name = "icons.js"; type = "text/javascript; charset=utf-8";
+    } else if (!strcmp(url, "/vendor/morphicons/dom.js")) {
+        name = "vendor/morphicons/dom.js"; type = "text/javascript; charset=utf-8";
+    } else if (!strcmp(url, "/vendor/morphicons/spring-CFHloqPP.js")) {
+        name = "vendor/morphicons/spring-CFHloqPP.js"; type = "text/javascript; charset=utf-8";
+    } else if (!strcmp(url, "/vendor/morphicons/normalize-CYnN3Npw.js")) {
+        name = "vendor/morphicons/normalize-CYnN3Npw.js"; type = "text/javascript; charset=utf-8";
     } else if (!strcmp(url, "/style.css")) {
         name = "style.css"; type = "text/css; charset=utf-8";
     } else return reply(connection, 404, "{\"error\":\"not_found\"}");

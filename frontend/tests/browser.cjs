@@ -40,6 +40,7 @@ async function main() {
           res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="document.pdf"' }); return res.end(pdf);
         }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
+        for (const name of ['icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         const asset = assets[url.pathname];
         if (!asset) return json({ error: 'not_found' }, 404);
         res.writeHead(200, { 'Content-Type': `${asset[1]}; charset=utf-8`, 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'" });
@@ -88,6 +89,26 @@ async function main() {
     await page.locator('#module-documents h3').first().waitFor();
     assert.equal(await page.locator('#module-title').textContent(), '代数');
     assert.equal(await page.locator('#subject-nav a[data-subject-id="1"]').getAttribute('aria-current'), 'page');
+    await page.evaluate(() => {
+      window.iconFrames = [];
+      window.iconObserver = new MutationObserver(() => window.iconFrames.push(document.querySelector('#file-icon path').getAttribute('d')));
+      window.iconObserver.observe(document.querySelector('#file-icon path'), { attributes: true, attributeFilter: ['d'] });
+    });
+    await page.locator('#pdf-file').setInputFiles({ name: '新论文.pdf', mimeType: 'application/pdf', buffer: pdf });
+    await page.waitForFunction(async () => {
+      const { canonicalD } = await import('/vendor/morphicons/dom.js');
+      const { paths } = await import('/icons.js');
+      return document.querySelector('#file-icon path').getAttribute('d') === canonicalD(paths.file);
+    });
+    assert.ok(await page.evaluate(() => new Set(window.iconFrames).size > 2), 'Morphicons should produce intermediate path frames');
+    await page.evaluate(() => window.iconObserver.disconnect());
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.locator('#pdf-file').setInputFiles([]);
+    assert.equal(await page.evaluate(async () => {
+      const { canonicalD } = await import('/vendor/morphicons/dom.js');
+      const { paths } = await import('/icons.js');
+      return document.querySelector('#file-icon path').getAttribute('d') === canonicalD(paths.upload);
+    }), true, 'Reduced motion should switch directly to the target path');
     await page.locator('#pdf-file').setInputFiles({ name: '新论文.pdf', mimeType: 'application/pdf', buffer: pdf });
     assert.equal(await page.locator('#document-title').inputValue(), '新论文');
     const title = '定理 "A" <img src=x onerror=alert(1)>';
@@ -95,6 +116,7 @@ async function main() {
     await page.locator('#upload-submit').click();
     await page.waitForFunction(() => document.getElementById('notice').textContent.includes('文献已保存'));
     await page.waitForFunction(() => !document.getElementById('upload-submit').disabled);
+    assert.equal(await page.locator('#file-icon').getAttribute('data-icon'), 'check');
     assert.equal(await page.locator('#module-documents h3').first().textContent(), title);
     assert.equal(await page.locator('#module-documents img').count(), 0);
     const downloadPromise = page.waitForEvent('download'); await page.locator('#module-documents .download-link').first().click();
@@ -102,6 +124,7 @@ async function main() {
     await page.locator('#pdf-file').setInputFiles({ name: 'bad.pdf', mimeType: 'application/pdf', buffer: Buffer.from('wrong') });
     await page.locator('#document-title').fill('无效 PDF'); await page.locator('#upload-submit').click();
     await page.waitForFunction(() => document.getElementById('upload-message').textContent.includes('不是有效'));
+    assert.equal(await page.locator('#file-icon').getAttribute('data-icon'), 'alert');
     assert.equal(await page.locator('#upload-submit').isEnabled(), true);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });

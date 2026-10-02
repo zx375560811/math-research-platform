@@ -26,3 +26,21 @@
 原稿的宣传标题、统一卡片、重复眉题和装饰箭头容易成为通用展示页。新稿改为常驻导航与专业目录，减少装饰文字和无意义编号。保留上传状态、错误恢复、键盘焦点和手机适配，不加入尚未实现的研究项目、搜索或 AI 操作。
 
 以截图复核桌面和手机排版，并运行导航、上传、下载、分页、错误恢复与内容转义检查。
+
+
+## Morphicons redesign
+
+Use Morphicons 1.7.1 DOM adapter, self-hosted with its MIT license. It animates paths; the mathematical and action paths in icons.js are original project artwork. Keep all icons on a 24×24 grid with round strokes. Morph the persistent file indicator: upload → document when selected, upload → check on success, warning on validation/network failure. Labels remain visible; no looping or hover-only animation. Set reducedMotion to user.
+
+Palette: canvas #F3F6FB, paper #FFFFFF, ink #172D48, research blue #365BD8, soft blue #E6EDFF, secondary text #61738B. Typography: DengXian/Microsoft YaHei body; Trebuchet Latin; Cambria Math identity and equations. Left-align text.
+
+Layout:
+```
+professional navigation | mathematical surface + reading invitation
+                        | professional directory | future applications
+                        | recent literature with download actions
+professional navigation | subject title
+                        | literature list | PDF intake and state feedback
+```
+
+Review: retain the surface mesh as the single memorable visual. Remove the decorative hero eyebrow; make the headline about research through reading. Differentiate the directory, future applications and upload form through spacing and surfaces. Do not expose a nonfunctional search or AI action. Mobile preserves the horizontal subject selector and stacks the upload form above literature.

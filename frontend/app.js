@@ -1,7 +1,9 @@
+import { icon, mountIcons, changeIcon } from './icons.js';
 'use strict';
 const $ = (id) => document.getElementById(id);
 const state = { subjects: [], subject: null, offset: 0, loading: false, upload: false, generation: 0 };
-const symbols = { algebra: 'G', 'number-theory': 'ℤ', analysis: '∫', 'geometry-topology': '∂', other: '∞' };
+const symbols = { algebra: 'algebra', 'number-theory': 'number', analysis: 'analysis', 'geometry-topology': 'geometry', other: 'infinity' };
+mountIcons();
 const descriptions = { algebra: '结构、对称与运算', 'number-theory': '整数与算术结构', analysis: '极限、函数与变化', 'geometry-topology': '空间、形状与连续性', other: '更多数学研究方向' };
 const errors = { invalid_metadata: '请填写有效标题和作者，每项最多 500 个 UTF-8 字节。', unknown_subject: '所选专业不存在，请刷新页面。', pdf_too_large: 'PDF 不能超过 20 MB。', invalid_pdf_header: '文件不是有效的 PDF，请重新选择。', empty_or_invalid_length: '请选择一份非空 PDF。', use_application_pdf: '请选择 PDF 文件。', database_busy: '系统正在处理其他请求，请稍后重试。', file_storage_error: '文件保存失败，请稍后重试。', database_error: '资料读取或保存失败，请稍后重试。' };
 function node(tag, className, content) { const el = document.createElement(tag); if (className) el.className = className; if (content !== undefined) el.textContent = content; return el; }
@@ -18,8 +20,8 @@ function documentRows(target, documents, empty) {
     const metadata = node('p', '');
     for (const value of [doc.authors || '作者未填写', formatSize(doc.file_size), day].filter(Boolean)) metadata.append(node('span', '', value));
     info.append(node('h3', '', doc.title), metadata);
-    const link = node('a', 'download-link', '下载 PDF'); link.href = `/api/documents/${encodeURIComponent(doc.id)}/file`; link.setAttribute('download', `document-${doc.id}.pdf`);
-    row.append(node('span', 'pdf-badge', 'PDF'), info, link); target.append(row);
+    const link = node('a', 'download-link'); link.append(icon('download'), node('span', '', '下载 PDF')); link.href = `/api/documents/${encodeURIComponent(doc.id)}/file`; link.setAttribute('download', `document-${doc.id}.pdf`);
+    const badge = node('span', 'pdf-badge'); badge.append(icon('file')); row.append(badge, info, link); target.append(row);
   }
 }
 function renderSubjects() {
@@ -27,11 +29,12 @@ function renderSubjects() {
   for (const subject of state.subjects) {
     const card = node('a', 'subject-card'); card.href = `#/subjects/${subject.id}`;
     const copy = node('span', 'subject-copy'); copy.append(node('strong', '', subject.name), node('small', '', descriptions[subject.slug] || '专业研究资料'));
-    const arrow = node('span', 'card-arrow', '›'); arrow.setAttribute('aria-hidden', 'true');
-    const symbol = node('span', 'subject-symbol', symbols[subject.slug] || '∞'); symbol.setAttribute('aria-hidden', 'true');
+    const arrow = node('span', 'card-arrow'); arrow.setAttribute('aria-hidden', 'true');
+    arrow.append(icon('forward'));
+    const symbol = node('span', 'subject-symbol'); symbol.append(icon(symbols[subject.slug] || 'infinity')); symbol.setAttribute('aria-hidden', 'true');
     card.append(symbol, copy, arrow); $('subject-cards').append(card);
     const nav = node('a', ''); nav.href = card.href; nav.dataset.subjectId = subject.id;
-    const navSymbol = node('span', 'nav-symbol', symbols[subject.slug] || '∞'); navSymbol.setAttribute('aria-hidden', 'true');
+    const navSymbol = node('span', 'nav-symbol'); navSymbol.append(icon(symbols[subject.slug] || 'infinity')); navSymbol.setAttribute('aria-hidden', 'true');
     nav.append(navSymbol, node('span', '', subject.name)); $('subject-nav').append(nav);
     const option = node('option', '', subject.name); option.value = subject.id; $('document-subject').append(option);
   }
@@ -77,9 +80,10 @@ async function init() {
   try { const data = await api('/api/subjects'); state.subjects = data.subjects; renderSubjects(); notice(''); route(); }
   catch (error) { $('subject-cards').replaceChildren(node('p', 'muted', friendly(error))); $('retry-subjects').hidden = false; }
 }
-function formMessage(message, error = false) { $('upload-message').textContent = message; $('upload-message').classList.toggle('error', error); }
+function formMessage(message, error = false) { $('upload-message').textContent = message; $('upload-message').classList.toggle('error', error); if (error) changeIcon($('file-icon'), 'alert'); }
 $('pdf-file').addEventListener('change', () => {
   const file = $('pdf-file').files[0];
+  changeIcon($('file-icon'), file ? 'file' : 'upload');
   $('file-label').textContent = file ? file.name : '选择 PDF 文件'; $('file-detail').textContent = file ? formatSize(file.size) : '最大 20 MB';
   if (file && !$('document-title').value) $('document-title').value = file.name.replace(/\.pdf$/i, '');
   formMessage('');
@@ -93,7 +97,7 @@ $('upload-form').addEventListener('submit', async (event) => {
   if (header !== '%PDF-') { formMessage('文件不是有效的 PDF，请重新选择。', true); return; }
   if (state.upload) return; state.upload = true;
   for (const field of $('upload-form').elements) field.disabled = true;
-  $('upload-submit').textContent = '正在上传…'; $('upload-progress').hidden = false; $('upload-progress').value = 0; formMessage('正在上传，请保持页面打开。');
+  $('submit-label').textContent = '正在上传…'; changeIcon($('file-icon'), 'upload'); $('upload-progress').hidden = false; $('upload-progress').value = 0; formMessage('正在上传，请保持页面打开。');
   const xhr = new XMLHttpRequest();
   try {
     const result = await new Promise((resolve, reject) => {
@@ -104,11 +108,11 @@ $('upload-form').addEventListener('submit', async (event) => {
       xhr.onerror = () => reject(new Error('连接中断，请刷新文献列表确认是否保存。')); xhr.ontimeout = () => reject(new Error('上传超时，请刷新文献列表确认是否保存。')); xhr.send(file);
     });
     $('upload-form').reset(); $('file-label').textContent = '选择 PDF 文件'; $('file-detail').textContent = '最大 20 MB';
-    notice(`文献已保存，编号 ${result.id}。`); formMessage('保存成功。');
+    notice(`文献已保存，编号 ${result.id}。`); formMessage('保存成功，可以在文献列表中下载。'); changeIcon($('file-icon'), 'check');
     if (state.subject && String(state.subject.id) === subject) { state.offset = 0; await loadDocuments(); }
     else if (!$('home-view').hidden) await recent();
   } catch (error) { formMessage(friendly(error), true); }
-  finally { state.upload = false; for (const field of $('upload-form').elements) field.disabled = false; $('upload-submit').textContent = '保存到文献库'; $('upload-progress').hidden = true; if (state.subject) $('document-subject').value = state.subject.id; }
+  finally { state.upload = false; for (const field of $('upload-form').elements) field.disabled = false; $('submit-label').textContent = '保存到文献库'; $('upload-progress').hidden = true; if (state.subject) $('document-subject').value = state.subject.id; }
 });
 $('previous-page').addEventListener('click', () => { if (!state.loading && state.offset >= 20) { state.offset -= 20; loadDocuments(); } });
 $('next-page').addEventListener('click', () => { if (!state.loading) { state.offset += 20; loadDocuments(); } });

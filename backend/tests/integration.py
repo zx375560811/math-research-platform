@@ -62,7 +62,7 @@ with tempfile.TemporaryDirectory() as directory:
             else:
                 raise AssertionError('Server did not become ready')
             assert request('/api/subjects')[1]['subjects'][0]['name'] == '我的代数分类'
-            for asset, content_type in [('/', 'text/html'), ('/app.js', 'text/javascript'), ('/style.css', 'text/css')]:
+            for asset, content_type in [('/', 'text/html'), ('/app.js', 'text/javascript'), ('/style.css', 'text/css'), ('/icons.js', 'text/javascript'), ('/vendor/morphicons/dom.js', 'text/javascript'), ('/vendor/morphicons/spring-CFHloqPP.js', 'text/javascript'), ('/vendor/morphicons/normalize-CYnN3Npw.js', 'text/javascript')]:
                 with urllib.request.urlopen(base + asset, timeout=5) as response:
                     assert response.status == 200 and response.headers.get_content_type() == content_type
                     assert response.headers['X-Content-Type-Options'] == 'nosniff'

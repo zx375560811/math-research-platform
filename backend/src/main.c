@@ -105,7 +105,7 @@ static http_result handle_request(void *cls, struct MHD_Connection *connection,
     if (*upload_size != 0) { *upload_size = 0; return MHD_YES; }
     if (strcmp(method, "GET") != 0)
         return reply(connection, 405, "{\"error\":\"method_not_allowed\"}");
-    if (!strcmp(url, "/") || !strcmp(url, "/index.html") || !strcmp(url, "/app.js") || !strcmp(url, "/style.css"))
+    if (!strcmp(url, "/") || !strcmp(url, "/index.html") || !strcmp(url, "/app.js") || !strcmp(url, "/style.css") || !strcmp(url, "/icons.js") || !strcmp(url, "/vendor/morphicons/dom.js") || !strcmp(url, "/vendor/morphicons/spring-CFHloqPP.js") || !strcmp(url, "/vendor/morphicons/normalize-CYnN3Npw.js"))
         return web_get(connection, url);
     if (strcmp(url, "/api/health") == 0) {
         if (sqlite3_exec(cls, "SELECT 1 FROM subjects LIMIT 1", NULL, NULL, NULL) != SQLITE_OK)
