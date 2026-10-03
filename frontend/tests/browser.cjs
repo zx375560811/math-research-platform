@@ -232,7 +232,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
     assert.equal(await page.locator('#reader-scroll').getAttribute('data-total-pages'),'12');
     assert.equal(await page.locator('.pdf-page').count(),12);
-    assert.equal(await page.locator('#reader-notes').isVisible(),true); assert.equal(await page.locator('#reader-outline').isVisible(),true);
+    assert.equal(await page.locator('#reader-notes').isVisible(),true); assert.equal(await page.locator('#reader-outline').isVisible(),false); assert.equal(await page.locator('#reader-outline-toggle').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('.topbar').isVisible(),false);
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),stack=document.getElementById('pdf-pages'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=stack.offsetTop+next.offsetTop+120;});
     await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='2' && document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
@@ -303,6 +303,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-summary').nth(1).click(); assert.equal(await page.locator('.annotation-note').nth(1).inputValue(),'Unsaved second note');
     await page.screenshot({path:path.join(shots,'reader-numbered-notes.png'),fullPage:true});
     await page.locator('.annotation-delete').nth(1).click(); await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===1);
+    await page.locator('#reader-outline-toggle').click(); await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     const dimensions=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect();return {outline:rect('reader-outline').width,notes:rect('reader-notes').width,pdf:rect('reader-scroll').width};});
     const handle=await page.locator('#reader-outline-resize').boundingBox();
     await page.mouse.move(handle.x+handle.width/2,handle.y+100);await page.mouse.down();await page.mouse.move(handle.x+handle.width/2+70,handle.y+100,{steps:6});
@@ -384,6 +385,15 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     for(let attempt=0;attempt<100;attempt++){libraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;if(libraryProgress?.page===3)break;await page.waitForTimeout(100);}
     assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
     await page.locator('#reader-back').click(); await page.locator('#library-view').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
+    const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
+    for(let i=1;i<=21;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
+    await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===21);
+    assert.equal(await page.locator('#reader-outline').isVisible(),false);assert.equal(await page.locator('.annotation-summary:visible').count(),20);
+    await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),21);
+    await page.locator('.annotation-summary').nth(20).click();assert.equal(await page.locator('.annotation-note').nth(20).isVisible(),true);
+    await page.screenshot({path:path.join(shots,'reader-folded-markers.png'),fullPage:true});
+    await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),20);assert.equal(await page.locator('.annotation-note').nth(20).isVisible(),false);
+    await page.locator('#reader-back').click(); await page.locator('[data-book="7"]').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);

@@ -10,7 +10,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let verticalDrag = null, noteRatio = .35, expandedMark = null;
+  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
@@ -43,8 +43,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
   $('reader-title').textContent = '正在打开教材…';
   $('reader-fullscreen').textContent = '全屏';
-  $('reader-outline').hidden = $('reader-notes').hidden = false;
-  $('reader-outline-toggle').setAttribute('aria-expanded', 'true');
+  $('reader-outline').hidden = true; $('reader-notes').hidden = false;
+  $('reader-outline-toggle').setAttribute('aria-expanded', 'false');
   const top = frame => frame.offsetTop + stack.offsetTop;
   function currentPage() {
     let lo = 0, hi = pages.length - 1;
@@ -112,7 +112,20 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '还没有标注。选中正文开始高亮。')); return; }
     expandedMark = marks.some(mark => mark.id === openId) ? openId : null;
-    const markers = el('div', 'annotation-markers'); markers.setAttribute('role', 'group'); markers.setAttribute('aria-label', '高亮笔记编号'); list.append(markers);
+    const strip = el('div', 'annotation-marker-strip'), markers = el('div', 'annotation-markers'); markers.id = 'annotation-markers'; markers.style.setProperty('--marker-columns', String(Math.min(20, marks.length)));
+    if (expandedMark !== null && marks.findIndex(mark => mark.id === expandedMark) >= 20) markersExpanded = true;
+    markers.classList.toggle('expanded', markersExpanded); markers.setAttribute('role', 'group'); markers.setAttribute('aria-label', '高亮笔记编号'); strip.append(markers); list.append(strip);
+    if (marks.length > 20) {
+      const toggle = el('button', 'annotation-more'); toggle.type = 'button'; toggle.setAttribute('aria-controls', markers.id);
+      const label = () => { toggle.textContent = markersExpanded ? '收起' : `展开其余 ${marks.length - 20} 条`; toggle.setAttribute('aria-expanded', String(markersExpanded)); };
+      label(); toggle.addEventListener('click', () => {
+        markersExpanded = !markersExpanded; markers.classList.toggle('expanded', markersExpanded); label();
+        if (!markersExpanded && marks.findIndex(mark => mark.id === expandedMark) >= 20) {
+          expandedMark = null; for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
+          for (const button of markers.children) button.setAttribute('aria-expanded', 'false');
+        }
+      }); list.append(toggle);
+    }
     for (const [index, mark] of marks.entries()) {
       const row = el('article', 'annotation-item'); row.dataset.annotation = mark.id; row.id = `annotation-panel-${mark.id}`; row.hidden = expandedMark !== mark.id;
       const summary = el('button', 'annotation-summary', String(index + 1)); summary.type = 'button'; summary.dataset.color = mark.color; summary.id = `annotation-marker-${mark.id}`;

@@ -267,3 +267,16 @@ body.reading-page { overflow:hidden; }
   .reader-heading-actions { gap:3px; }
   .reader-heading-actions .button { padding:5px 4px; }
 }
+
+/* Seamless page edges; separators become visible only when operated. */
+.reading-page #reader-view,.reader-layout,.reader-scroll { background:white; }
+.pdf-page { box-shadow:none;border-bottom:1px solid #edf0f4; }
+.reader-resize { background:transparent; }
+.reader-resize::after { background:transparent; }
+.reader-resize:hover,.reader-resize:focus-visible,.reader-resize.active { background:#edf2ff; }
+.reader-resize:hover::after,.reader-resize:focus-visible::after,.reader-resize.active::after { background:#7292c7; }
+.annotation-marker-strip { max-width:100%;overflow-x:auto;scrollbar-width:thin; }
+.annotation-markers { display:grid;grid-template-columns:repeat(var(--marker-columns,20),28px);gap:4px;width:max-content;margin:0 0 6px; }
+.annotation-markers .annotation-summary { min-width:28px;width:28px;height:28px;padding:2px;font-size:14px; }
+.annotation-markers:not(.expanded) .annotation-summary:nth-child(n+21) { display:none; }
+.annotation-more { border:0;background:transparent;color:#36517b;font:inherit;font-size:14px;padding:3px 0;margin:0 0 8px;cursor:pointer; }
