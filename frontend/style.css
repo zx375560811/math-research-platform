@@ -198,3 +198,33 @@ body.reading-page { overflow:hidden; }
 @media(max-width:650px) { .reader-notes .ai-rich-text,.ai-chat-form textarea,.ai-settings input,.annotation-note { font-size:16px; }.reader-notes .reader-panel-heading h2 { font-size:16px; } }
 
 .reader-ai-pane { overflow:auto; }.ai-messages { min-height:100px; }
+
+/* Full-height research side panel; the PDF controls remain above the document only. */
+.reading-page #reader-view { display:grid;grid-template-columns:minmax(0,1fr) 6px var(--reader-notes-width,380px);grid-template-rows:auto auto minmax(0,1fr) auto; }
+#reader-view>.reader-heading { grid-column:1;grid-row:1;min-width:0; }
+#reader-view>.reader-toolbar { grid-column:1;grid-row:2;min-width:0; }
+#reader-view>.reader-layout { grid-column:1;grid-row:3;min-width:0; }
+#reader-view>.reader-foot { grid-column:1;grid-row:4;min-width:0; }
+#reader-view>#reader-notes-resize { grid-column:2;grid-row:1 / -1;height:100%; }
+#reader-view>.reader-notes { grid-column:3;grid-row:1 / -1;height:100%;width:100%; }
+#reader-view:has(>.reader-notes[hidden]) { grid-template-columns:minmax(0,1fr) 0 0; }
+.reader-ai-pane { container-type:inline-size; }
+.reader-ai-pane>.reader-panel-heading { flex-wrap:nowrap;flex-shrink:0;justify-content:flex-start;gap:6px;min-height:34px;overflow-x:auto;overflow-y:hidden;margin-bottom:6px; }
+.reader-ai-pane>.reader-panel-heading h2 { flex-shrink:0;white-space:nowrap; }
+.reader-ai-pane .ai-provider { flex-wrap:nowrap;flex-shrink:0;margin:0; }
+.reader-ai-pane .ai-provider select { width:100px;padding:5px;font-size:14px; }
+.reader-ai-pane>.reader-panel-heading>.ai-heading-actions { margin-left:auto;flex-wrap:nowrap;flex-shrink:0; }
+.reader-ai-pane>.reader-panel-heading>.ai-heading-actions .button { padding:5px 6px;white-space:nowrap; }
+.ai-chat-form { display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;align-items:end; }
+.ai-chat-form textarea { grid-column:2;grid-row:1;min-width:0;margin:0; }
+.ai-chat-form .ai-compose-foot { display:contents; }
+.ai-chat-form #reader-ask-ai { grid-column:1;grid-row:1;margin:0;white-space:nowrap; }
+.ai-chat-form #ai-send { grid-column:3;grid-row:1;white-space:nowrap; }
+#reader-ask-ai:not(:disabled) { color:white;background:#3458d4;border-color:#3458d4;box-shadow:0 0 0 2px #3458d41a; }
+#reader-ask-ai:not(:disabled):hover { background:#2648bd;border-color:#2648bd; }
+@container (max-width:280px) {
+  .ai-chat-form { grid-template-columns:minmax(0,1fr) auto;gap:4px; }
+  .ai-chat-form textarea { grid-column:1 / -1;grid-row:1; }
+  .ai-chat-form #reader-ask-ai { grid-column:1;grid-row:2;justify-self:start; }
+  .ai-chat-form #ai-send { grid-column:2;grid-row:2; }
+}

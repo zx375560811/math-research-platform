@@ -42,6 +42,7 @@ export function createReaderAi(getDocumentContext) {
     $('ai-question').disabled = busy;
     $('ai-send').textContent = busy ? '正在思考…' : '发送';
     $('ai-provider-label').textContent = provider?.available ? provider.model : '尚未配置';
+    $('ai-source').title = provider?.available ? `当前模型：${provider.model}` : '选择 API 来源';
   }
   function populate() {
     $('ai-source').value = config.source;

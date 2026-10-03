@@ -253,6 +253,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
     const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:a.getBoundingClientRect().left<b.getBoundingClientRect().left};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
+    const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-view').top),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:input.left-ask.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
+    assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=7); assert.equal(readerChrome.askColor,'rgb(52, 88, 212)');
     const beforeVertical=await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight); const split=await page.locator('#reader-ai-resize').boundingBox();
     await page.mouse.move(split.x+split.width/2,split.y+5);await page.mouse.down();await page.mouse.move(split.x+split.width/2,split.y+75,{steps:6});await page.mouse.up();
     assert.ok(await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight)>beforeVertical+50);
