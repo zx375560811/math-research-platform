@@ -1,6 +1,30 @@
 const $ = id => document.getElementById(id);
 const symbols = { analysis: '∫', 'geometry-topology': '𝒮', algebra: '𝔾' };
 function el(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
+// Each illustration describes its subject: a function, a torus, and group symmetries.
+function diagram(slug) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 300 170'); svg.setAttribute('aria-hidden', 'true');
+  const line = (points, kind = '') => { const path = document.createElementNS(ns, 'polyline'); path.setAttribute('points', points.map(p => p.map(v => v.toFixed(2)).join(',')).join(' ')); if (kind) path.setAttribute('class', kind); svg.append(path); };
+  if (slug === 'analysis') {
+    for (let x = 30; x <= 270; x += 30) line([[x,20],[x,150]], 'diagram-grid');
+    for (let y = 30; y <= 150; y += 30) line([[25,y],[275,y]], 'diagram-grid');
+    line([[25,125],[275,125]], 'diagram-axis'); line([[50,150],[50,20]], 'diagram-axis');
+    const f = x => 100 - 48 * Math.sin((x-45)/55);
+    for (let x = 60; x <= 230; x += 10) line([[x,125],[x,f(x)]], 'diagram-area');
+    line(Array.from({length:101}, (_,i) => [25+i*2.5,f(25+i*2.5)]), 'diagram-focus');
+  } else if (slug === 'geometry-topology') {
+    const point = (u,v) => { const r = 55 + 22*Math.cos(v); return [150+r*Math.cos(u)*1.35,85+r*Math.sin(u)*.55+22*Math.sin(v)]; };
+    for(let j=0;j<16;j++) line(Array.from({length:81},(_,i)=>point(i*Math.PI/40,j*Math.PI/8)));
+    for(let j=0;j<24;j++) line(Array.from({length:41},(_,i)=>point(j*Math.PI/12,i*Math.PI/20)));
+  } else {
+    const points=Array.from({length:6},(_,i)=>[150+63*Math.cos(i*Math.PI/3-Math.PI/2),85+63*Math.sin(i*Math.PI/3-Math.PI/2)]);
+    line([...points,points[0]],'diagram-focus');
+    for(let i=0;i<6;i++) {line([points[i],points[(i+2)%6]]);line([points[i],[150,85]],'diagram-grid');}
+    for(const [x,y] of points) {const node=document.createElementNS(ns,'circle');node.setAttribute('cx',x);node.setAttribute('cy',y);node.setAttribute('r','4');svg.append(node);}
+  }
+  const art = el('div', 'direction-art'); art.append(svg); return art;
+}
 export function createLearning({ api, write }) {
   let directions = [], generation = 0, stopReader = null, current = '';
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; $('reader-view').hidden = true; document.body.classList.remove('reading-page'); }
@@ -9,7 +33,7 @@ export function createLearning({ api, write }) {
     $('featured-directions').replaceChildren(); $('more-directions').replaceChildren();
     for (const direction of directions) {
       const link = el('a', direction.featured ? 'direction-card' : 'direction-small', ''); link.href = `#/apps/mathematics/directions/${direction.slug}`; link.dataset.direction = direction.slug;
-      if (direction.featured) { link.append(el('span', 'direction-art', symbols[direction.slug] || 'ℳ'), el('h3', '', direction.name), el('p', '', direction.description), el('span', 'direction-enter', '进入方向 →')); }
+      if (direction.featured) { link.append(diagram(direction.slug), el('h3', '', direction.name), el('p', '', direction.description), el('span', 'direction-enter', '进入方向')); }
       else link.append(el('strong', '', direction.name));
       $(direction.featured ? 'featured-directions' : 'more-directions').append(link);
     }

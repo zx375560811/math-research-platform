@@ -131,8 +131,12 @@ async function main() {
     await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
     await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card').click();
     await page.screenshot({ path: path.join(shots, 'module-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });
+    await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
+    await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('[data-direction="algebra"]').click(); await page.locator('.textbook-row').first().waitFor();
     assert.equal(await page.locator('#direction-questions li').count(),3);
     assert.equal(await page.locator('.textbook-row').count(),3);
