@@ -8,6 +8,7 @@ export function openReader(id, { api, write }) {
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
+  let editingPage = false;
   const layoutBox = $('reader-scroll').parentElement, widthKey = 'math.reader.panel-widths.v1';
   const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 280 };
   try { const stored = JSON.parse(localStorage.getItem(widthKey)); for (const name of ['outline', 'notes']) if (Number.isFinite(stored?.[name]) && stored[name] >= 64 && stored[name] <= 3000) preferredWidths[name] = stored[name]; } catch { /* Layout preferences are optional. */ }
@@ -28,8 +29,8 @@ export function openReader(id, { api, write }) {
     while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (top(pages[mid].frame) <= y) lo = mid; else hi = mid - 1; }
     return pages[lo];
   }
-  function controls(number) {
-    pageNumber = number; $('reader-page').value = String(number);
+  function controls(number, force = false) {
+    pageNumber = number; if (force || !editingPage) $('reader-page').value = String(number);
     $('reader-prev').disabled = number === 1; $('reader-next').disabled = number === pdf.numPages;
   }
   function snapshot() {
@@ -169,7 +170,7 @@ export function openReader(id, { api, write }) {
     if (!pdf || closed || !pages.length) return;
     const target = Math.max(1, Math.min(pdf.numPages, Math.floor(number))); const page = pages[target - 1];
     if (pendingAnchor) pendingAnchor = { page: target, position, viewportY };
-    controls(target); scroll.scrollTop = Math.max(0, top(page.frame) + position * page.frame.clientHeight - viewportY);
+    editingPage = false; controls(target, true); scroll.scrollTop = Math.max(0, top(page.frame) + position * page.frame.clientHeight - viewportY);
     await scheduleVisible(); if (!closed) saveNow();
   }
   async function layout(anchor = snapshot()) {
@@ -203,7 +204,11 @@ export function openReader(id, { api, write }) {
   }
   on($('reader-prev'), 'click', () => showPage(pageNumber - 1));
   on($('reader-next'), 'click', () => showPage(pageNumber + 1));
-  on($('reader-page'), 'change', () => { const number = Number($('reader-page').value); if (Number.isFinite(number)) showPage(number); });
+  const inputPage = () => { const number = $('reader-page').valueAsNumber; if (Number.isFinite(number)) showPage(number); else { editingPage = false; controls(pageNumber, true); } };
+  on($('reader-page'), 'input', () => { editingPage = true; });
+  on($('reader-page'), 'change', inputPage);
+  on($('reader-page'), 'keydown', event => { if (event.key === 'Enter') { event.preventDefault(); inputPage(); } });
+  on($('reader-page'), 'blur', () => { editingPage = false; controls(pageNumber, true); });
   function zoomControls() { $('reader-zoom').value = String(Math.round(zoom * 100)); $('reader-zoom-out').disabled = zoom <= .25; $('reader-zoom-in').disabled = zoom >= 4; }
   function setZoom(percent, point) {
     if (!pdf || !pages.length || !Number.isFinite(percent)) { zoomControls(); return; }

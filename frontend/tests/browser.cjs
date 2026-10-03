@@ -154,7 +154,9 @@ async function main() {
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),stack=document.getElementById('pdf-pages'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=stack.offsetTop+next.offsetTop+120;});
     await page.waitForFunction(() => document.getElementById('reader-page').value==='2' && document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
     await page.locator('#reader-prev').click(); await page.waitForFunction(() => document.getElementById('reader-page').value==='1');
-    await page.locator('#reader-page').fill('10'); await page.locator('#reader-page').dispatchEvent('change');
+    await page.locator('#reader-page').fill('10');
+    await page.evaluate(async()=>{document.getElementById('reader-scroll').dispatchEvent(new Event('scroll'));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+    assert.equal(await page.locator('#reader-page').inputValue(),'10');await page.locator('#reader-page').press('Enter');
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="10"] .textLayer span')?.textContent==='Mathematics 10');
     assert.ok(await page.locator('.pdf-page[data-loaded]').count()<=8);
     assert.equal(await page.locator('.pdf-page[data-page="1"] canvas').evaluate(canvas=>canvas.width),0);
