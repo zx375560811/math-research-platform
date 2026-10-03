@@ -7,15 +7,20 @@ export function openReader(id, { api, write }) {
   let pageNumber = 1, zoom = 1, marks = [], selection = null, saveTimer, resizeTimer, scrollFrame, zoomTimer, pendingZoom = null;
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
+  let drag = null, dragFrame = null, pendingAnchor = null;
+  const layoutBox = $('reader-scroll').parentElement, widthKey = 'math.reader.panel-widths.v1';
+  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 280 };
+  try { const stored = JSON.parse(localStorage.getItem(widthKey)); for (const name of ['outline', 'notes']) if (Number.isFinite(stored?.[name]) && stored[name] >= 64 && stored[name] <= 3000) preferredWidths[name] = stored[name]; } catch { /* Layout preferences are optional. */ }
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
   const errorText = error => error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message;
   stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
+  $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
   $('reader-title').textContent = '正在打开教材…'; $('reader-pages').textContent = '—';
   $('reader-fullscreen').textContent = '全屏';
-  $('reader-outline').hidden = $('reader-notes').hidden = true;
-  $('reader-outline-toggle').setAttribute('aria-expanded', 'false'); $('reader-notes-toggle').setAttribute('aria-expanded', 'false');
+  $('reader-outline').hidden = $('reader-notes').hidden = false;
+  $('reader-outline-toggle').setAttribute('aria-expanded', 'true'); $('reader-notes-toggle').setAttribute('aria-expanded', 'true');
   const top = frame => frame.offsetTop + stack.offsetTop;
   function currentPage() {
     let lo = 0, hi = pages.length - 1;
@@ -52,7 +57,34 @@ export function openReader(id, { api, write }) {
       }
     }
   }
-  function panel(name, visible) { $('reader-' + name).hidden = !visible; $('reader-' + name + '-toggle').setAttribute('aria-expanded', String(visible)); }
+  function limits() { const small = layoutBox.clientWidth <= 650; return { outline: small ? 64 : 140, notes: small ? 86 : 180, pdf: small ? 120 : 240 }; }
+  function applyPanelWidths() {
+    const visible = ['outline', 'notes'].filter(name => !$('reader-' + name).hidden), min = limits();
+    const budget = Math.max(0, layoutBox.clientWidth - min.pdf - visible.length * 6), minimum = visible.reduce((sum,name) => sum + min[name], 0);
+    const extra = visible.reduce((sum,name) => sum + Math.max(0, preferredWidths[name] - min[name]), 0), available = Math.max(0, budget - minimum);
+    for (const name of ['outline', 'notes']) {
+      const handle = $('reader-' + name + '-resize'); handle.hidden = $('reader-' + name).hidden;
+      if (handle.hidden) continue;
+      const surplus = Math.max(0, preferredWidths[name] - min[name]);
+      const width = min[name] + (extra > available ? surplus * available / Math.max(1, extra) : surplus);
+      layoutBox.style.setProperty('--reader-' + name + '-width', width + 'px');
+      handle.setAttribute('aria-valuemin', String(min[name])); handle.setAttribute('aria-valuenow', String(Math.round(width)));
+    }
+    for (const name of visible) { const other = visible.filter(value => value !== name).reduce((sum,value) => sum + $('reader-' + value).getBoundingClientRect().width, 0); $('reader-' + name + '-resize').setAttribute('aria-valuemax', String(Math.floor(Math.max(min[name], budget - other)))); }
+  }
+  function storeWidths() { try { localStorage.setItem(widthKey, JSON.stringify(preferredWidths)); } catch { /* Reading still works without local storage. */ } }
+  function changeWidth(name, width) {
+    const handle = $('reader-' + name + '-resize'), other = name === 'outline' ? 'notes' : 'outline';
+    if (!$('reader-' + other).hidden) preferredWidths[other] = $('reader-' + other).getBoundingClientRect().width;
+    preferredWidths[name] = Math.max(Number(handle.getAttribute('aria-valuemin')), Math.min(Number(handle.getAttribute('aria-valuemax')), width)); applyPanelWidths();
+  }
+  function panel(name, visible, chosen = null) {
+    if ($('reader-' + name).hidden === !visible) return;
+    const anchor = pdf && pages.length ? snapshot() : null;
+    $('reader-' + name).hidden = !visible; $('reader-' + name + '-toggle').setAttribute('aria-expanded', String(visible)); applyPanelWidths();
+    if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && !closed && version === generation) { selection = chosen; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
+  }
+  applyPanelWidths();
   function notes() {
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '还没有标注。选中正文开始高亮。')); return; }
@@ -81,14 +113,14 @@ export function openReader(id, { api, write }) {
       if (right > x && bottom > y) rects.push({ x: (x - bounds.left) / bounds.width, y: (y - bounds.top) / bounds.height, width: (right - x) / bounds.width, height: (bottom - y) / bounds.height });
     }
     if (!rects.length || rects.length > 100) { selection = null; $('selection-tools').hidden = true; return; }
-    selection = { page: Number(frame.dataset.page), quote, rects }; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true);
+    selection = { page: Number(frame.dataset.page), quote, rects }; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
   }
   function release(page) {
     page.renderTask?.cancel(); page.textLayer?.cancel(); page.renderTask = page.textLayer = null;
     page.canvas.width = page.canvas.height = 0; page.text.replaceChildren(); page.highlights.replaceChildren(); page.rendered = false;
   }
   function endSpace() { const last = pages.at(-1); stack.style.paddingBottom = Math.max(0, scroll.clientHeight - (last?.frame.clientHeight || 0)) + 'px'; }
-  function fitWidth() { return Math.max(180, scroll.clientWidth - (innerWidth <= 650 ? 16 : 32)) * zoom; }
+  function fitWidth() { return Math.max(80, scroll.clientWidth - (innerWidth <= 650 ? 16 : 32)) * zoom; }
   function size(page, width = fitWidth()) {
     const dim = dimensions.get(page.number) || [baseWidth, baseHeight];
     page.frame.style.width = width + 'px'; page.frame.style.height = width * dim[1] / dim[0] + 'px';
@@ -136,11 +168,13 @@ export function openReader(id, { api, write }) {
   async function showPage(number, position = 0, viewportY = 0) {
     if (!pdf || closed || !pages.length) return;
     const target = Math.max(1, Math.min(pdf.numPages, Math.floor(number))); const page = pages[target - 1];
+    if (pendingAnchor) pendingAnchor = { page: target, position, viewportY };
     controls(target); scroll.scrollTop = Math.max(0, top(page.frame) + position * page.frame.clientHeight - viewportY);
     await scheduleVisible(); if (!closed) saveNow();
   }
   async function layout(anchor = snapshot()) {
     if (!pdf || closed) return;
+    clearTimeout(resizeTimer); pendingAnchor = null;
     layingOut = true; const version = ++generation; layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; stack.dataset.layout = 'busy'; selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges();
     for (const page of pages) { release(page); delete page.frame.dataset.loaded; size(page); }
     stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px';
@@ -200,7 +234,7 @@ export function openReader(id, { api, write }) {
   for (const name of ['outline', 'notes']) on($('reader-' + name + '-toggle'), 'click', () => panel(name, $('reader-' + name).hidden));
   on($('reader-notes-close'), 'click', () => panel('notes', false));
   on($('reader-fullscreen'), 'click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('reader-view').requestFullscreen(); } catch { $('reader-status').textContent = '当前浏览器不支持全屏阅读。'; } });
-  on(document, 'fullscreenchange', () => { $('reader-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏'; if (pdf && pages.length) { clearTimeout(resizeTimer); layout(); } });
+  on(document, 'fullscreenchange', () => { $('reader-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏'; const anchor = pdf && pages.length ? snapshot() : null; applyPanelWidths(); if (anchor) layout(anchor); });
   for (const button of document.querySelectorAll('[data-highlight]')) {
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
@@ -215,7 +249,48 @@ export function openReader(id, { api, write }) {
     if (!scrollFrame) scrollFrame = requestAnimationFrame(() => { scrollFrame = null; scheduleVisible(); });
     clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 600);
   }, { passive: true });
-  on(window, 'resize', () => { if (!pdf || !pages.length || layoutSignature === `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`) return; clearTimeout(resizeTimer); stack.dataset.layout = 'pending'; resizeTimer = setTimeout(() => layout(), 200); });
+  function queueLayout(anchor) {
+    if (closed || drag || !pdf || !pages.length || layoutSignature === `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`) return;
+    const previous = layoutSignature.split(':');
+    if (Number(previous[0]) === scroll.clientWidth && Number(previous[2]) === zoom) { layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; endSpace(); scheduleVisible(); return; }
+    pendingAnchor ??= anchor || snapshot(); clearTimeout(resizeTimer); stack.dataset.layout = 'pending'; resizeTimer = setTimeout(() => { const target = pendingAnchor; pendingAnchor = null; layout(target || snapshot()); }, 100);
+  }
+  const observer = new ResizeObserver(() => queueLayout()); observer.observe(scroll);
+  on(window, 'resize', () => { const anchor = pdf && pages.length ? snapshot() : null; applyPanelWidths(); queueLayout(anchor); });
+  function previewDrag() {
+    if (!drag) return;
+    changeWidth(drag.name, drag.startWidth + (drag.x - drag.startX) * (drag.name === 'outline' ? 1 : -1));
+    if (!pdf || !pages.length) return;
+    // Scale existing canvases immediately while dragging; rerender sharply on release.
+    layingOut = true; stack.dataset.layout = 'pending';
+    for (const page of pages) { size(page); page.canvas.style.width = page.frame.style.width; page.canvas.style.height = page.frame.style.height; }
+    stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px'; endSpace();
+    const page = pages[drag.anchor.page - 1]; if (page) scroll.scrollTop = top(page.frame) + drag.anchor.position * page.frame.clientHeight;
+  }
+  function finishDrag() {
+    if (!drag) return; cancelAnimationFrame(dragFrame); dragFrame = null; previewDrag();
+    const value = drag; drag = null; value.handle.classList.remove('active'); layoutBox.classList.remove('reader-resizing');
+    if (value.handle.hasPointerCapture(value.pointerId)) value.handle.releasePointerCapture(value.pointerId);
+    layingOut = false; storeWidths(); if (pdf && pages.length) layout(value.anchor);
+  }
+  for (const name of ['outline', 'notes']) {
+    const handle = $('reader-' + name + '-resize');
+    on(handle, 'pointerdown', event => {
+      if (event.button !== 0 || drag) return; event.preventDefault(); clearTimeout(resizeTimer);
+      drag = { name, handle, pointerId: event.pointerId, startX: event.clientX, x: event.clientX, startWidth: $('reader-' + name).getBoundingClientRect().width, anchor: pdf && pages.length ? snapshot() : { page: 1, position: 0 } };
+      ++generation; layingOut = true; selection = null; $('selection-tools').hidden = true; for (const page of pages) { page.renderTask?.cancel(); page.textLayer?.cancel(); }
+      handle.setPointerCapture(event.pointerId); handle.classList.add('active'); layoutBox.classList.add('reader-resizing');
+    });
+    on(handle, 'pointermove', event => { if (!drag || drag.handle !== handle || event.pointerId !== drag.pointerId) return; drag.x = event.clientX; if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = null; previewDrag(); }); });
+    for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) on(handle, event, finishDrag);
+    on(handle, 'keydown', event => {
+      if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return; event.preventDefault(); const anchor = pdf && pages.length ? snapshot() : null;
+      const delta = (event.key === 'ArrowRight' ? 20 : -20) * (name === 'outline' ? 1 : -1);
+      const width = event.key === 'Home' ? Number(handle.getAttribute('aria-valuemin')) : event.key === 'End' ? Number(handle.getAttribute('aria-valuemax')) : $('reader-' + name).getBoundingClientRect().width + delta;
+      changeWidth(name, width); storeWidths(); if (anchor) layout(anchor);
+    });
+  }
+  on(window, 'blur', finishDrag);
   on(window, 'pagehide', saveNow);
   const ready = (async () => {
     try {
@@ -240,7 +315,7 @@ export function openReader(id, { api, write }) {
     } catch (error) { if (!closed) $('reader-status').textContent = '无法打开教材：' + errorText(error); }
   })();
   function close() {
-    if (closed) return; saveNow(); closed = true; ++generation; clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); events.forEach(remove => remove()); pages.forEach(release);
+    if (closed) return; if (drag) finishDrag(); saveNow(); closed = true; ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
     if (document.fullscreenElement === $('reader-view')) document.exitFullscreen().catch(() => {});
     if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren();
   }

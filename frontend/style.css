@@ -118,18 +118,23 @@ body.reading-page { overflow:hidden; }
 .pdf-pages { position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;min-width:100%; }
 .pdf-page { position:relative;flex-shrink:0;margin:0;background:white;box-shadow:0 2px 8px #182b4614;overflow:hidden; }
 .pdf-canvas { display:block; }.pdf-page:not([data-loaded])::before { content:'正在加载第 ' attr(data-page) ' 页…';position:absolute;left:0;right:0;top:30px;text-align:center;font-size:12px;color:var(--muted); }
-.reader-outline,.reader-notes { position:absolute;top:0;bottom:0;height:100%;max-height:none;z-index:4;background:white;overflow:auto;box-shadow:0 0 24px #182b4624; }
-.reader-outline { left:0;width:260px;border:0; }.reader-notes { right:0;width:300px;border:0;padding:20px; }
+.reader-outline,.reader-notes { position:relative;inset:auto;height:100%;max-height:none;flex-shrink:0;z-index:auto;background:white;overflow:auto;box-shadow:none;min-width:0; }
+.reader-outline { width:var(--reader-outline-width,220px);border:0; }.reader-notes { width:var(--reader-notes-width,280px);border:0;padding:18px; }
 .reader-foot { flex-shrink:0;margin:0;padding:4px 14px;font-size:10px;line-height:1.6;background:white;border-top:1px solid var(--line); }
 #reader-view:fullscreen { width:100%;height:100dvh; }
 @media (max-width:900px) { .reading-page .sidebar { display:none; }.reading-page .workspace { margin-left:0; } }
 @media (max-width:650px) {
 .reading-page #main-content { padding:0; }.reader-heading { display:flex;padding:8px 10px;gap:12px; }.reader-heading h1 { margin:0;font-size:12px; }.reader-heading .back-link { font-size:11px; }
 .reader-toolbar { gap:6px;padding:7px 8px; }.reader-toolbar .button { font-size:11px;padding:5px 7px; }.reader-toolbar input { width:45px; }.reader-toolbar select { max-width:108px; }.reader-toolbar input,.reader-toolbar select { font-size:13px; }.reader-toolbar label { font-size:11px; }
-.reader-layout { flex-wrap:nowrap; }.reader-scroll { flex-basis:auto;height:100%;padding:8px; }.pdf-pages { gap:10px; }.reader-outline,.reader-notes { width:min(300px,85vw);height:100%;max-height:none;order:initial; }.reader-foot { padding:4px 8px; }.reader-foot #reader-status { display:none; }
+.reader-layout { flex-wrap:nowrap; }.reader-scroll { flex-basis:auto;height:100%;padding:8px; }.pdf-pages { gap:10px; }.reader-outline,.reader-notes { height:100%;max-height:none;order:initial;padding:10px 6px; }.reader-outline { width:var(--reader-outline-width,20vw); }.reader-notes { width:var(--reader-notes-width,26vw); }.reader-panel-heading { flex-wrap:wrap; }.reader-notes h2 { font-size:11px; }.reader-notes .annotation-actions { flex-wrap:wrap; }.reader-outline .outline-entry { font-size:11px;overflow-wrap:anywhere; }.reader-notes p { overflow-wrap:anywhere; }.reader-foot { padding:4px 8px; }.reader-foot #reader-status { display:none; }
 }
 
 .reader-panel-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px; }.reader-panel-heading h2 { margin:0;font-size:14px; }.reader-panel-heading .button { font-size:18px;line-height:1;padding:3px 8px;min-height:28px; }.reader-outline .reader-panel-heading { padding:0 8px; }
 
 .reader-zoom-control { display:inline-flex;align-items:center;gap:5px; }.reader-zoom-control label { display:inline-flex;align-items:center;gap:3px; }.reader-toolbar #reader-zoom { width:62px;text-align:center; }.reader-toolbar #reader-zoom-in,.reader-toolbar #reader-zoom-out { font-size:17px;line-height:1;padding:4px 9px; }.reader-toolbar #reader-zoom::-webkit-inner-spin-button { -webkit-appearance:none; }.reader-toolbar #reader-zoom { appearance:textfield;-moz-appearance:textfield; }
 @media (max-width:650px) { .reader-toolbar #reader-zoom { width:51px; }.reader-zoom-control { gap:4px; }.reader-toolbar #reader-zoom-in,.reader-toolbar #reader-zoom-out { padding:4px 7px; } }
+
+.reader-resize { position:relative;flex:0 0 6px;width:6px;cursor:col-resize;touch-action:none;background:#e4e9f1;outline-offset:-2px; }
+.reader-resize::after { content:'';position:absolute;top:50%;left:2px;width:2px;height:36px;transform:translateY(-50%);border-radius:2px;background:#a9b6cb; }
+.reader-resize:hover,.reader-resize:focus-visible,.reader-resize.active { background:#c6d4fa; }.reader-resize:hover::after,.reader-resize.active::after { background:var(--blue); }
+.reader-resizing,.reader-resizing * { cursor:col-resize!important;user-select:none!important; }.reader-resizing .textLayer { visibility:hidden; }

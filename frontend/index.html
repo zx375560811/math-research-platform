@@ -63,17 +63,19 @@
       <section id="reader-view" hidden aria-labelledby="reader-title">
         <div class="reader-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics">← 返回教材</a><h1 id="reader-title">教材阅读</h1></div>
         <div class="reader-toolbar">
-          <button id="reader-outline-toggle" class="button compact" aria-expanded="false">目录</button>
+          <button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button>
           <button id="reader-prev" class="button compact">上一页</button>
           <label class="reader-page-control">第 <input id="reader-page" type="number" min="1" value="1" aria-label="页码"> / <span id="reader-pages">—</span> 页</label>
           <button id="reader-next" class="button compact">下一页</button>
           <div class="reader-zoom-control" role="group" aria-label="PDF 缩放"><button id="reader-zoom-out" class="button compact" aria-label="缩小">−</button><label><input id="reader-zoom" type="number" min="25" max="400" step="1" value="100" aria-label="缩放百分比" title="25%–400%，100% 对应适合宽度">%</label><button id="reader-zoom-in" class="button compact" aria-label="放大">＋</button><button id="reader-fit-width" class="button compact">适合宽度</button></div>
-          <button id="reader-notes-toggle" class="button compact" aria-expanded="false">高亮笔记</button>
+          <button id="reader-notes-toggle" class="button compact" aria-expanded="true">高亮笔记</button>
           <button id="reader-fullscreen" class="button compact">全屏</button>
         </div>
         <div class="reader-layout">
-          <aside id="reader-outline" class="reader-outline" hidden aria-label="教材目录"></aside>
+          <aside id="reader-outline" class="reader-outline" aria-label="教材目录"></aside>
+          <div id="reader-outline-resize" class="reader-resize" role="separator" aria-orientation="vertical" aria-label="调整目录宽度" aria-controls="reader-outline" tabindex="0" title="拖拽调整目录宽度，也可用左右方向键"></div>
           <div id="reader-scroll" class="reader-scroll" tabindex="0" aria-label="PDF 连续阅读区域"><div id="pdf-pages" class="pdf-pages"></div></div>
+          <div id="reader-notes-resize" class="reader-resize" role="separator" aria-orientation="vertical" aria-label="调整笔记宽度" aria-controls="reader-notes" tabindex="0" title="拖拽调整笔记宽度，也可用左右方向键"></div>
           <aside id="reader-notes" class="reader-notes"><div class="reader-panel-heading"><h2>我的高亮与笔记</h2><button id="reader-notes-close" class="button compact" aria-label="关闭高亮笔记">×</button></div><p class="muted">选中文字，再点击高亮。笔记仅自己可见。</p><div id="selection-tools" hidden><p id="selection-quote"></p><div class="highlight-colors"><button class="button compact" data-highlight="yellow">黄色</button><button class="button compact" data-highlight="blue">蓝色</button><button class="button compact" data-highlight="pink">粉色</button></div></div><div id="annotation-list"></div></aside>
         </div>
         <div class="reader-foot"><span id="reader-status" role="status">正在打开教材…</span><span id="reader-save-status" role="status"></span></div>
