@@ -66,7 +66,8 @@ with tempfile.TemporaryDirectory() as directory:
             for endpoint in ['/api/documents?title=attack&subject_id=1', '/api/documents/1']:
                 for method in ['POST', 'PUT', 'PATCH', 'DELETE']: assert request(endpoint, method, pdf)[0] == 405
             assert request('/api/admin/documents')[0] == 401
-            assert request('/api/admin/documents', 'POST', pdf)[0] in (401, 403)
+            denied_upload = request('/api/admin/documents', 'POST', pdf, {'Content-Type': 'application/pdf'})
+            assert denied_upload[0] in (401, 403), denied_upload
             assert request('/api/learning/directions')[0] == 401
             assert request('/api/learning/books/7')[0] == 401
             assert request('/api/documents')[0] == 401
