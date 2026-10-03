@@ -166,7 +166,9 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('reader-scroll').scrollTop<30);
     assert.ok(await page.locator('#reader-scroll').evaluate(node=>node.clientHeight/innerHeight)>.8);
     await page.locator('#reader-fullscreen').click(); await page.waitForFunction(()=>!!document.fullscreenElement);
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.locator('#reader-fullscreen').click(); await page.waitForFunction(()=>!document.fullscreenElement);
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.waitForFunction(()=>!!document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
 
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});

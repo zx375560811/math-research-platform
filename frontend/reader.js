@@ -5,7 +5,7 @@ function el(tag, className, text) { const node = document.createElement(tag); if
 export function openReader(id, { api, write }) {
   let closed = false, pdf = null, task = null, book = null, csrf = null;
   let pageNumber = 1, zoom = 1, marks = [], selection = null, saveTimer, resizeTimer, scrollFrame;
-  let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve();
+  let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
@@ -141,10 +141,11 @@ export function openReader(id, { api, write }) {
   }
   async function layout(anchor = snapshot()) {
     if (!pdf || closed) return;
-    layingOut = true; ++generation; selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges();
+    layingOut = true; const version = ++generation; layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; stack.dataset.layout = 'busy'; selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges();
     for (const page of pages) { release(page); delete page.frame.dataset.loaded; size(page); }
     stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px';
     endSpace(); layingOut = false; await showPage(anchor.page, anchor.position);
+    if (!closed && version === generation) stack.dataset.layout = 'ready';
   }
   async function outline() {
     const items = await pdf.getOutline(); if (closed) return; $('reader-outline').replaceChildren();
@@ -170,7 +171,7 @@ export function openReader(id, { api, write }) {
   for (const name of ['outline', 'notes']) on($('reader-' + name + '-toggle'), 'click', () => panel(name, $('reader-' + name).hidden));
   on($('reader-notes-close'), 'click', () => panel('notes', false));
   on($('reader-fullscreen'), 'click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('reader-view').requestFullscreen(); } catch { $('reader-status').textContent = '当前浏览器不支持全屏阅读。'; } });
-  on(document, 'fullscreenchange', () => { $('reader-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏'; });
+  on(document, 'fullscreenchange', () => { $('reader-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏'; if (pdf && pages.length) { clearTimeout(resizeTimer); layout(); } });
   for (const button of document.querySelectorAll('[data-highlight]')) {
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
@@ -185,7 +186,7 @@ export function openReader(id, { api, write }) {
     if (!scrollFrame) scrollFrame = requestAnimationFrame(() => { scrollFrame = null; scheduleVisible(); });
     clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 600);
   }, { passive: true });
-  on(window, 'resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (pdf) layout(); }, 200); });
+  on(window, 'resize', () => { if (!pdf || !pages.length || layoutSignature === `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`) return; clearTimeout(resizeTimer); stack.dataset.layout = 'pending'; resizeTimer = setTimeout(() => layout(), 200); });
   on(window, 'pagehide', saveNow);
   const ready = (async () => {
     try {
