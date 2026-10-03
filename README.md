@@ -113,3 +113,5 @@ runuser -u math-platform -- python3 admin/install_open_textbooks.py
 在独立管理平台 `/admin#ai` 配置默认 API 地址、模型名、密钥，并勾选启用。用户在 PDF 阅读器下方的 AI 对话区选择“管理员默认 API”；也可点“设置”保存个人 API，个人配置仅作用于自己的账号。接口支持 OpenAI 兼容 Chat Completions 格式。
 
 API 密钥保存在服务器，读取接口不回显；`backend/data/ai-secret.key` 用于加密数据库中的密钥，备份时应连同数据库一起保存。对话目前仅保留在当前阅读页面，离开后清空；提问发送当前对话和主动附加的选段，不自动读取或上传整份 PDF。
+
+阅读助手支持 Markdown 富文本与 LaTeX 公式；“问 AI”位于发送框左侧。右侧高亮笔记与 AI 可上下拖动调整高度并记住布局，应用与管理界面统一采用可读字号。AI 不主动设置输出 token 预算，也不按字符或对话轮数裁剪输入、历史和正式回答；服务商自身限制仍适用。

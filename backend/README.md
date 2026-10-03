@@ -200,7 +200,7 @@ runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返
 
 ## AI 对话与 API 配置
 
-管理员使用 `/admin#ai` 独立设置默认 API，用户在阅读器中选择默认或个人来源。当前适配 [OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat/create) 兼容协议：基础地址例如 `https://api.example.com/v1`，自动追加 `/chat/completions`；也可填完整接口地址。使用 Bearer 密钥鉴权，JSON `model/messages/stream=false/max_tokens=2048`；返回 `choices[0].message.content` 的文本。不兼容的原生供应商接口需要适配层。本版为一次返回回答，不进行流式输出。
+管理员使用 `/admin#ai` 独立设置默认 API，用户在阅读器中选择默认或个人来源。当前适配 [OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat/create) 兼容协议：基础地址例如 `https://api.example.com/v1`，自动追加 `/chat/completions`；也可填完整接口地址。使用 Bearer 密钥鉴权，JSON `model/messages/stream=false`，不主动设置 `max_tokens` 或 `max_completion_tokens`；返回 `choices[0].message.content` 的文本。不兼容的原生供应商接口需要适配层。本版为一次返回回答，不进行流式输出。
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
@@ -221,11 +221,13 @@ runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返
 
 密钥以 AES-256-GCM 随机 nonce 加密保存，首次启动在数据库所在目录创建 `ai-secret.key`，Linux 权限 0600。备份/恢复必须同时保存数据库和该文件，遗失后原密钥无法解密。默认 systemd 的 data 可写目录与 UMask 已满足要求；无需增加环境变量。密钥不会经读取接口、上游错误正文或正常日志返回；回答若反射正在使用的密钥会进行隐藏。
 
-出站仅允许公网 HTTPS，禁止 URL 中用户名/密码、查询串和片段，阻止回环、内网、链路本地及云元数据地址；实际连接使用经过校验的 DNS 地址，验证 TLS，禁止重定向与自动重试。响应最多 256 KiB，连接等待 10 秒，读取等待 45 秒，单次请求总时限 60 秒。聊天正文最多 64 KiB，最多 16 条交替 user/assistant 消息、总计 24000 字符，选段最多 4000 字符。
+出站仅允许公网 HTTPS，禁止 URL 中用户名/密码、查询串和片段，阻止回环、内网、链路本地及云元数据地址；实际连接使用经过校验的 DNS 地址，验证 TLS，禁止重定向与自动重试。聊天请求与上游响应各保留 16 MiB 的传输保护，连接等待 10 秒，读取等待 180 秒，单次请求总时限 300 秒。应用不限制对话轮数、输入字符数或 AI 选段字符数，不自动裁剪历史；完整对话随请求发送。模型服务自身的上下文窗口与输出上限仍适用。标注接口的 4000 字符限制与 AI 选段独立。
 
 每位用户每分钟最多 6 次模型请求，单账号只允许一个进行中的提问，全平台最多 4 个并发。默认 API 的每日额度由管理员配置，UTC 零点重置，调用失败也计入额度；个人 API 不占用默认每日额度。计数在 `ai_usage` 中持久化，重启不重置额度。当前是按提问次数控制，服务商 token 费用仍以供应商账单为准。
 
 测试：`python3 backend/tests/ai.py` 启动隔离数据库和回环假模型，验证提供商请求、PDF 文献上下文、加密/隐藏、个人隔离、CSRF、SSRF、额度与重启恢复。仅测试环境设 `MATH_AI_TEST_ENDPOINT` 为精确的 `http://127.0.0.1:端口/v1`，允许该单一回环假模型；生产不要设置此变量。
 
 
-AI 回答兼容处理：支持 `choices[0].message.content` 字符串以及 text/output_text 文本块数组。空回答、输出额度耗尽、仅推理、拒绝、工具调用、非 JSON 和真正缺失字段分别返回错误码。超过 12000 字符的正式回答截取展示并附带 `warning`，非空但 finish_reason=length 的回答同样提示可能未完成。不会把 reasoning_content 当作正式答案显示。失败时 `journalctl -u math-platform` 可查看 `AI response diagnostic`，仅记录字段类型、回答字符数、choice 数量、结束类型与错误码，不记录原文、推理正文和密钥。保持既有输出预算与请求时限，不自动重试付费模型请求。
+AI 回答兼容处理：支持 `choices[0].message.content` 字符串以及 text/output_text 文本块数组。空回答、输出额度耗尽、仅推理、拒绝、工具调用、非 JSON 和真正缺失字段分别返回错误码。正式回答完整展示，不截断；非空但 finish_reason=length 的回答提示服务商输出上限可能导致回答未完成。不会把 reasoning_content 当作正式答案显示。失败时 `journalctl -u math-platform` 可查看 `AI response diagnostic`，仅记录字段类型、回答字符数、choice 数量、结束类型与错误码，不记录原文、推理正文和密钥。不设置应用输出 token 预算，不自动重试付费模型请求。
+
+AI 回答在浏览器本地通过 Marked、DOMPurify 与 KaTeX 渲染 Markdown 和 LaTeX，支持 `$...$`、`$$...$$`、`\(...\)`、`\[...\]`。先清理 HTML，再以 `trust: false` 渲染公式；不加载回答中的图片，不允许脚本、事件属性或危险链接。依赖固定版本、完整性与许可证见 `frontend/vendor/richtext-manifest.json` 和各目录 LICENSE。CSP 仅允许公式排版所需的内联样式属性，脚本和样式表仍只允许同源。

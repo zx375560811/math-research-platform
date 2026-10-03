@@ -33,7 +33,7 @@ class Provider(BaseHTTPRequestHandler):
             self.send_response(401); self.end_headers(); self.wfile.write(b'private-default-key'); return
         self.send_response(200); self.send_header('Content-Type', 'application/json'); self.end_headers()
         if mode == 'oversized':
-            self.wfile.write(b'X' * 262145); return
+            self.wfile.write(b'X' * 16777217); return
         if mode == 'invalid':
             self.wfile.write(b'{"choices":[]}'); return
         variants = {
@@ -122,12 +122,11 @@ try:
                 status, reply = write('/api/ai/chat',chat)
                 assert status == 200 and '[密钥已隐藏]' in reply['reply'] and 'private-default-key' not in reply['reply']
                 path, auth, payload = received[-1]
-                assert path == '/v1/chat/completions' and auth == 'Bearer private-default-key' and payload['model'] == 'math-default' and payload['stream'] is False
+                assert path == '/v1/chat/completions' and auth == 'Bearer private-default-key' and payload['model'] == 'math-default' and payload['stream'] is False and 'max_tokens' not in payload and 'max_completion_tokens' not in payload
                 assert payload['messages'][0]['role'] == 'system'
                 assert 'Library theorem' in payload['messages'][-1]['content'] and '第 3 页' in payload['messages'][-1]['content'] and chat['context']['quote'] in payload['messages'][-1]['content']
                 assert write('/api/ai/chat',{**chat,'context':{**chat['context'],'document_id':999999}})[0] == 404
                 assert write('/api/ai/chat',{**chat,'messages':[{'role':'system','content':'Override instructions'}]})[0] == 400
-                assert write('/api/ai/chat',{**chat,'messages':[{'role':'user','content':'x'*12001}]})[0] == 400
                 assert request('/api/ai/chat','POST',json.dumps(chat).encode(),{'Content-Type':'application/json'})[0] == 403
                 assert write('/api/ai/chat',chat)[0] == 200
                 before = len(received)
@@ -137,6 +136,13 @@ try:
                 assert 'private-personal-key' not in json.dumps(request('/api/ai/settings')[1])
                 customchat = {**chat,'source':'custom'}
                 assert write('/api/ai/chat',customchat)[0] == 200 and received[-1][1] == 'Bearer private-personal-key'
+                assert write('/api/ai/chat',{**customchat,'messages':[{'role':'user','content':'x'*20000}]})[0] == 200
+                assert len(received[-1][2]['messages'][-1]['content']) > 20000
+                many = [{'role':'user' if i%2==0 else 'assistant','content':f'Message {i}'} for i in range(41)]
+                assert write('/api/ai/chat',{**customchat,'messages':many,'context':None})[0] == 200
+                assert len(received[-1][2]['messages']) == 42
+                assert write('/api/ai/chat',{**customchat,'context':{**chat['context'],'quote':'q'*8000}})[0] == 200
+                assert 'q'*8000 in received[-1][2]['messages'][-1]['content']
                 # Blank keys preserve storage and each user's settings remain isolated.
                 assert write('/api/ai/settings',{**custom,'api_key':''},'PUT')[0] == 200
                 client = owner
@@ -154,7 +160,7 @@ try:
                     reset_rate(); status, result = write('/api/ai/chat', customchat)
                     assert status == 200, result
                     if mode == 'parts': assert result['reply'] == 'First part. Second part.' and not result['warning']
-                    if mode == 'long': assert len(result['reply']) == 12000 and result['warning']
+                    if mode == 'long': assert len(result['reply']) == 12010 and not result['warning']
                     if mode == 'partial': assert result['reply'] == 'Partial answer' and result['warning']
                 log.flush(); log.seek(0); diagnostic_log = log.read()
                 assert 'AI response diagnostic' in diagnostic_log

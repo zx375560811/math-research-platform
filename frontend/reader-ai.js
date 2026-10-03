@@ -1,3 +1,4 @@
+import { renderAnswer } from './richtext.js';
 const $ = id => document.getElementById(id);
 const errors = {
   ai_not_configured: '请先配置个人 API，或选择已启用的管理员默认 API。',
@@ -7,9 +8,9 @@ const errors = {
   ai_connection_failed: '连接模型失败或等待超时，请检查地址后重试。', ai_provider_error: '模型服务返回错误，请检查模型名称和接口地址。',
   ai_response_invalid: '服务返回的数据缺少可读取的回答字段，请联系管理员查看 AI 诊断日志。',
   ai_response_non_json: '服务返回的不是 JSON 回答，请确认填写的是 API 调用地址。', ai_response_too_large: '服务返回的数据过大，请缩短问题或更换模型。',
-  ai_response_empty: '模型返回了空回答，请重试或更换模型。', ai_response_budget: '模型用完本次输出额度，尚未生成正式回答。请简化问题或换用普通对话模型。',
+  ai_response_empty: '模型返回了空回答，请重试或更换模型。', ai_response_budget: '模型服务达到自身输出或上下文上限，未生成正式回答。请检查所选模型及服务商参数。',
   ai_response_refused: '模型拒绝了本次请求，请换个问法后重试。', ai_response_reasoning_only: '模型只返回了推理内容，没有正式回答。请简化问题或更换模型。',
-  ai_response_tool_call: '模型要求调用工具，当前阅读助手仅支持文字回答，请更换模型。', ai_invalid_chat: '对话内容过长，请清空对话后重试。',
+  ai_response_tool_call: '模型要求调用工具，当前阅读助手仅支持文字回答，请更换模型。', ai_invalid_chat: '对话内容无效，请刷新后重试。',
   ai_busy: '当前正在处理其他提问，请稍后再试。', ai_rate_limit: '提问较频繁，请一分钟后再试。',
   ai_daily_limit: '今天的默认 API 额度已用完，可以切换个人 API。', ai_key_unavailable: '服务器密钥暂时不可用，请联系管理员。',
   login_required: '登录已失效，请重新登录。', invalid_csrf: '登录状态已变化，请刷新后重试。', request_too_large: '对话过长，请清空对话后重试。',
@@ -80,8 +81,6 @@ export function createReaderAi(getDocumentContext) {
     event.preventDefault(); const question = $('ai-question').value.trim();
     if (!question || !config || busy || saving || !config[config.source]?.available) return;
     const attached = context ? { ...context } : null; const source = config.source;
-    // Keep complete conversation pairs and a bounded payload, including prior PDF excerpts.
-    while (history.length > 12 || history.reduce((sum, message) => sum + message.content.length, 0) > 10000) history.splice(0, 2);
     const messages = [...history, { role: 'user', content: question }];
     const list = $('ai-messages'); list.querySelector('.ai-empty')?.remove();
     const user = node('article', null, 'ai-message ai-user'); user.append(node('span', '你', 'ai-speaker'), node('p', question));
@@ -89,7 +88,7 @@ export function createReaderAi(getDocumentContext) {
     busy = true; controls(); status('正在向模型提问…');
     try {
       const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached }); if (closed) return;
-      const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), node('p', result.reply)); list.append(assistant);
+      const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(result.reply)); list.append(assistant);
       const remembered = attached ? `PDF 第 ${attached.page} 页选段：\n${attached.quote}\n问题：${question}` : question;
       history.push({ role: 'user', content: remembered }, { role: 'assistant', content: result.reply });
       $('ai-question').value = ''; status(result.warning || '回答仅基于当前对话和附带选段，请核对数学推导。'); list.scrollTop = list.scrollHeight;

@@ -10,14 +10,32 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let editingPage = false;
+  let editingPage = false, verticalDrag = null, noteRatio = .35;
+  const heightKey = 'math.reader.panel-height.v1';
+  try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-scroll').parentElement, widthKey = 'math.reader.panel-widths.v1';
-  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 340 };
+  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 380 };
   try { const stored = JSON.parse(localStorage.getItem(widthKey)); for (const name of ['outline', 'notes']) if (Number.isFinite(stored?.[name]) && stored[name] >= 64 && stored[name] <= 3000) preferredWidths[name] = stored[name]; } catch { /* Layout preferences are optional. */ }
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
   const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title }));
+  const divider = $('reader-ai-resize');
+  function setNoteRatio(value) {
+    noteRatio = Math.max(.1, Math.min(.75, value)); $('reader-notes').style.setProperty('--reader-note-height', `${noteRatio * 100}%`); divider.setAttribute('aria-valuenow', String(Math.round(noteRatio * 100)));
+  }
+  function saveNoteRatio() { try { localStorage.setItem(heightKey, String(noteRatio)); } catch { /* Optional preference. */ } }
+  function stopVertical() {
+    if (verticalDrag === null) return; const pointerId = verticalDrag; verticalDrag = null;
+    divider.classList.remove('active'); $('reader-notes').classList.remove('reader-vertical-resizing');
+    if (divider.hasPointerCapture(pointerId)) divider.releasePointerCapture(pointerId); saveNoteRatio();
+  }
+  on(divider, 'pointerdown', event => { if (event.button !== 0) return; event.preventDefault(); verticalDrag = event.pointerId; divider.setPointerCapture(event.pointerId); divider.classList.add('active'); $('reader-notes').classList.add('reader-vertical-resizing'); });
+  on(divider, 'pointermove', event => { if (verticalDrag !== event.pointerId) return; const box = $('reader-notes').getBoundingClientRect(); setNoteRatio((event.clientY - box.top - 5) / box.height); });
+  for (const name of ['pointerup','pointercancel','lostpointercapture']) on(divider, name, stopVertical);
+  on(window, 'blur', stopVertical);
+  on(divider, 'keydown', event => { if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return; event.preventDefault(); setNoteRatio(event.key === 'Home' ? .1 : event.key === 'End' ? .75 : noteRatio + (event.key === 'ArrowDown' ? .05 : -.05)); saveNoteRatio(); });
+  setNoteRatio(noteRatio); $('reader-ask-ai').disabled = true;
   const errorText = error => error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message;
   stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
@@ -86,7 +104,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if ($('reader-' + name).hidden === !visible) return;
     const anchor = pdf && pages.length ? snapshot() : null;
     $('reader-' + name).hidden = !visible; $('reader-' + name + '-toggle').setAttribute('aria-expanded', String(visible)); applyPanelWidths();
-    if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && !closed && version === generation) { selection = chosen; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
+    if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
   }
   applyPanelWidths();
   function notes() {
@@ -109,15 +127,16 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const element = node => node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
     const frame = element(selected?.anchorNode)?.closest('.pdf-page');
     const layer = frame?.querySelector('.textLayer');
-    if (!selected || selected.isCollapsed || !layer?.contains(selected.anchorNode) || !layer.contains(selected.focusNode)) { selection = null; $('selection-tools').hidden = true; return; }
+    // Keep the captured quote available while the user interacts with notes or the AI composer.
+    if (!selected || selected.isCollapsed || !layer?.contains(selected.anchorNode) || !layer.contains(selected.focusNode)) return;
     const quote = selected.toString().trim(), bounds = frame.getBoundingClientRect(), rects = [];
-    if (!quote || quote.length > 4000) { selection = null; $('selection-tools').hidden = true; return; }
+    if (!quote) { selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
     for (const r of selected.getRangeAt(0).getClientRects()) {
       const x = Math.max(bounds.left, r.left), y = Math.max(bounds.top, r.top), right = Math.min(bounds.right, r.right), bottom = Math.min(bounds.bottom, r.bottom);
       if (right > x && bottom > y) rects.push({ x: (x - bounds.left) / bounds.width, y: (y - bounds.top) / bounds.height, width: (right - x) / bounds.width, height: (bottom - y) / bounds.height });
     }
-    if (!rects.length || rects.length > 100) { selection = null; $('selection-tools').hidden = true; return; }
-    selection = { page: Number(frame.dataset.page), quote, rects }; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
+    if (!rects.length) { selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
+    selection = { page: Number(frame.dataset.page), quote, rects }; $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
   }
   function release(page) {
     page.renderTask?.cancel(); page.textLayer?.cancel(); page.renderTask = page.textLayer = null;
@@ -179,11 +198,11 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   async function layout(anchor = snapshot()) {
     if (!pdf || closed) return;
     clearTimeout(resizeTimer); pendingAnchor = null;
-    layingOut = true; const version = ++generation; layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; stack.dataset.layout = 'busy'; selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges();
+    layingOut = true; const version = ++generation; layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; stack.dataset.layout = 'busy'; selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
     for (const page of pages) { release(page); delete page.frame.dataset.loaded; size(page); }
     stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px';
     endSpace(); layingOut = false;
-    if (anchor.x !== undefined) { const frame = pages[anchor.page - 1]?.frame; if (frame) scroll.scrollLeft = Math.max(0, frame.offsetLeft + anchor.x * frame.clientWidth - anchor.viewportX); }
+    if (anchor.x !== undefined) { const frame = pages[anchor.page - 1]?.frame; if (frame) { const bounds = frame.getBoundingClientRect(), view = scroll.getBoundingClientRect(); const origin = bounds.left - view.left + scroll.scrollLeft; scroll.scrollLeft = Math.max(0, origin + anchor.x * bounds.width - anchor.viewportX); } }
     else scroll.scrollLeft = Math.min(scroll.scrollLeft, Math.max(0, stack.scrollWidth - scroll.clientWidth));
     await showPage(anchor.page, anchor.position, anchor.viewportY || 0);
     if (!closed && version === generation) stack.dataset.layout = 'ready';
@@ -247,12 +266,16 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
       if (!selection) return; const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(); paintHighlights(); selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
   on($('reader-ask-ai'), 'pointerdown', event => event.preventDefault());
   on($('reader-ask-ai'), 'click', () => { if (selection) ai.setContext({ ...selection }); });
+  on(scroll, 'pointerdown', event => {
+    if (event.button !== 0 || !event.target.closest('.textLayer')) return;
+    selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true;
+  });
   on(document, 'selectionchange', captureSelection);
   on(scroll, 'scroll', () => {
     if (layingOut || closed) return;
@@ -325,7 +348,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     } catch (error) { if (!closed) $('reader-status').textContent = '无法打开教材：' + errorText(error); }
   })();
   function close() {
-    if (closed) return; if (drag) finishDrag(); saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
+    if (closed) return; stopVertical(); if (drag) finishDrag(); saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
     if (document.fullscreenElement === $('reader-view')) document.exitFullscreen().catch(() => {});
     if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren();
   }

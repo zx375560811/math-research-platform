@@ -27,7 +27,7 @@ class PublicBoundary implements Filter {
         var http = (HttpServletResponse) response;
         http.setHeader("Cache-Control", "no-store");
         http.setHeader("X-Content-Type-Options", "nosniff");
-        http.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+        http.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
         var incoming = (HttpServletRequest) request;
         boolean authWrite = incoming.getMethod().equals("POST") && java.util.Set.of("/api/auth/register", "/api/auth/login", "/api/auth/logout").contains(incoming.getRequestURI());
         String path = incoming.getRequestURI(); String method = incoming.getMethod();
@@ -49,7 +49,7 @@ class PublicBoundary implements Filter {
         }
         // Raw PDF uploads are read with a bound by the controller, after authorization.
         if (authWrite || learningWrite || adminWrite || aiWrite) {
-            int limit = authWrite ? 8192 : 65536;
+            int limit = authWrite ? 8192 : path.equals("/api/ai/chat") ? 16777216 : 65536;
             byte[] body = incoming.getInputStream().readNBytes(limit + 1);
             if (body.length > limit) {
                 http.setStatus(413); http.setContentType("application/json; charset=utf-8"); http.getWriter().write("{\"error\":\"request_too_large\"}"); return;

@@ -95,11 +95,12 @@ async function main() {
           return json({ documents: documents.filter(d => !id || d.subject_ids.includes(id)).slice().reverse().slice(offset, offset + 20), limit: 20, offset });
         }
         if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { res.writeHead(200, { 'Content-Type': 'application/pdf' }); return res.end(pdf); }
-        const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
+        const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
         for (const name of ['icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
+        if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
-        res.writeHead(200, { 'Content-Type': asset[1], 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'" }); res.end(fs.readFileSync(path.join(frontend, asset[0])));
+        res.writeHead(200, { 'Content-Type': asset[1], 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; connect-src 'self'; worker-src 'self'; object-src 'none'" }); res.end(fs.readFileSync(path.join(frontend, asset[0])));
       });
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); port = server.address().port;
     } else {
@@ -128,7 +129,21 @@ async function main() {
     const chatCalls=[]; let aiConfig={source:'default',enabled:true,custom:{base_url:'',model:'',enabled:false,available:false,has_key:false,daily_limit:50},default:{model:'Platform math',enabled:true,available:true,has_key:true,daily_limit:50}};
     await page.route('**/api/ai/**',async route=>{
       const req=route.request(),path=new URL(req.url()).pathname;let body;
-      if(path==='/api/ai/chat'){body=req.postDataJSON();chatCalls.push(body);return route.fulfill({contentType:'application/json',body:JSON.stringify({reply:'基于选段，先明确概念，再检查推导。<img src=x onerror=alert(1)>'})});}
+      if(path==='/api/ai/chat'){body=req.postDataJSON();chatCalls.push(body);return route.fulfill({contentType:'application/json',body:JSON.stringify({reply:String.raw`## 基于选段
+**先明确概念**，再检查推导。行内公式 $x^2+y^2=z^2$。
+
+$$\int_0^1 x^2\,dx=\frac{1}{3}$$
+
+另一种公式 \(a_1+a_2\)。
+
+| 项目 | 说明 |
+| --- | --- |
+| 定义 | 保持准确 |
+
+- 核对假设
+- 检查结论
+
+<img src=x onerror=alert(1)><a href="javascript:alert(1)">危险链接</a>`})});}
       if(req.method()==='PUT'){body=req.postDataJSON();aiConfig.source=body.source;aiConfig.custom={...aiConfig.custom,base_url:body.base_url,model:body.model,enabled:body.enabled,available:body.enabled,has_key:body.clear_key?false:!!body.api_key||aiConfig.custom.has_key};}
       return route.fulfill({contentType:'application/json',body:JSON.stringify(aiConfig)});
     });
@@ -234,9 +249,15 @@ async function main() {
     await page.locator('#reader-ask-ai').click();
     assert.equal(await page.locator('#ai-context').isVisible(),true); assert.match(await page.locator('#ai-context-quote').textContent(),/Mathematics/);
     await page.locator('#ai-question').fill('解释这个选段 <img src=x onerror=alert(1)>'); await page.locator('#ai-send').click();
-    await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0);
+    await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0); assert.ok(await page.locator('.ai-assistant .katex').count()>=3); assert.ok(await page.locator('.ai-assistant .katex-display').count()>0); assert.equal(await page.locator('.ai-assistant table').count(),1); assert.equal(await page.locator('.ai-assistant strong').count(),1); assert.equal(await page.locator('.ai-assistant a[href^="javascript:"]').count(),0);
     assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
+    const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:a.getBoundingClientRect().left<b.getBoundingClientRect().left};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
+    const beforeVertical=await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight); const split=await page.locator('#reader-ai-resize').boundingBox();
+    await page.mouse.move(split.x+split.width/2,split.y+5);await page.mouse.down();await page.mouse.move(split.x+split.width/2,split.y+75,{steps:6});await page.mouse.up();
+    assert.ok(await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight)>beforeVertical+50);
+    await page.locator('#reader-ai-resize').focus();await page.keyboard.press('ArrowUp');assert.ok(await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight)>beforeVertical+10);
+    const sizes=await page.evaluate(()=>['ai-question','ai-status','ai-provider-label','reader-ask-ai'].map(id=>parseFloat(getComputedStyle(document.getElementById(id)).fontSize)));assert.ok(sizes.every(size=>size>=14));
     const panes=await page.evaluate(()=>{const a=document.querySelector('.reader-note-pane').getBoundingClientRect(),b=document.querySelector('.reader-ai-pane').getBoundingClientRect();return {above:a.bottom<=b.top+1,sameWidth:Math.abs(a.width-b.width)<1};}); assert.equal(panes.above,true); assert.equal(panes.sameWidth,true);
     await page.locator('#ai-settings-toggle').click(); await page.locator('#ai-base-url').fill('https://api.example.com/v1'); await page.locator('#ai-model').fill('math-model'); await page.locator('#ai-api-key').fill('personal-secret'); await page.locator('#ai-settings-save').click();
     await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
@@ -277,7 +298,7 @@ async function main() {
     await page.mouse.move(point.x,point.y);await page.keyboard.down('Control');await page.mouse.wheel(0,-100);await page.keyboard.up('Control');
     await page.waitForFunction(()=>Number(document.getElementById('reader-zoom').value)>137 && document.getElementById('pdf-pages').dataset.layout==='ready');
     const scaledFraction=await page.locator('.pdf-page[data-page="1"]').evaluate((node,p)=>{const r=node.getBoundingClientRect();return {x:(p.x-r.left)/r.width,y:(p.y-r.top)/r.height};},point);
-    assert.ok(Math.abs(fraction.x-scaledFraction.x)<.02 && Math.abs(fraction.y-scaledFraction.y)<.02);
+    assert.ok(Math.abs(fraction.x-scaledFraction.x)<.02 && Math.abs(fraction.y-scaledFraction.y)<.02,JSON.stringify({fraction,scaledFraction}));
     for (const percent of ['400','25']) {await page.locator('#reader-zoom').fill(percent);await page.locator('#reader-zoom').press('Enter');await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');}
     assert.equal(await page.locator('#reader-zoom-out').isDisabled(),true);
     await page.locator('#reader-fit-width').click();assert.equal(await page.locator('#reader-zoom').inputValue(),'100');
@@ -307,7 +328,7 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('reader-page').value==='2');
     await page.waitForFunction(async () => (await (await fetch('/api/learning/books/7')).json()).progress?.page===2);
     const preferredNotesWidth=await page.locator('#reader-notes').evaluate(node=>node.clientWidth); await page.reload(); await page.waitForFunction(() => document.getElementById('reader-page').value==='2' && document.querySelector('.pdf-page[data-page="2"] .textLayer span')?.textContent==='Mathematics 2');
-    assert.ok(Math.abs(await page.locator('#reader-notes').evaluate(node=>node.clientWidth)-preferredNotesWidth)<2); assert.equal(await page.locator('.annotation-note').inputValue(),noteText);assert.equal(await page.locator('#annotation-list img').count(),0);
+    assert.ok(Math.abs(await page.locator('#reader-notes').evaluate(node=>node.clientWidth)-preferredNotesWidth)<2); assert.ok(Number(await page.locator('#reader-ai-resize').getAttribute('aria-valuenow'))>35); assert.equal(await page.locator('.annotation-note').inputValue(),noteText);assert.equal(await page.locator('#annotation-list img').count(),0);
     const secondContext=await browser.newContext({viewport:{width:390,height:844}});const second=await secondContext.newPage();
     await second.goto(base+'/#/apps/mathematics/read/7');await second.waitForFunction(()=>location.hash==='#/login');
     await second.locator('#account-username').fill('browser_reader');await second.locator('#account-password').fill('BrowserPass123!');await second.locator('#account-submit').click();

@@ -50,12 +50,13 @@ public class PublicController {
             .header("Content-Disposition", "attachment; filename=\"document-" + value + ".pdf\"").build();
     }
 
-    @GetMapping({"/", "/admin", "/admin/", "/admin.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-ai.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js", "/vendor/pdfjs/**"})
+    @GetMapping({"/", "/admin", "/admin/", "/admin.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js", "/vendor/pdfjs/**", "/vendor/katex/fonts/**"})
     public ResponseEntity<InputStreamResource> web(HttpServletRequest request) {
-        if (!java.util.Set.of("/", "/admin", "/admin/", "/admin.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-ai.js", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js").contains(request.getRequestURI()) && !request.getRequestURI().matches("/vendor/pdfjs/(pdf(?:\\.worker)?\\.mjs|text_layer\\.css|cmaps/[A-Za-z0-9_-]+\\.bcmap|standard_fonts/[A-Za-z0-9_-]+\\.(?:pfb|ttf))"))
+        boolean font = request.getRequestURI().matches("/vendor/katex/fonts/[A-Za-z0-9_-]+\\.woff2");
+        if (!font && !java.util.Set.of("/", "/admin", "/admin/", "/admin.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js").contains(request.getRequestURI()) && !request.getRequestURI().matches("/vendor/pdfjs/(pdf(?:\\.worker)?\\.mjs|text_layer\\.css|cmaps/[A-Za-z0-9_-]+\\.bcmap|standard_fonts/[A-Za-z0-9_-]+\\.(?:pfb|ttf))"))
             throw new ApiProblem(404, "not_found");
         String name = request.getRequestURI().startsWith("/admin") && !request.getRequestURI().contains(".") ? "admin.html" : request.getRequestURI().equals("/") ? "index.html" : request.getRequestURI().substring(1);
-        String type = name.endsWith(".bcmap") || name.endsWith(".pfb") || name.endsWith(".ttf") ? "application/octet-stream" : name.endsWith(".html") ? "text/html; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8";
+        String type = name.endsWith(".woff2") ? "font/woff2" : name.endsWith(".bcmap") || name.endsWith(".pfb") || name.endsWith(".ttf") ? "application/octet-stream" : name.endsWith(".html") ? "text/html; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8";
         return resource(Path.of(LibraryRepository.setting("MATH_WEB_DIR", "../frontend")).resolve(name), type, 503, true).build();
     }
 
