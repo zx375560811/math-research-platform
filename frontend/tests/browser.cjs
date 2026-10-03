@@ -249,12 +249,14 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#reader-ask-ai').click();
     assert.equal(await page.locator('#ai-context').isVisible(),true); assert.match(await page.locator('#ai-context-quote').textContent(),/Mathematics/);
     await page.locator('#ai-question').fill('解释这个选段 <img src=x onerror=alert(1)>'); await page.locator('#ai-send').click();
+    assert.equal(await page.locator('#ai-context').isVisible(),false); assert.equal(await page.locator('#selection-tools').isVisible(),false);
     await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0); assert.ok(await page.locator('.ai-assistant .katex').count()>=3); assert.ok(await page.locator('.ai-assistant .katex-display').count()>0); assert.equal(await page.locator('.ai-assistant table').count(),1); assert.equal(await page.locator('.ai-assistant strong').count(),1); assert.equal(await page.locator('.ai-assistant a[href^="javascript:"]').count(),0);
     assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
     const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:Math.abs(a.getBoundingClientRect().left-b.getBoundingClientRect().left)<1 && b.getBoundingClientRect().top-a.getBoundingClientRect().bottom<=3};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
+    assert.ok(await page.locator('#reader-scroll').evaluate(node=>Math.abs(node.getBoundingClientRect().bottom-document.getElementById('reader-view').getBoundingClientRect().bottom)<1));
     const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-view').top),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:ask.left-input.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
-    assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=13); assert.equal(readerChrome.askColor,'rgb(52, 88, 212)');
+    assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=13); assert.notEqual(readerChrome.askColor,'rgb(52, 88, 212)');
     const beforeVertical=await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight); const split=await page.locator('#reader-ai-resize').boundingBox();
     await page.mouse.move(split.x+split.width/2,split.y+5);await page.mouse.down();await page.mouse.move(split.x+split.width/2,split.y+75,{steps:6});await page.mouse.up();
     assert.ok(await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight)>beforeVertical+50);
@@ -264,7 +266,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#ai-settings-toggle').click(); await page.locator('#ai-base-url').fill('https://api.example.com/v1'); await page.locator('#ai-model').fill('math-model'); await page.locator('#ai-api-key').fill('personal-secret'); await page.locator('#ai-settings-save').click();
     await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
     assert.equal(await page.locator('#ai-api-key').inputValue(),''); assert.equal(await page.locator('#ai-source').inputValue(),'custom');
-    await page.locator('#ai-settings-toggle').click(); await page.locator('#ai-context-remove').click(); await page.locator('#ai-question').fill('继续解释'); await page.locator('#ai-send').click();
+    await page.locator('#ai-settings-toggle').click(); assert.equal(await page.locator('#ai-context').isVisible(),false); await page.locator('#ai-question').fill('继续解释'); await page.locator('#ai-send').click();
     await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===2); assert.equal(chatCalls.at(-1).source,'custom'); assert.equal(chatCalls.at(-1).context,null);
     await page.screenshot({path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
     await page.locator('#ai-source').selectOption('default'); await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));

@@ -17,7 +17,7 @@ const errors = {
   not_found: '所选文献不存在，请重新打开 PDF。', ai_invalid_context: '选段无效，请重新选择 PDF 中的文字。'
 };
 function node(tag, text, cls) { const value = document.createElement(tag); if (text != null) value.textContent = text; if (cls) value.className = cls; return value; }
-export function createReaderAi(getDocumentContext) {
+export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   let closed = false, config = null, context = null, history = [], busy = false, saving = false;
   const requests = new Set(), events = [];
   const on = (target, name, handler) => { target.addEventListener(name, handler); events.push(() => target.removeEventListener(name, handler)); };
@@ -86,6 +86,7 @@ export function createReaderAi(getDocumentContext) {
     const list = $('ai-messages'); list.querySelector('.ai-empty')?.remove();
     const user = node('article', null, 'ai-message ai-user'); user.append(node('span', '你', 'ai-speaker'), node('p', question));
     if (attached) user.append(node('small', `附带第 ${attached.page} 页选段`)); list.append(user); list.scrollTop = list.scrollHeight;
+    if (attached) { context = null; $('ai-context').hidden = true; $('ai-context-quote').textContent = ''; onContextSent(); }
     busy = true; controls(); status('正在向模型提问…');
     try {
       const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached }); if (closed) return;
@@ -93,7 +94,7 @@ export function createReaderAi(getDocumentContext) {
       const remembered = attached ? `PDF 第 ${attached.page} 页选段：\n${attached.quote}\n问题：${question}` : question;
       history.push({ role: 'user', content: remembered }, { role: 'assistant', content: result.reply });
       $('ai-question').value = ''; status(result.warning || '回答仅基于当前对话和附带选段，请核对数学推导。'); list.scrollTop = list.scrollHeight;
-    } catch (error) { if (!closed) { user.remove(); if (!history.length) list.append(node('p', '提问未完成，输入内容已保留，可以重试。', 'ai-empty')); status(error.message); } }
+    } catch (error) { if (!closed) { user.remove(); if (attached && !context) setContext(attached); if (!history.length) list.append(node('p', '提问未完成，输入内容已保留，可以重试。', 'ai-empty')); status(error.message); } }
     finally { busy = false; controls(); }
   });
   on($('ai-question'), 'keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); $('ai-chat-form').requestSubmit(); } });

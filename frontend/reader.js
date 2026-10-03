@@ -19,7 +19,9 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
-  const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title }));
+  const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title }), () => {
+    selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
+  });
   const divider = $('reader-ai-resize');
   function setNoteRatio(value) {
     noteRatio = Math.max(.1, Math.min(.75, value)); $('reader-notes').style.setProperty('--reader-note-height', `${noteRatio * 100}%`); divider.setAttribute('aria-valuenow', String(Math.round(noteRatio * 100)));
