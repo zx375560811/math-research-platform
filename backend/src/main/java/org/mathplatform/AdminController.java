@@ -35,7 +35,7 @@ public class AdminController {
         return value.trim();
     }
     private static void subjects(Connection db, List<Long> ids) throws SQLException {
-        if (ids == null || ids.isEmpty() || ids.size() > 5 || ids.contains(null) || Set.copyOf(ids).size() != ids.size()) throw new ApiProblem(400, "invalid_subject");
+        if (ids == null || ids.isEmpty() || ids.size() > 5 || ids.stream().anyMatch(java.util.Objects::isNull) || Set.copyOf(ids).size() != ids.size()) throw new ApiProblem(400, "invalid_subject");
         try (var query = db.prepareStatement("SELECT 1 FROM subjects WHERE id=?")) {
             for (Long id : ids) { query.setLong(1, id); try (var result = query.executeQuery()) { if (!result.next()) throw new ApiProblem(400, "invalid_subject"); } }
         }
