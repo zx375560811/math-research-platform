@@ -63,8 +63,10 @@ with tempfile.TemporaryDirectory() as directory:
             for asset in ['/', '/app.js', '/style.css', '/icons.js', '/vendor/morphicons/dom.js', '/vendor/morphicons/spring-CFHloqPP.js', '/vendor/morphicons/normalize-CYnN3Npw.js']:
                 with urllib.request.urlopen(base + asset) as response:
                     assert response.status == 200 and response.headers['Content-Security-Policy'] and response.read()
-            for endpoint in ['/api/documents?title=attack&subject_id=1', '/api/admin/documents', '/api/documents/1']:
+            for endpoint in ['/api/documents?title=attack&subject_id=1', '/api/documents/1']:
                 for method in ['POST', 'PUT', 'PATCH', 'DELETE']: assert request(endpoint, method, pdf)[0] == 405
+            assert request('/api/admin/documents')[0] == 401
+            assert request('/api/admin/documents', 'POST', pdf)[0] == 403
             assert request('/api/learning/directions')[0] == 401
             assert request('/api/learning/books/7')[0] == 401
             assert request('/api/documents')[0] == 401

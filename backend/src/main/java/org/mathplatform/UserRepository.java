@@ -36,7 +36,7 @@ public class UserRepository implements UserDetailsService {
         try (var connection = database.connect(false); var transaction = connection.createStatement()) {
             transaction.execute("BEGIN IMMEDIATE");
             try {
-                try (var claim = connection.prepareStatement("UPDATE invitations SET used_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE code_hash=? AND used_at IS NULL AND (expires_at IS NULL OR expires_at>CAST(strftime('%s','now') AS INTEGER))")) {
+                try (var claim = connection.prepareStatement("UPDATE invitations SET used_at=strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE code_hash=? AND used_at IS NULL AND (expires_at IS NULL OR expires_at>CAST(strftime('%s','now') AS INTEGER)) AND NOT EXISTS(SELECT 1 FROM invitation_revocations WHERE invitation_revocations.code_hash=invitations.code_hash)")) {
                     claim.setString(1, codeHash);
                     if (claim.executeUpdate() != 1) throw new ApiProblem(400, "invalid_invitation");
                 }
@@ -57,12 +57,18 @@ public class UserRepository implements UserDetailsService {
     public UserDetails loadUserByUsername(String input) throws UsernameNotFoundException {
         String name;
         try { name = username(input); } catch (ApiProblem failure) { throw new UsernameNotFoundException("Invalid credentials"); }
-        try (var connection = database.connect(true); var statement = connection.prepareStatement("SELECT username,password_hash FROM users WHERE username=?")) {
+        try (var connection = database.connect(true); var statement = connection.prepareStatement("SELECT username,password_hash,EXISTS(SELECT 1 FROM administrators WHERE administrators.username=users.username) FROM users WHERE username=?")) {
             statement.setString(1, name);
             try (var row = statement.executeQuery()) {
                 if (!row.next()) throw new UsernameNotFoundException("Invalid credentials");
-                return User.withUsername(row.getString(1)).password(row.getString(2)).roles("USER").build();
+                return User.withUsername(row.getString(1)).password(row.getString(2)).roles(row.getBoolean(3) ? new String[]{"USER", "ADMIN"} : new String[]{"USER"}).build();
             }
         } catch (SQLException failure) { throw new org.springframework.security.authentication.InternalAuthenticationServiceException("Account storage unavailable", failure); }
+    }
+    public boolean isAdmin(String name) throws SQLException {
+        try (var connection = database.connect(true); var statement = connection.prepareStatement("SELECT 1 FROM administrators WHERE username=?")) {
+            statement.setString(1, name);
+            try (var result = statement.executeQuery()) { return result.next(); }
+        }
     }
 }

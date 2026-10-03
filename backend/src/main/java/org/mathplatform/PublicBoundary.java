@@ -34,11 +34,16 @@ class PublicBoundary implements Filter {
         boolean learningWrite = (method.equals("PUT") && path.matches("/api/learning/books/[0-9]+/progress"))
             || (method.equals("POST") && path.matches("/api/learning/books/[0-9]+/annotations"))
             || (java.util.Set.of("PATCH", "DELETE").contains(method) && path.matches("/api/learning/books/[0-9]+/annotations/[0-9]+"));
-        if (!method.equals("GET") && !authWrite && !learningWrite) {
+        boolean adminUpload = method.equals("POST") && path.equals("/api/admin/documents");
+        boolean adminWrite = (method.equals("PATCH") && path.matches("/api/admin/documents/[0-9]+"))
+            || (method.equals("PUT") && path.matches("/api/admin/books/[0-9]+"))
+            || (method.equals("POST") && (path.equals("/api/admin/invitations") || path.matches("/api/admin/invitations/[a-f0-9]{64}/revoke")));
+        if (!method.equals("GET") && !authWrite && !learningWrite && !adminWrite && !adminUpload) {
             http.setStatus(405); http.setHeader("Allow", "GET"); http.setContentType("application/json; charset=utf-8");
             http.getWriter().write("{\"error\":\"method_not_allowed\"}"); return;
         }
-        if (authWrite || learningWrite) {
+        // Raw PDF uploads are read with a bound by the controller, after authorization.
+        if (authWrite || learningWrite || adminWrite) {
             int limit = authWrite ? 8192 : 65536;
             byte[] body = incoming.getInputStream().readNBytes(limit + 1);
             if (body.length > limit) {
@@ -64,6 +69,12 @@ class PublicBoundary implements Filter {
 
 @RestControllerAdvice
 class PublicErrors {
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+        org.springframework.web.bind.MissingServletRequestParameterException.class,
+        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    org.springframework.http.ResponseEntity<Map<String, String>> invalid(Exception failure) {
+        return org.springframework.http.ResponseEntity.status(400).body(Map.of("error", "invalid_request"));
+    }
     @ExceptionHandler(ApiProblem.class)
     org.springframework.http.ResponseEntity<Map<String, String>> problem(ApiProblem failure) {
         return org.springframework.http.ResponseEntity.status(failure.status).body(Map.of("error", failure.code));

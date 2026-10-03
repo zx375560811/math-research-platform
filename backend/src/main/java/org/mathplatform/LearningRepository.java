@@ -39,7 +39,7 @@ public class LearningRepository {
             }
             value.put("questions", questions);
             var books = new ArrayList<Map<String, Object>>();
-            try (var q = c.prepareStatement(bookQuery() + " WHERE b.direction=? ORDER BY b.sort_order")) {
+            try (var q = c.prepareStatement(bookQuery() + " WHERE b.direction=? ORDER BY b.sort_order,b.id")) {
                 q.setString(1, user); q.setString(2, slug); try (var rows = q.executeQuery()) { while (rows.next()) books.add(bookValue(rows)); }
             }
             value.put("books", books);

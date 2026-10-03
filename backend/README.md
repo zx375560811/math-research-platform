@@ -1,6 +1,40 @@
 # Java 后端与管理员文献库
 
-网页应用以文献库为内容来源；文献管理不向公共用户开放。文献 HTTP 接口只读，管理员在服务器通过本地脚本入库；账号服务独立负责注册和登录。
+## 独立管理后台
+
+`/admin` 提供文献 PDF 导入（最多 20 MiB）、标题/作者/分类编辑、已有教材的阶段/前置知识/排序/文献关联，以及邀请码创建/使用记录/撤销。管理员也能返回普通应用学习。未登录访问后台跳转到登录，普通用户返回 403；管理 API 校验 ADMIN 会话和数据库中的管理员资格，写入还校验 CSRF。撤销管理员资格后，即使旧会话仍在，管理 API 也立即拒绝访问。
+
+首次部署先更新并启动服务，让新增表自动创建，再为**已有的指定账号**授权。将 `YOUR_USERNAME` 替换为自己的用户名：
+
+```bash
+cd /opt/math-platform/backend
+runuser -u math-platform -- python3 admin/grant_admin.py YOUR_USERNAME
+```
+
+随后退出并重新登录，应用侧栏出现“管理平台”；也可在已有 SSH 隧道中访问 `http://127.0.0.1:18080/admin`。没有公开授予管理员权限的接口。新注册账号始终为 USER。撤销资格：
+
+```bash
+runuser -u math-platform -- python3 admin/grant_admin.py YOUR_USERNAME --revoke
+```
+
+管理员资格保存在独立 `administrators` 表，保留原 users 结构；邀请码撤销记录独立保存，注册事务会拒绝已撤销码。邀请码完整值仅生成时显示，数据库只存 SHA-256 哈希。撤销未使用码不会删除已注册账号。
+
+教材设置填写文献库编号，保存后学习模块自动使用对应 `/api/documents/{id}/file`。已关联教材禁止改绑/解绑，以保护个人进度与标注；标题等文献元数据仍可编辑。当前后台配置已有教材目录，新增教材和研究方向仍通过目录维护。
+
+| 方法 | 管理地址 | 用途 |
+| --- | --- | --- |
+| GET | /api/admin/documents?q=&offset=0 | 搜索标题/作者，每页 20 份 |
+| POST | /api/admin/documents?title=...&authors=...&subject_id=1 | 原始 PDF 请求体，Content-Type: application/pdf |
+| PATCH | /api/admin/documents/{id} | JSON: title、authors、subject_ids |
+| GET | /api/admin/books | 教材与关联状态 |
+| PUT | /api/admin/books/{id} | JSON: stage、prerequisites、sort_order、document_id |
+| GET | /api/admin/invitations?offset=0 | 分页使用记录，无明文邀请码 |
+| POST | /api/admin/invitations | JSON: days（1–365），返回一次性明文 |
+| POST | /api/admin/invitations/{hash}/revoke | 撤销未使用码 |
+
+验证：`python3 tests/admin.py` 在临时数据库验证普通用户拒绝、管理员授予/撤销、CSRF、上传大小及文件清理、教材关联锁定和邀请码撤销；`node frontend/tests/admin.cjs` 验证真实后台界面流程、XSS 文本和手机布局（从仓库根目录执行）。
+
+网页应用以文献库为内容来源；文献管理不向公共用户开放。普通用户文献 HTTP 接口只读，管理员可在独立 `/admin` 后台或通过服务器本地脚本入库；账号服务独立负责注册和登录。
 
 ## 编译与运行
 
@@ -27,7 +61,7 @@ java -jar target/math-server.jar
 | GET | /api/documents/1/file | 获取原文 PDF |
 | GET | /api/ai/status | AI 接入状态，目前未配置 |
 
-文献 HTTP 写入方法返回 405，包括原先的 POST /api/documents 和猜测的管理员接口。账号注册/登录/退出及个人学习进度/标注写入均校验 CSRF。数据库和管理脚本不能经静态文件路由访问。服务不能生成文献摘要或数学知识；学习模块展示问题与递进教材，并提供个人 PDF 阅读。
+文献 HTTP 写入方法返回 405，原先的 POST /api/documents 继续返回 405；独立 /api/admin/* 仅供管理员访问。账号注册/登录/退出及个人学习进度/标注写入均校验 CSRF。数据库和管理脚本不能经静态文件路由访问。服务不能生成文献摘要或数学知识；学习模块展示问题与递进教材，并提供个人 PDF 阅读。
 
 ## 管理员入库
 
@@ -84,7 +118,7 @@ python3 tests/integration.py
 | GET | /api/auth/me | 当前登录状态，不返回密码哈希 |
 | POST | /api/auth/logout | 清除会话和 Cookie |
 
-POST 必须携带同一会话 GET /api/auth/csrf 返回的 header/token；每次提交前重新获取，登录会轮换 token。Cookie HttpOnly、SameSite=Lax，仅使用 Cookie 追踪会话。网站入口直接显示独立登录/注册表单，登录后才能进入工作台。研究方向 /api/subjects 和资料接口 /api/documents 及其子路径未登录返回 401；健康状态、账号入口和必要的网页资产公开。账号哈希保存在同一个 math.db 的 users 表。没有默认账号、默认密码或网页管理员。注册不赋予底层文献管理能力。
+POST 必须携带同一会话 GET /api/auth/csrf 返回的 header/token；每次提交前重新获取，登录会轮换 token。Cookie HttpOnly、SameSite=Lax，仅使用 Cookie 追踪会话。网站入口直接显示独立登录/注册表单，登录后才能进入工作台。研究方向 /api/subjects 和资料接口 /api/documents 及其子路径未登录返回 401；健康状态、账号入口和必要的网页资产公开。账号哈希保存在同一个 math.db 的 users 表。没有默认账号或默认密码；网页管理员必须由服务器所有者明确授权。注册不赋予底层文献管理能力。
 
 注册按来源地址限制每小时 10 次提交，登录每 15 分钟 30 次提交（含成功和失败），返回 429。限制为单进程内存状态，重启会重置；后续代理部署时再配置可信来源地址。
 
@@ -93,7 +127,7 @@ POST 必须携带同一会话 GET /api/auth/csrf 返回的 header/token；每次
 
 升级到邀请注册版本后，首次启动会执行一次 `invite_only_v1` 迁移，**删除所有原有账号**。文献、文件和分类保持不变。会话不跨重启保存，旧用户必须重新获得邀请码注册。迁移记录写入同一数据库，后续重启保留新账号；不要删除迁移记录。
 
-注册请求增加 `invitation` 字段，必须是管理员提供的有效邀请码。随机码仅保存 SHA-256 哈希，注册与消耗邀请码在同一事务内完成；过期、已用和未知码返回 `invalid_invitation`，注册失败不消耗邀请码。没有生成邀请码的公开 HTTP 接口。
+注册请求增加 `invitation` 字段，必须是管理员提供的有效邀请码。随机码仅保存 SHA-256 哈希，注册与消耗邀请码在同一事务内完成；过期、已用和未知码返回 `invalid_invitation`，注册失败不消耗邀请码。没有生成邀请码的公开 HTTP 接口，管理员可通过后台创建或撤销邀请码。
 
 先构建并重启新版本，然后在服务器执行：
 
@@ -120,7 +154,7 @@ PDF.js 5.6.205 本地托管，提供连续滚动、目录、页码、缩放、�
 | GET / POST | /api/learning/books/{id}/annotations | 读取 / 创建自己的高亮 |
 | PATCH / DELETE | /api/learning/books/{id}/annotations/{mark} | 更新笔记 / 删除自己的标注 |
 
-所有学习接口都要求登录，写入要求 CSRF。身份从会话读取，不接受指定其他用户；标注每人每书最多 1000 条，每条正文/笔记最多 4000 字符、最多 100 个矩形。写请求限制 64 KiB，包括无 Content-Length 的请求；文献 HTTP 上传与管理仍被禁用。
+所有学习接口都要求登录，写入要求 CSRF。身份从会话读取，不接受指定其他用户；标注每人每书最多 1000 条，每条正文/笔记最多 4000 字符、最多 100 个矩形。写请求限制 64 KiB，包括无 Content-Length 的请求；普通用户文献上传与管理仍被禁用，管理员操作使用独立接口。
 
 部署并启动后，可导入作者提供的两本开放教材：
 

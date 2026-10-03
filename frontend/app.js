@@ -17,6 +17,7 @@ async function authPost(path, body, method = 'POST') {
   return api(path, { method, headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token }, body: JSON.stringify(body || {}) });
 }
 function accountDisplay() {
+  $('admin-link').hidden = state.user?.role !== 'ADMIN';
   $('auth-link').hidden = !!state.user; $('account-name').hidden = !state.user; $('logout-button').hidden = !state.user;
   $('account-name').textContent = state.user ? state.user.username : '';
 }
@@ -27,6 +28,7 @@ function route() {
   ++state.generation;
   const inApp = location.hash.startsWith('#/apps/mathematics');
   if (!state.user && !['#/login', '#/register'].includes(location.hash)) { state.returnTo = location.hash || '#/'; location.replace('#/login'); route(); return; }
+  if (location.hash === '#/admin' && state.user) { if (state.user.role === 'ADMIN') { location.replace('/admin'); return; } $('notice').textContent = '此账号没有管理员权限。'; $('notice').hidden = false; location.replace('#/'); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
   document.body.classList.toggle('auth-page', inAuth);
   $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inAuth; $('module-view').hidden = !inApp;

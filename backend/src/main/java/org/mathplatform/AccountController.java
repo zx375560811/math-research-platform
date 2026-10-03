@@ -45,9 +45,12 @@ public class AccountController {
     @GetMapping("/api/auth/csrf")
     public Map<String, String> csrf(CsrfToken token) { return Map.of("header", token.getHeaderName(), "token", token.getToken()); }
     @GetMapping("/api/auth/me")
-    public Map<String, Object> me(Authentication user) {
+    public Map<String, Object> me(Authentication user) throws SQLException {
         if (user == null || user instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) return Map.of("authenticated", false);
-        return Map.of("authenticated", true, "user", Map.of("username", user.getName(), "role", "USER"));
+        return Map.of("authenticated", true, "user", identity(user));
+    }
+    private Map<String, String> identity(Authentication user) throws SQLException {
+        return Map.of("username", user.getName(), "role", users.isAdmin(user.getName()) ? "ADMIN" : "USER");
     }
     @PostMapping("/api/auth/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody Credentials credentials, HttpServletRequest request) throws SQLException {
@@ -55,7 +58,7 @@ public class AccountController {
         return ResponseEntity.status(201).body(Map.of("user", users.register(credentials.username, credentials.password, credentials.invitation, passwords)));
     }
     @PostMapping("/api/auth/login")
-    public Map<String, Object> login(@RequestBody Credentials credentials, HttpServletRequest request, HttpServletResponse response) {
+    public Map<String, Object> login(@RequestBody Credentials credentials, HttpServletRequest request, HttpServletResponse response) throws SQLException {
         limit("login:" + request.getRemoteAddr(), 30, 900000);
         if (credentials.password == null || credentials.password.getBytes(StandardCharsets.UTF_8).length > 72) throw new ApiProblem(401, "invalid_credentials");
         Authentication user;
@@ -65,6 +68,6 @@ public class AccountController {
         new CsrfAuthenticationStrategy(new HttpSessionCsrfTokenRepository()).onAuthentication(user, request, response);
         var context = SecurityContextHolder.createEmptyContext(); context.setAuthentication(user);
         SecurityContextHolder.setContext(context); contexts.saveContext(context, request, response);
-        return Map.of("user", Map.of("username", user.getName(), "role", "USER"));
+        return Map.of("user", identity(user));
     }
 }

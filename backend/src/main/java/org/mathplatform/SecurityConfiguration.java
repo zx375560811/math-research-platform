@@ -25,13 +25,14 @@ public class SecurityConfiguration {
     @Bean SecurityFilterChain security(HttpSecurity http, SecurityContextRepository repository) throws Exception {
         http.securityContext(context -> context.securityContextRepository(repository))
             .csrf(csrf -> csrf.csrfTokenRepository(new HttpSessionCsrfTokenRepository()))
-            .authorizeHttpRequests(requests -> requests.requestMatchers("/api/auth/**", "/api/health").permitAll().requestMatchers("/api/**").authenticated().anyRequest().permitAll())
+            .authorizeHttpRequests(requests -> requests.requestMatchers("/api/auth/**", "/api/health").permitAll().requestMatchers("/api/admin/**", "/admin", "/admin/").hasRole("ADMIN").requestMatchers("/api/**").authenticated().anyRequest().permitAll())
             .formLogin(form -> form.disable()).httpBasic(basic -> basic.disable())
             .requestCache(cache -> cache.disable())
             .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, failure) -> {
+                if (request.getRequestURI().equals("/admin") || request.getRequestURI().equals("/admin/")) { response.sendRedirect("/#/admin"); return; }
                 response.setStatus(401); response.setContentType("application/json; charset=utf-8"); response.getWriter().write("{\"error\":\"login_required\"}");
             }).accessDeniedHandler((request, response, failure) -> {
-                response.setStatus(403); response.setContentType("application/json; charset=utf-8"); response.getWriter().write("{\"error\":\"invalid_csrf\"}");
+                response.setStatus(403); response.setContentType("application/json; charset=utf-8"); response.getWriter().write(failure instanceof org.springframework.security.web.csrf.CsrfException ? "{\"error\":\"invalid_csrf\"}" : "{\"error\":\"admin_required\"}");
             }))
             .logout(logout -> logout.logoutUrl("/api/auth/logout").invalidateHttpSession(true).deleteCookies("JSESSIONID").logoutSuccessHandler((request, response, authentication) -> {
                 response.setContentType("application/json; charset=utf-8"); response.getWriter().write("{\"status\":\"ok\"}");
