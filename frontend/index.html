@@ -68,12 +68,13 @@
           <label class="reader-page-control">第 <input id="reader-page" type="number" min="1" value="1" aria-label="页码"> / <span id="reader-pages">—</span> 页</label>
           <button id="reader-next" class="button compact">下一页</button>
           <label class="reader-zoom-control">缩放 <select id="reader-zoom"><option value="0.75">75%</option><option value="1" selected>适合宽度</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
-          <button id="reader-notes-toggle" class="button compact" aria-expanded="true">高亮笔记</button>
+          <button id="reader-notes-toggle" class="button compact" aria-expanded="false">高亮笔记</button>
+          <button id="reader-fullscreen" class="button compact">全屏</button>
         </div>
         <div class="reader-layout">
           <aside id="reader-outline" class="reader-outline" hidden aria-label="教材目录"></aside>
-          <div id="reader-scroll" class="reader-scroll" tabindex="0" aria-label="PDF 阅读区域"><div id="pdf-page" class="pdf-page"><canvas id="pdf-canvas" aria-label="PDF 页面"></canvas><div id="pdf-highlights" class="pdf-highlights" aria-hidden="true"></div><div id="pdf-text" class="textLayer"></div></div></div>
-          <aside id="reader-notes" class="reader-notes"><h2>我的高亮与笔记</h2><p class="muted">选中文字，再点击高亮。笔记仅自己可见。</p><div id="selection-tools" hidden><p id="selection-quote"></p><div class="highlight-colors"><button class="button compact" data-highlight="yellow">黄色</button><button class="button compact" data-highlight="blue">蓝色</button><button class="button compact" data-highlight="pink">粉色</button></div></div><div id="annotation-list"></div></aside>
+          <div id="reader-scroll" class="reader-scroll" tabindex="0" aria-label="PDF 连续阅读区域"><div id="pdf-pages" class="pdf-pages"></div></div>
+          <aside id="reader-notes" class="reader-notes"><div class="reader-panel-heading"><h2>我的高亮与笔记</h2><button id="reader-notes-close" class="button compact" aria-label="关闭高亮笔记">×</button></div><p class="muted">选中文字，再点击高亮。笔记仅自己可见。</p><div id="selection-tools" hidden><p id="selection-quote"></p><div class="highlight-colors"><button class="button compact" data-highlight="yellow">黄色</button><button class="button compact" data-highlight="blue">蓝色</button><button class="button compact" data-highlight="pink">粉色</button></div></div><div id="annotation-list"></div></aside>
         </div>
         <div class="reader-foot"><span id="reader-status" role="status">正在打开教材…</span><span id="reader-save-status" role="status"></span></div>
       </section>
