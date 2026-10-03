@@ -41,7 +41,8 @@ public class AiController {
     }
     @PostMapping("/api/ai/chat")
     public Map<String, String> chat(Authentication user, @RequestBody AiService.Chat body) throws SQLException {
-        return Map.of("reply", service.chat(user.getName(), body));
+        var answer = service.chat(user.getName(), body);
+        return Map.of("reply", answer.reply(), "warning", answer.warning());
     }
     private void authorize(Authentication user) throws SQLException {
         if (user == null || !users.isAdmin(user.getName())) throw new ApiProblem(403, "admin_required");

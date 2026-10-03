@@ -28,6 +28,8 @@ public class AiService {
     public record Message(String role, String content) {}
     public record Context(long document_id, int page, String quote) {}
     public record Chat(String source, List<Message> messages, Context context) {}
+    public record Answer(String reply, String warning) {}
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AiService.class);
     private final LibraryRepository library;
     private final AiRepository settings;
     private final ObjectMapper json = new ObjectMapper();
@@ -64,7 +66,7 @@ public class AiService {
         return b.length == 16 && (b[0] & 0xe0) == 0x20 && !((b[0] & 255) == 0x20 && (b[1] & 255) == 0x02)
             && !((b[0] & 255) == 0x20 && (b[1] & 255) == 0x01 && (b[2] & 255) == 0 && (b[3] & 255) == 0);
     }
-    String chat(String username, Chat body) throws java.sql.SQLException {
+    Answer chat(String username, Chat body) throws java.sql.SQLException {
         if (body == null || !Set.of("default", "custom").contains(body.source() == null ? "" : body.source()) || body.messages() == null || body.messages().isEmpty() || body.messages().size() > 16)
             throw new ApiProblem(400, "ai_invalid_chat");
         int length = 0; String expected = "user";
@@ -96,7 +98,57 @@ public class AiService {
             return complete(url, provider, messages);
         } finally { slots.release(); active.remove(username); }
     }
-    private String complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages) {
+    private static String kind(tools.jackson.databind.JsonNode value) {
+        if (value == null || value.isMissingNode()) return "missing";
+        if (value.isNull()) return "null";
+        if (value.isString()) return "string";
+        if (value.isArray()) return "array";
+        if (value.isObject()) return "object";
+        return "scalar";
+    }
+    private static ApiProblem responseProblem(String code, tools.jackson.databind.JsonNode value) {
+        var first = value == null ? null : value.path("choices").path(0);
+        var content = first == null ? null : first.path("message").path("content");
+        String finish = first == null ? "missing" : first.path("finish_reason").asString("missing");
+        if (!Set.of("stop", "length", "content_filter", "tool_calls", "function_call", "missing").contains(finish)) finish = "other";
+        // Only structural metadata. Never log provider bodies, prompts, API keys or exception messages.
+        LOG.warn("AI response diagnostic: code={}, root={}, choices={}, content={}, chars={}, finish={}", code, kind(value),
+            value != null && value.path("choices").isArray() ? value.path("choices").size() : 0,
+            kind(content), content != null && content.isString() ? content.asString().length() : 0, finish);
+        return new ApiProblem(502, code);
+    }
+    private Answer decode(tools.jackson.databind.JsonNode value, String key) {
+        if (value == null || !value.isObject() || !value.path("choices").isArray() || value.path("choices").isEmpty()) throw responseProblem("ai_response_invalid", value);
+        var first = value.path("choices").path(0); var message = first.path("message"); var content = message.path("content");
+        if (!message.isObject()) throw responseProblem("ai_response_invalid", value);
+        var text = new StringBuilder();
+        if (content.isString()) text.append(content.asString());
+        else if (content.isArray()) {
+            for (var part : content) {
+                // Some compatible gateways return text blocks rather than a single string.
+                if (!part.isObject() || !part.path("text").isString() || !Set.of("text", "output_text").contains(part.path("type").asString("")))
+                    throw responseProblem("ai_response_invalid", value);
+                text.append(part.path("text").asString());
+            }
+        } else if (!content.isNull() && !content.isMissingNode()) throw responseProblem("ai_response_invalid", value);
+        String reply = text.toString().replace(key, "[密钥已隐藏]");
+        String finish = first.path("finish_reason").asString("");
+        if (reply.isBlank()) {
+            if ("length".equals(finish)) throw responseProblem("ai_response_budget", value);
+            if ("content_filter".equals(finish) || (message.path("refusal").isString() && !message.path("refusal").asString().isBlank())) throw responseProblem("ai_response_refused", value);
+            if (message.path("tool_calls").isArray() && !message.path("tool_calls").isEmpty()) throw responseProblem("ai_response_tool_call", value);
+            if (message.path("reasoning_content").isString() && !message.path("reasoning_content").asString().isBlank()) throw responseProblem("ai_response_reasoning_only", value);
+            throw responseProblem("ai_response_empty", value);
+        }
+        boolean shortened = reply.length() > 12000;
+        if (shortened) {
+            int end = Character.isHighSurrogate(reply.charAt(11999)) ? 11999 : 12000;
+            reply = reply.substring(0, end);
+        }
+        String warning = shortened ? "回答较长，当前显示前 12000 个字符，可继续追问剩余部分。" : "length".equals(finish) ? "回答达到模型输出上限，可能尚未完成，可继续追问。" : "";
+        return new Answer(reply, warning);
+    }
+    private Answer complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages) {
         String path = base.toString().replaceAll("/+$", "");
         if (!path.endsWith("/chat/completions")) path += "/chat/completions";
         boolean loopback = test(base);
@@ -124,15 +176,11 @@ public class AiService {
                 if (status < 200 || status >= 300 || response.getEntity() == null) throw new ApiProblem(502, "ai_provider_error");
                 byte[] bytes;
                 try (var input = response.getEntity().getContent()) { bytes = input.readNBytes(262145); }
-                if (bytes.length > 262144) throw new ApiProblem(502, "ai_response_invalid");
-                try {
-                    var value = json.readTree(new String(bytes, StandardCharsets.UTF_8));
-                    var content = value.path("choices").path(0).path("message").path("content");
-                    if (!content.isString() || content.asString().isBlank() || content.asString().length() > 12000) throw new ApiProblem(502, "ai_response_invalid");
-                    // An upstream must never be able to reflect the selected provider key into the browser.
-                    return content.asString().replace(provider.key(), "[密钥已隐藏]");
-                } catch (ApiProblem failure) { throw failure; }
-                catch (RuntimeException failure) { throw new ApiProblem(502, "ai_response_invalid"); }
+                if (bytes.length > 262144) throw responseProblem("ai_response_too_large", null);
+                tools.jackson.databind.JsonNode value;
+                try { value = json.readTree(new String(bytes, StandardCharsets.UTF_8)); }
+                catch (RuntimeException failure) { throw responseProblem("ai_response_non_json", null); }
+                return decode(value, provider.key());
             }); } finally { deadline.cancel(false); }
         } catch (ApiProblem failure) { throw failure; }
         catch (IOException | RuntimeException failure) { throw new ApiProblem(502, "ai_connection_failed"); }

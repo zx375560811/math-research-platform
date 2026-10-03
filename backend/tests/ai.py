@@ -36,6 +36,19 @@ class Provider(BaseHTTPRequestHandler):
             self.wfile.write(b'X' * 262145); return
         if mode == 'invalid':
             self.wfile.write(b'{"choices":[]}'); return
+        variants = {
+            'parts': {'choices':[{'message':{'content':[{'type':'text','text':'First part. '},{'type':'text','text':'Second part.'}]}}]},
+            'long': {'choices':[{'message':{'content':'A'*12010},'finish_reason':'stop'}]},
+            'partial': {'choices':[{'message':{'content':'Partial answer'},'finish_reason':'length'}]},
+            'empty': {'choices':[{'message':{'content':''},'finish_reason':'stop'}]},
+            'budget': {'choices':[{'message':{'content':None,'reasoning_content':'private internal reasoning'},'finish_reason':'length'}]},
+            'reasoning': {'choices':[{'message':{'content':None,'reasoning_content':'private internal reasoning'},'finish_reason':'stop'}]},
+            'refusal': {'choices':[{'message':{'content':None,'refusal':'Refused'},'finish_reason':'content_filter'}]},
+            'tool': {'choices':[{'message':{'content':None,'tool_calls':[{'id':'fake'}]},'finish_reason':'tool_calls'}]},
+            'wrong_parts': {'choices':[{'message':{'content':[{'type':'image_url','image_url':{'url':'fake'}}]}}]},
+        }
+        if mode == 'html': self.wfile.write(b'<html>Control panel</html>'); return
+        if mode in variants: self.wfile.write(json.dumps(variants[mode]).encode()); return
         self.wfile.write(json.dumps({'choices':[{'message':{'content':'Explain the selected theorem. private-default-key'}}]}).encode())
 
 provider = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
@@ -135,8 +148,18 @@ try:
                 client = reader
                 def reset_rate():
                     with closing(sqlite3.connect(database)) as db: db.execute('DELETE FROM ai_usage'); db.commit()
-                for mode, code in [('unauthorized','ai_provider_auth'),('redirect','ai_provider_error'),('invalid','ai_response_invalid'),('oversized','ai_response_invalid')]:
+                for mode, code in [('unauthorized','ai_provider_auth'),('redirect','ai_provider_error'),('invalid','ai_response_invalid'),('oversized','ai_response_too_large'),('html','ai_response_non_json'),('empty','ai_response_empty'),('budget','ai_response_budget'),('reasoning','ai_response_reasoning_only'),('refusal','ai_response_refused'),('tool','ai_response_tool_call'),('wrong_parts','ai_response_invalid')]:
                     reset_rate(); assert write('/api/ai/chat',customchat)[1] == {'error':code}
+                for mode in ['parts','long','partial']:
+                    reset_rate(); status, result = write('/api/ai/chat', customchat)
+                    assert status == 200, result
+                    if mode == 'parts': assert result['reply'] == 'First part. Second part.' and not result['warning']
+                    if mode == 'long': assert len(result['reply']) == 12000 and result['warning']
+                    if mode == 'partial': assert result['reply'] == 'Partial answer' and result['warning']
+                log.flush(); log.seek(0); diagnostic_log = log.read()
+                assert 'AI response diagnostic' in diagnostic_log
+                assert 'private-personal-key' not in diagnostic_log and 'private-default-key' not in diagnostic_log and 'private internal reasoning' not in diagnostic_log
+                log.seek(0, 2)
                 mode = 'ok'; reset_rate()
                 for _ in range(6): assert write('/api/ai/chat',customchat)[0] == 200
                 before = len(received); assert write('/api/ai/chat',customchat) == (429,{'error':'ai_rate_limit'}) and len(received) == before

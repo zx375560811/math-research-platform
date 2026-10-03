@@ -226,3 +226,6 @@ runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返
 每位用户每分钟最多 6 次模型请求，单账号只允许一个进行中的提问，全平台最多 4 个并发。默认 API 的每日额度由管理员配置，UTC 零点重置，调用失败也计入额度；个人 API 不占用默认每日额度。计数在 `ai_usage` 中持久化，重启不重置额度。当前是按提问次数控制，服务商 token 费用仍以供应商账单为准。
 
 测试：`python3 backend/tests/ai.py` 启动隔离数据库和回环假模型，验证提供商请求、PDF 文献上下文、加密/隐藏、个人隔离、CSRF、SSRF、额度与重启恢复。仅测试环境设 `MATH_AI_TEST_ENDPOINT` 为精确的 `http://127.0.0.1:端口/v1`，允许该单一回环假模型；生产不要设置此变量。
+
+
+AI 回答兼容处理：支持 `choices[0].message.content` 字符串以及 text/output_text 文本块数组。空回答、输出额度耗尽、仅推理、拒绝、工具调用、非 JSON 和真正缺失字段分别返回错误码。超过 12000 字符的正式回答截取展示并附带 `warning`，非空但 finish_reason=length 的回答同样提示可能未完成。不会把 reasoning_content 当作正式答案显示。失败时 `journalctl -u math-platform` 可查看 `AI response diagnostic`，仅记录字段类型、回答字符数、choice 数量、结束类型与错误码，不记录原文、推理正文和密钥。保持既有输出预算与请求时限，不自动重试付费模型请求。
