@@ -386,13 +386,15 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
     await page.locator('#reader-back').click(); await page.locator('#library-view').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
     const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
-    for(let i=1;i<=21;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
-    await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===21);
-    assert.equal(await page.locator('#reader-outline').isVisible(),false);assert.equal(await page.locator('.annotation-summary:visible').count(),20);
-    await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),21);
-    await page.locator('.annotation-summary').nth(20).click();assert.equal(await page.locator('.annotation-note').nth(20).isVisible(),true);
+    for(let i=1;i<=31;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
+    await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===31);
+    assert.equal(await page.locator('#reader-outline').isVisible(),false);assert.equal(await page.locator('.annotation-summary:visible').count(),30);
+    assert.equal(await page.locator('.annotation-summary').nth(29).evaluate(node=>node.nextElementSibling.className),'annotation-more');
+    const foldPosition=await page.locator('.annotation-more').evaluate(node=>{const a=node.previousElementSibling.getBoundingClientRect(),b=node.getBoundingClientRect();return Math.abs(a.top-b.top)<1&&b.left>=a.right;});assert.equal(foldPosition,true);
+    await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),31);
+    await page.locator('.annotation-summary').nth(30).click();assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),true);
     await page.screenshot({path:path.join(shots,'reader-folded-markers.png'),fullPage:true});
-    await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),20);assert.equal(await page.locator('.annotation-note').nth(20).isVisible(),false);
+    await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),30);assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),false);
     await page.locator('#reader-back').click(); await page.locator('[data-book="7"]').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
