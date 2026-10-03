@@ -252,3 +252,18 @@ body.reading-page { overflow:hidden; }
 /* Status announcements remain accessible without taking space below the PDF. */
 .reading-page #reader-view { grid-template-rows:auto auto minmax(0,1fr); }
 #reader-view>.reader-foot { position:absolute;grid-row:auto;width:1px;height:1px;padding:0;border:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap; }
+
+/* Reading controls share the title row; the document starts directly beneath it. */
+.reading-page #reader-view { grid-template-rows:auto minmax(0,1fr); }
+#reader-view>.reader-layout { grid-row:2; }
+.reader-heading { gap:10px;flex-wrap:nowrap;min-width:0;padding:8px 14px; }
+.reader-heading h1 { flex:1;min-width:24px; }
+.reader-heading-actions { display:flex;gap:5px;flex-shrink:0;align-items:center; }
+.reader-heading-actions .button { font-size:14px;padding:5px 7px;white-space:nowrap; }
+@media(max-width:650px) {
+  .reader-heading { gap:5px;padding:6px; }
+  .reader-heading .back-link { font-size:0; }
+  .reader-heading .back-link::before { content:'←';font-size:16px; }
+  .reader-heading-actions { gap:3px; }
+  .reader-heading-actions .button { padding:5px 4px; }
+}

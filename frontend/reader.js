@@ -10,7 +10,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let editingPage = false, verticalDrag = null, noteRatio = .35, expandedMark = null;
+  let verticalDrag = null, noteRatio = .35, expandedMark = null;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
@@ -41,10 +41,10 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const errorText = error => error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message;
   stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
-  $('reader-title').textContent = '正在打开教材…'; $('reader-pages').textContent = '—';
+  $('reader-title').textContent = '正在打开教材…';
   $('reader-fullscreen').textContent = '全屏';
   $('reader-outline').hidden = $('reader-notes').hidden = false;
-  $('reader-outline-toggle').setAttribute('aria-expanded', 'true'); $('reader-notes-toggle').setAttribute('aria-expanded', 'true');
+  $('reader-outline-toggle').setAttribute('aria-expanded', 'true');
   const top = frame => frame.offsetTop + stack.offsetTop;
   function currentPage() {
     let lo = 0, hi = pages.length - 1;
@@ -52,8 +52,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (top(pages[mid].frame) <= y) lo = mid; else hi = mid - 1; }
     return pages[lo];
   }
-  function controls(number, force = false) {
-    pageNumber = number; if (force || !editingPage) $('reader-page').value = String(number);
+  function controls(number) {
+    pageNumber = number; scroll.dataset.page = String(number);
   }
   function snapshot() {
     const page = currentPage();
@@ -104,7 +104,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   function panel(name, visible, chosen = null) {
     if ($('reader-' + name).hidden === !visible) return;
     const anchor = pdf && pages.length ? snapshot() : null;
-    $('reader-' + name).hidden = !visible; $('reader-' + name + '-toggle').setAttribute('aria-expanded', String(visible)); applyPanelWidths();
+    $('reader-' + name).hidden = !visible; $('reader-' + name + '-toggle')?.setAttribute('aria-expanded', String(visible)); applyPanelWidths();
     if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && selection === chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
   }
   applyPanelWidths();
@@ -210,7 +210,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (!pdf || closed || !pages.length) return;
     const target = Math.max(1, Math.min(pdf.numPages, Math.floor(number))); const page = pages[target - 1];
     if (pendingAnchor) pendingAnchor = { page: target, position, viewportY };
-    editingPage = false; controls(target, true); scroll.scrollTop = Math.max(0, top(page.frame) + position * page.frame.clientHeight - viewportY);
+    controls(target); scroll.scrollTop = Math.max(0, top(page.frame) + position * page.frame.clientHeight - viewportY);
     await scheduleVisible(); if (!closed) saveNow();
   }
   async function layout(anchor = snapshot()) {
@@ -229,7 +229,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const items = await pdf.getOutline(); if (closed) return; $('reader-outline').replaceChildren();
     const heading = el('div', 'reader-panel-heading'), closeButton = el('button', 'button compact', '×');
     closeButton.setAttribute('aria-label', '关闭教材目录'); closeButton.addEventListener('click', () => panel('outline', false)); heading.append(el('h2', '', '教材目录'), closeButton); $('reader-outline').append(heading);
-    if (!items?.length) { $('reader-outline').append(el('p', 'muted', '这份 PDF 没有内置目录，可输入页码跳转。')); return; }
+    if (!items?.length) { $('reader-outline').append(el('p', 'muted', '这份 PDF 没有内置目录，可上下滚动阅读。')); return; }
     let count = 0;
     function append(items, depth = 0) {
       if (depth > 8) return;
@@ -242,12 +242,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     }
     append(items);
   }
-  const inputPage = () => { const number = $('reader-page').valueAsNumber; if (Number.isFinite(number)) showPage(number); else { editingPage = false; controls(pageNumber, true); } };
-  on($('reader-page'), 'input', () => { editingPage = true; });
-  on($('reader-page'), 'change', inputPage);
-  on($('reader-page'), 'keydown', event => { if (event.key === 'Enter') { event.preventDefault(); inputPage(); } });
-  on($('reader-page'), 'blur', () => { editingPage = false; controls(pageNumber, true); });
-  function zoomControls() { $('reader-zoom').value = String(Math.round(zoom * 100)); $('reader-zoom-out').disabled = zoom <= .25; $('reader-zoom-in').disabled = zoom >= 4; }
+  function zoomControls() { scroll.dataset.zoom = String(Math.round(zoom * 100)); }
   function setZoom(percent, point) {
     if (!pdf || !pages.length || !Number.isFinite(percent)) { zoomControls(); return; }
     clearTimeout(zoomTimer); pendingZoom = null;
@@ -260,11 +255,6 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     }
     zoom = value; zoomControls(); layout(anchor);
   }
-  const inputZoom = () => setZoom($('reader-zoom').valueAsNumber);
-  on($('reader-zoom'), 'change', inputZoom);
-  on($('reader-zoom'), 'keydown', event => { if (event.key === 'Enter') { event.preventDefault(); inputZoom(); } });
-  on($('reader-zoom-out'), 'click', () => setZoom(zoom * 100 - 10));
-  on($('reader-zoom-in'), 'click', () => setZoom(zoom * 100 + 10));
   on($('reader-fit-width'), 'click', () => setZoom(100));
   on(scroll, 'wheel', event => {
     if ((!event.ctrlKey && !event.metaKey) || !pdf || !pages.length) return;
@@ -274,7 +264,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     clearTimeout(zoomTimer); const point = { target: event.target, x: event.clientX, y: event.clientY };
     zoomTimer = setTimeout(() => setZoom(pendingZoom, point), 70);
   }, { passive: false });
-  for (const name of ['outline', 'notes']) on($('reader-' + name + '-toggle'), 'click', () => panel(name, $('reader-' + name).hidden));
+  on($('reader-outline-toggle'), 'click', () => panel('outline', $('reader-outline').hidden));
   on($('reader-notes-close'), 'click', () => panel('notes', false));
   on($('reader-fullscreen'), 'click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('reader-view').requestFullscreen(); } catch { $('reader-status').textContent = '当前浏览器不支持全屏阅读。'; } });
   on(document, 'fullscreenchange', () => { $('reader-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏'; const anchor = pdf && pages.length ? snapshot() : null; applyPanelWidths(); if (anchor) layout(anchor); });
@@ -350,7 +340,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       task = getDocument({ url: book.file_url, withCredentials: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
       if (pdf.numPages > 100000) throw new Error('教材页数超出支持范围。');
       const first = await pdf.getPage(1); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
-      $('reader-pages').textContent = String(pdf.numPages); $('reader-page').max = String(pdf.numPages);
+      scroll.dataset.totalPages = String(pdf.numPages);
       marks = (await api(`${endpoint}/annotations`)).annotations; if (closed) return;
       notes(); zoom = book.progress?.zoom || 1; if (!Number.isFinite(zoom) || zoom < .25 || zoom > 4) zoom = 1; zoomControls();
       const fragment = document.createDocumentFragment();

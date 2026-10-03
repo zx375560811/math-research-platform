@@ -67,14 +67,7 @@
         <p id="learning-status" class="list-status" role="status"></p><button id="retry-learning" class="button" hidden>重新加载</button>
       </section>
       <section id="reader-view" hidden aria-labelledby="reader-title">
-        <div class="reader-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics">← 返回教材</a><h1 id="reader-title">教材阅读</h1></div>
-        <div class="reader-toolbar">
-          <button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button>
-          <label class="reader-page-control">第 <input id="reader-page" type="number" min="1" value="1" aria-label="页码"> / <span id="reader-pages">—</span> 页</label>
-          <div class="reader-zoom-control" role="group" aria-label="PDF 缩放"><button id="reader-zoom-out" class="button compact" aria-label="缩小">−</button><label><input id="reader-zoom" type="number" min="25" max="400" step="1" value="100" aria-label="缩放百分比" title="25%–400%，100% 对应适合宽度">%</label><button id="reader-zoom-in" class="button compact" aria-label="放大">＋</button><button id="reader-fit-width" class="button compact">适合宽度</button></div>
-          <button id="reader-notes-toggle" class="button compact" aria-expanded="true">高亮笔记</button>
-          <button id="reader-fullscreen" class="button compact">全屏</button>
-        </div>
+        <div class="reader-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics" aria-label="返回教材">← 返回教材</a><h1 id="reader-title">教材阅读</h1><div class="reader-heading-actions"><button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button><button id="reader-fit-width" class="button compact">适合宽度</button><button id="reader-fullscreen" class="button compact">全屏</button></div></div>
         <div class="reader-layout">
           <aside id="reader-outline" class="reader-outline" aria-label="教材目录"></aside>
           <div id="reader-outline-resize" class="reader-resize" role="separator" aria-orientation="vertical" aria-label="调整目录宽度" aria-controls="reader-outline" tabindex="0" title="拖拽调整目录宽度，也可用左右方向键"></div>
