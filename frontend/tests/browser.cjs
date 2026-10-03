@@ -95,7 +95,7 @@ async function main() {
           return json({ documents: documents.filter(d => !id || d.subject_ids.includes(id)).slice().reverse().slice(offset, offset + 20), limit: 20, offset });
         }
         if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { res.writeHead(200, { 'Content-Type': 'application/pdf' }); return res.end(pdf); }
-        const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
+        const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/style.css': ['style.css', 'text/css'] };
         for (const name of ['icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -125,6 +125,13 @@ async function main() {
     browser = await chromium.launch(options);
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
+    const chatCalls=[]; let aiConfig={source:'default',enabled:true,custom:{base_url:'',model:'',enabled:false,available:false,has_key:false,daily_limit:50},default:{model:'Platform math',enabled:true,available:true,has_key:true,daily_limit:50}};
+    await page.route('**/api/ai/**',async route=>{
+      const req=route.request(),path=new URL(req.url()).pathname;let body;
+      if(path==='/api/ai/chat'){body=req.postDataJSON();chatCalls.push(body);return route.fulfill({contentType:'application/json',body:JSON.stringify({reply:'基于选段，先明确概念，再检查推导。<img src=x onerror=alert(1)>'})});}
+      if(req.method()==='PUT'){body=req.postDataJSON();aiConfig.source=body.source;aiConfig.custom={...aiConfig.custom,base_url:body.base_url,model:body.model,enabled:body.enabled,available:body.enabled,has_key:body.clear_key?false:!!body.api_key||aiConfig.custom.has_key};}
+      return route.fulfill({contentType:'application/json',body:JSON.stringify(aiConfig)});
+    });
     await page.goto(base); await page.waitForFunction(() => location.hash === '#/login');
     for (const selector of ['#home-view', '#module-view', '.sidebar', '.topbar', '.auth-intro', '.workspace>footer']) assert.equal(await page.locator(selector).isVisible(), false);
     assert.equal((await fetch(base + '/api/subjects')).status, 401);
@@ -222,6 +229,22 @@ async function main() {
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.waitForFunction(()=>!!document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
 
+    await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
+    await page.locator('#selection-tools').waitFor();
+    await page.locator('#reader-ask-ai').click();
+    assert.equal(await page.locator('#ai-context').isVisible(),true); assert.match(await page.locator('#ai-context-quote').textContent(),/Mathematics/);
+    await page.locator('#ai-question').fill('解释这个选段 <img src=x onerror=alert(1)>'); await page.locator('#ai-send').click();
+    await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0);
+    assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
+    assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
+    const panes=await page.evaluate(()=>{const a=document.querySelector('.reader-note-pane').getBoundingClientRect(),b=document.querySelector('.reader-ai-pane').getBoundingClientRect();return {above:a.bottom<=b.top+1,sameWidth:Math.abs(a.width-b.width)<1};}); assert.equal(panes.above,true); assert.equal(panes.sameWidth,true);
+    await page.locator('#ai-settings-toggle').click(); await page.locator('#ai-base-url').fill('https://api.example.com/v1'); await page.locator('#ai-model').fill('math-model'); await page.locator('#ai-api-key').fill('personal-secret'); await page.locator('#ai-settings-save').click();
+    await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
+    assert.equal(await page.locator('#ai-api-key').inputValue(),''); assert.equal(await page.locator('#ai-source').inputValue(),'custom');
+    await page.locator('#ai-settings-toggle').click(); await page.locator('#ai-context-remove').click(); await page.locator('#ai-question').fill('继续解释'); await page.locator('#ai-send').click();
+    await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===2); assert.equal(chatCalls.at(-1).source,'custom'); assert.equal(chatCalls.at(-1).context,null);
+    await page.screenshot({path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
+    await page.locator('#ai-source').selectOption('default'); await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="yellow"]').click();
     await page.locator('.annotation-item').waitFor(); assert.ok(await page.locator('.pdf-highlight').count()>0);

@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const state = { document: null, documents: [], subjects: [], books: [], docOffset: 0, inviteOffset: 0, query: '', ready: false };
-const errors = { admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', request_too_large: 'PDF 最大 20 MB，文字内容请适当缩短。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查学习阶段与排序数字。', book_document_locked: '教材已关联 PDF，不能更换，以保护现有阅读进度和标注。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的 PDF。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
+const errors = { ai_invalid_url: '请输入公网 HTTPS API 地址。', ai_invalid_settings: '启用默认 API 时，请填写地址、模型和密钥；每日次数为 1–1000。', ai_key_unavailable: '服务器加密密钥不可用，请检查 data/ai-secret.key。', admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', request_too_large: 'PDF 最大 20 MB，文字内容请适当缩短。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查学习阶段与排序数字。', book_document_locked: '教材已关联 PDF，不能更换，以保护现有阅读进度和标注。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的 PDF。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
 function message(text, error = false) { $('admin-message').textContent = text; $('admin-message').hidden = !text; $('admin-message').classList.toggle('error', error); }
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
@@ -69,11 +69,26 @@ async function loadInvitations() {
   for (const invite of body.invitations) { const status = { active: '可使用', used: '已使用', revoked: '已撤销', expired: '已过期' }[invite.status]; const { row, detail, controls } = record(`邀请码记录 ${invite.id.slice(0, 8)}`, [`创建：${date(invite.created_at)}`, `到期：${date(invite.expires_at)}`, ...(invite.used_by ? [`注册用户：${invite.used_by}`] : [])]); detail.append(element('span', status, `badge${invite.status === 'active' ? '' : ' pending'}`)); if (invite.status === 'active') controls.append(button('撤销', async () => { await write(`/api/admin/invitations/${invite.id}/revoke`, {}); await loadInvitations(); if (state.codeId === invite.id) { $('invitation-code').value = ''; $('created-invitation').hidden = true; } message('邀请码已撤销。'); })); list.append(row); }
   empty(list, '还没有邀请码，请先创建。'); paging('invitations', state.inviteOffset, body.invitations.length);
 }
+let aiSettings = null;
+function showAi(value) {
+  aiSettings = value; $('admin-ai-enabled').checked = value.enabled; $('admin-ai-url').value = value.base_url; $('admin-ai-model').value = value.model; $('admin-ai-limit').value = value.daily_limit;
+  $('admin-ai-key').value = ''; $('admin-ai-key').placeholder = value.has_key ? '已保存，留空保持原密钥' : '请输入 API 密钥';
+  $('admin-ai-key-state').textContent = value.has_key ? '密钥已保存，不回显原文' : '尚未设置密钥'; $('admin-ai-remove').disabled = !value.has_key;
+}
+async function loadAi() { showAi(await api('/api/admin/ai/settings')); }
+$('admin-ai-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => {
+  showAi(await write('/api/admin/ai/settings', { enabled: $('admin-ai-enabled').checked, base_url: $('admin-ai-url').value.trim(), model: $('admin-ai-model').value.trim(), api_key: $('admin-ai-key').value.trim(), daily_limit: Number($('admin-ai-limit').value) }, 'PUT'));
+  message('默认 API 设置已保存。');
+}); });
+$('admin-ai-remove').addEventListener('click', () => action($('admin-ai-form'), async () => {
+  if (!aiSettings?.has_key) return;
+  showAi(await write('/api/admin/ai/settings', { ...aiSettings, enabled: false, clear_key: true }, 'PUT')); message('默认密钥已删除，默认 API 已停用。');
+}));
 async function route() {
-  if (!state.ready) return; const view = ['books', 'invitations'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
-  for (const name of ['documents', 'books', 'invitations']) $(name + '-view').hidden = view !== name;
+  if (!state.ready) return; const view = ['books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
+  for (const name of ['documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
   for (const link of document.querySelectorAll('[data-view]')) { if (link.dataset.view === view) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); }
-  try { if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else await loadInvitations(); } catch (error) { message(error.message, true); }
+  try { if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
 }
 $('document-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => {
   const title = $('document-title').value.trim(), authors = $('document-authors').value.trim();

@@ -15,7 +15,7 @@ async function main() {
     const probe = http.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve)); const port = probe.address().port; await new Promise(resolve => probe.close(resolve));
     const base = `http://127.0.0.1:${port}`;
     if (process.env.MATH_BROWSER_MOCK === '1') {
-      const docs = [], invites = []; let session = null;
+      const docs = [], invites = []; let session = null; let ai={base_url:'',model:'',enabled:false,available:false,has_key:false,daily_limit:50};
       const books = [{ id: 7, title: 'Linear Algebra Done Right', authors: 'Sheldon Axler', direction: 'algebra', direction_name: '代数', stage: '基础入门', prerequisites: 'Proofs', sort_order: 0, document_id: null }];
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, base), p = url.pathname;
@@ -31,6 +31,7 @@ async function main() {
         if (p === '/api/subjects') return json({ subjects: [{ id: 1, name: '代数', slug: 'algebra' }] });
         if (p.startsWith('/api/admin')) {
           if (session?.role !== 'ADMIN') return json({ error: session ? 'admin_required' : 'login_required' }, session ? 403 : 401);
+          if(p==='/api/admin/ai/settings'){if(req.method==='PUT')ai={...ai,base_url:body.base_url,model:body.model,enabled:body.enabled,daily_limit:body.daily_limit,has_key:body.clear_key?false:!!body.api_key||ai.has_key};return json(ai);}
           if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], module:'mathematics', directions:url.searchParams.getAll('directions'), language:url.searchParams.get('language')||'und', file_size: bytes.length, file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
           if (p === '/api/admin/documents') return json({ documents: docs.filter(d => d.title.includes(url.searchParams.get('q') || '')), offset: 0, limit: 20 });
           if (/^\/api\/admin\/documents\/\d+$/.test(p)) { Object.assign(docs.find(d => d.id === Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
@@ -77,6 +78,11 @@ async function main() {
     await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('教材配置已保存') && document.getElementById('book-list').textContent.includes('中文推荐教材'));
     const configured=(await(await page.request.get(base+'/api/admin/books')).json()).books.find(b=>b.title==='中文推荐教材'); assert.equal(configured.language,'zh'); assert.equal(configured.document_id,doc.id); assert.equal(configured.direction,'algebra');
     await page.screenshot({ path: path.join(shots, 'admin-books.png'), fullPage: true });
+    await page.locator('[data-view="ai"]').click(); await page.locator('#admin-ai-form').waitFor(); await page.locator('#admin-ai-enabled').check(); await page.locator('#admin-ai-url').fill('https://api.openai.com/v1'); await page.locator('#admin-ai-model').fill('math-model'); await page.locator('#admin-ai-key').fill('default-test-secret'); await page.locator('#admin-ai-limit').fill('30'); await page.locator('#admin-ai-form button[type=submit]').click();
+    await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('API 设置已保存'));
+    assert.equal(await page.locator('#admin-ai-key').inputValue(),''); assert.match(await page.locator('#admin-ai-key-state').textContent(),/密钥已保存/); await page.reload(); await page.waitForFunction(()=>document.getElementById('admin-ai-model').value==='math-model'); assert.equal(await page.locator('#admin-ai-limit').inputValue(),'30'); assert.equal(await page.locator('#admin-ai-enabled').isChecked(),true);
+    const aiMeta=await(await page.request.get(base+'/api/admin/ai/settings')).json(); assert.equal(aiMeta.has_key,true); assert.equal(aiMeta.api_key,undefined);
+    await page.screenshot({path:path.join(shots,'admin-ai.png'),fullPage:true}); await page.locator('#admin-ai-remove').click(); await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('默认密钥已删除')); assert.equal(await page.locator('#admin-ai-enabled').isChecked(),false);
     await page.locator('[data-view="invitations"]').click(); await page.locator('#invitation-form button').click(); await page.locator('#created-invitation').waitFor(); assert.equal((await page.locator('#invitation-code').inputValue()).length, 43);
     await page.locator('#invitation-list button').first().click(); await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('邀请码已撤销'));
     assert.match(await page.locator('#invitation-list').textContent(), /已撤销/); await page.screenshot({ path: path.join(shots, 'admin-invitations.png'), fullPage: true });

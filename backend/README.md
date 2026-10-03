@@ -46,7 +46,7 @@ java -jar target/math-server.jar
 
 依赖：Java 17（OpenJDK）和 curl 或 wget。Maven Wrapper 固定 Maven 3.9.11，首次构建下载工具和依赖并校验工具 SHA-256。无需服务器全局安装 Maven。Spring Boot 4.1.1 提供 HTTP 服务，SQLite JDBC 3.53.4.0 访问原有数据库。管理员本地维护脚本继续使用 Python 3 标准库。
 
-代码分层：`PublicController` 接口与静态页面、`ResearchService` 应用内容、`LibraryRepository` 共享文献库、`PublicBoundary` 文献只读与受限个人写入约束、`LearningController` 学习接口、`LearningRepository` 教材/个人学习数据。文献请求数据库连接设置 `PRAGMA query_only=ON`；账号注册通过独立 UserRepository 写入 users 表，启动执行幂等 schema 初始化。AI 接口继续预留，未加入模型调用。
+代码分层：`PublicController` 接口与静态页面、`ResearchService` 应用内容、`LibraryRepository` 共享文献库、`PublicBoundary` 文献只读与受限个人写入约束、`LearningController` 学习接口、`LearningRepository` 教材/个人学习数据。文献请求数据库连接设置 `PRAGMA query_only=ON`；账号注册通过独立 UserRepository 写入 users 表，启动执行幂等 schema 初始化。AI 由 `AiController`、`AiRepository`、`AiService` 管理个人/默认配置、密钥加密及服务商调用。
 
 环境变量：`MATH_PORT` 默认 8080；`MATH_DB_PATH` 默认 `data/math.db`；`MATH_WEB_DIR` 默认 `../frontend`。工作目录必须为 backend，文件路径以此为基准。服务仅监听 127.0.0.1。
 
@@ -59,7 +59,7 @@ java -jar target/math-server.jar
 | GET | /api/documents?subject_id=1&offset=0 | 应用参考资料，每页 20 份 |
 | GET | /api/documents/1 | 参考文献元数据 |
 | GET | /api/documents/1/file | 获取原文 PDF |
-| GET | /api/ai/status | AI 接入状态，目前未配置 |
+| GET | /api/ai/status | 当前账号的 AI 来源与可用状态 |
 
 文献 HTTP 写入方法返回 405，原先的 POST /api/documents 继续返回 405；独立 /api/admin/* 仅供管理员访问。账号注册/登录/退出及个人学习进度/标注写入均校验 CSRF。数据库和管理脚本不能经静态文件路由访问。服务不能生成文献摘要或数学知识；学习模块展示方向介绍与递进教材，并提供个人 PDF 阅读。
 
@@ -196,3 +196,33 @@ runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返
 每本推荐旁的“文献库自选”展开下拉框，支持在当前方向中搜索和分页，选中后立即替换此账号的卡片标题、作者与 PDF。仅允许对应方向、对应语种或尚未标注语种的文献。`PUT /api/learning/books/{id}/selection` 接收 `{ "document_id": 文献编号 }`，返回更新后的个人教材；传 null 恢复原推荐。接口需登录并校验 CSRF，选择保存在 `learning_selections`，支持刷新和跨设备恢复，不修改管理员推荐或其他账号数据。恢复推荐不删除所选 PDF 的阅读记录。阅读自选 PDF 时固定文献编号，避免其他设备更换选择影响正在阅读的文件。
 
 方向详情的 introduction 提供 research_object（研究对象）、core_content（核心内容）、prerequisites（需要基础）三个字段，来自 learning_direction_introductions。八个方向分别初始化简短介绍，重复启动保留既有编辑，不再展示旧问题列表。
+
+
+## AI 对话与 API 配置
+
+管理员使用 `/admin#ai` 独立设置默认 API，用户在阅读器中选择默认或个人来源。当前适配 [OpenAI Chat Completions](https://platform.openai.com/docs/api-reference/chat/create) 兼容协议：基础地址例如 `https://api.example.com/v1`，自动追加 `/chat/completions`；也可填完整接口地址。使用 Bearer 密钥鉴权，JSON `model/messages/stream=false/max_tokens=2048`；返回 `choices[0].message.content` 的文本。不兼容的原生供应商接口需要适配层。本版为一次返回回答，不进行流式输出。
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | /api/ai/settings、/api/ai/status | 当前用户个人配置、来源及默认模型是否可用，不返回密钥 |
+| PUT | /api/ai/settings | 保存个人配置与来源，需登录和 CSRF |
+| POST | /api/ai/chat | 以当前账号的个人 API 或平台默认 API 提问，需登录和 CSRF |
+| GET / PUT | /api/admin/ai/settings | 管理员读取/保存默认配置，每次重新检查数据库角色 |
+
+配置字段：`source`（用户为 default/custom）、`enabled`、`base_url`、`model`、`api_key`、`clear_key`；管理员额外设置 `daily_limit`（1–1000，初始 50）。密钥留空保留原密钥，`clear_key=true` 且 `enabled=false` 删除。个人配置保存在 `ai_provider_settings`，来源在 `ai_preferences`，互不影响。默认密钥和默认地址不向普通用户返回，浏览器只向本站后端发请求。
+
+提问示例：
+
+```json
+{"source":"default","messages":[{"role":"user","content":"这个定理如何理解？"}],"context":{"document_id":1,"page":3,"quote":"选中的 PDF 原文"}}
+```
+
+`context` 可省略；提供时查询底层文献库的文献标题，并把页码、选段附加到当前问题。当前不会解析或检索整份 PDF；选段的页码和原文来自阅读器，接口不将其当作已经核验的文献引用。扫描 PDF 若没有文字层，需要先做 OCR 才能选择文字。对话仅在当前阅读会话中保留，关闭阅读器会清空并中止浏览器请求。
+
+密钥以 AES-256-GCM 随机 nonce 加密保存，首次启动在数据库所在目录创建 `ai-secret.key`，Linux 权限 0600。备份/恢复必须同时保存数据库和该文件，遗失后原密钥无法解密。默认 systemd 的 data 可写目录与 UMask 已满足要求；无需增加环境变量。密钥不会经读取接口、上游错误正文或正常日志返回；回答若反射正在使用的密钥会进行隐藏。
+
+出站仅允许公网 HTTPS，禁止 URL 中用户名/密码、查询串和片段，阻止回环、内网、链路本地及云元数据地址；实际连接使用经过校验的 DNS 地址，验证 TLS，禁止重定向与自动重试。响应最多 256 KiB，连接等待 10 秒，读取等待 45 秒，单次请求总时限 60 秒。聊天正文最多 64 KiB，最多 16 条交替 user/assistant 消息、总计 24000 字符，选段最多 4000 字符。
+
+每位用户每分钟最多 6 次模型请求，单账号只允许一个进行中的提问，全平台最多 4 个并发。默认 API 的每日额度由管理员配置，UTC 零点重置，调用失败也计入额度；个人 API 不占用默认每日额度。计数在 `ai_usage` 中持久化，重启不重置额度。当前是按提问次数控制，服务商 token 费用仍以供应商账单为准。
+
+测试：`python3 backend/tests/ai.py` 启动隔离数据库和回环假模型，验证提供商请求、PDF 文献上下文、加密/隐藏、个人隔离、CSRF、SSRF、额度与重启恢复。仅测试环境设 `MATH_AI_TEST_ENDPOINT` 为精确的 `http://127.0.0.1:端口/v1`，允许该单一回环假模型；生产不要设置此变量。

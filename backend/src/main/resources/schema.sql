@@ -93,3 +93,25 @@ book_id INTEGER NOT NULL REFERENCES learning_books(id) ON DELETE CASCADE,
 document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
 PRIMARY KEY(username,book_id));
 COMMIT;
+
+CREATE TABLE IF NOT EXISTS ai_provider_settings (
+    owner TEXT PRIMARY KEY,
+    username TEXT REFERENCES users(username) ON DELETE CASCADE,
+    base_url TEXT NOT NULL DEFAULT '',
+    model TEXT NOT NULL DEFAULT '',
+    api_key TEXT NOT NULL DEFAULT '',
+    enabled INTEGER NOT NULL DEFAULT 0,
+    daily_limit INTEGER NOT NULL DEFAULT 50,
+    CHECK ((owner='default' AND username IS NULL) OR owner='user:' || username)
+);
+CREATE TABLE IF NOT EXISTS ai_preferences (
+    username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+    source TEXT NOT NULL CHECK (source IN ('default','custom'))
+);
+CREATE TABLE IF NOT EXISTS ai_usage (
+    username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
+    day TEXT NOT NULL,
+    daily_count INTEGER NOT NULL,
+    minute INTEGER NOT NULL,
+    minute_count INTEGER NOT NULL
+);

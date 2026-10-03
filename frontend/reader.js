@@ -1,3 +1,4 @@
+import { createReaderAi } from './reader-ai.js';
 import { getDocument, GlobalWorkerOptions, TextLayer } from './vendor/pdfjs/pdf.mjs';
 GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
 const $ = id => document.getElementById(id);
@@ -11,11 +12,12 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let drag = null, dragFrame = null, pendingAnchor = null;
   let editingPage = false;
   const layoutBox = $('reader-scroll').parentElement, widthKey = 'math.reader.panel-widths.v1';
-  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 280 };
+  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 340 };
   try { const stored = JSON.parse(localStorage.getItem(widthKey)); for (const name of ['outline', 'notes']) if (Number.isFinite(stored?.[name]) && stored[name] >= 64 && stored[name] <= 3000) preferredWidths[name] = stored[name]; } catch { /* Layout preferences are optional. */ }
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
+  const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title }));
   const errorText = error => error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message;
   stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
@@ -249,6 +251,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
+  on($('reader-ask-ai'), 'pointerdown', event => event.preventDefault());
+  on($('reader-ask-ai'), 'click', () => { if (selection) ai.setContext({ ...selection }); });
   on(document, 'selectionchange', captureSelection);
   on(scroll, 'scroll', () => {
     if (layingOut || closed) return;
@@ -321,7 +325,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     } catch (error) { if (!closed) $('reader-status').textContent = '无法打开教材：' + errorText(error); }
   })();
   function close() {
-    if (closed) return; if (drag) finishDrag(); saveNow(); closed = true; ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
+    if (closed) return; if (drag) finishDrag(); saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
     if (document.fullscreenElement === $('reader-view')) document.exitFullscreen().catch(() => {});
     if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren();
   }
