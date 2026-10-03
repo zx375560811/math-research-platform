@@ -1,5 +1,6 @@
 """Administrator boundaries and management flows on a disposable Java server."""
 import hashlib
+from contextlib import closing
 import http.client
 import http.cookiejar
 import importlib.util
@@ -102,7 +103,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/documents?title=Test&subject_id=9999', pdf, pdf=True)[0] == 400
             assert write(query, b'%PDF-' + b'0' * (20 * 1024 * 1024), pdf=True)[0] == 413
             token = request('/api/auth/csrf')[1]
-            with http.client.HTTPConnection('127.0.0.1', port, timeout=15) as connection:
+            with closing(http.client.HTTPConnection('127.0.0.1', port, timeout=15)) as connection:
                 # Copy session cookies without logging them.
                 outgoing = urllib.request.Request(base + '/api/auth/csrf')
                 for handler in client.handlers:
