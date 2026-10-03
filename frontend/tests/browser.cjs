@@ -224,7 +224,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.topbar').isVisible(),false);
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),stack=document.getElementById('pdf-pages'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=stack.offsetTop+next.offsetTop+120;});
     await page.waitForFunction(() => document.getElementById('reader-page').value==='2' && document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
-    await page.locator('#reader-prev').click(); await page.waitForFunction(() => document.getElementById('reader-page').value==='1');
+    assert.equal(await page.locator('#reader-prev,#reader-next').count(),0); await page.locator('#reader-page').fill('1'); await page.locator('#reader-page').press('Enter'); await page.waitForFunction(() => document.getElementById('reader-page').value==='1');
     await page.locator('#reader-page').fill('10');
     await page.evaluate(async()=>{document.getElementById('reader-scroll').dispatchEvent(new Event('scroll'));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
     assert.equal(await page.locator('#reader-page').inputValue(),'10');await page.locator('#reader-page').press('Enter');
@@ -252,9 +252,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0); assert.ok(await page.locator('.ai-assistant .katex').count()>=3); assert.ok(await page.locator('.ai-assistant .katex-display').count()>0); assert.equal(await page.locator('.ai-assistant table').count(),1); assert.equal(await page.locator('.ai-assistant strong').count(),1); assert.equal(await page.locator('.ai-assistant a[href^="javascript:"]').count(),0);
     assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
-    const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:a.getBoundingClientRect().left<b.getBoundingClientRect().left};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
-    const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-view').top),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:input.left-ask.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
-    assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=7); assert.equal(readerChrome.askColor,'rgb(52, 88, 212)');
+    const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:Math.abs(a.getBoundingClientRect().left-b.getBoundingClientRect().left)<1 && b.getBoundingClientRect().top-a.getBoundingClientRect().bottom<=3};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
+    const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-view').top),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:ask.left-input.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
+    assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=13); assert.equal(readerChrome.askColor,'rgb(52, 88, 212)');
     const beforeVertical=await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight); const split=await page.locator('#reader-ai-resize').boundingBox();
     await page.mouse.move(split.x+split.width/2,split.y+5);await page.mouse.down();await page.mouse.move(split.x+split.width/2,split.y+75,{steps:6});await page.mouse.up();
     assert.ok(await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight)>beforeVertical+50);
@@ -274,6 +274,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     const noteText='My proof <img src=x onerror=alert(1)>';
     await page.locator('.annotation-note').fill(noteText); await page.locator('.annotation-actions .button').click();
     await page.waitForFunction(() => document.getElementById('reader-status').textContent==='笔记已保存');
+    assert.equal(await page.locator('.annotation-item').evaluate(node=>node.open),false); await page.locator('.annotation-summary').click(); assert.equal(await page.locator('.annotation-note').isVisible(),true);
     const dimensions=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect();return {outline:rect('reader-outline').width,notes:rect('reader-notes').width,pdf:rect('reader-scroll').width};});
     const handle=await page.locator('#reader-outline-resize').boundingBox();
     await page.mouse.move(handle.x+handle.width/2,handle.y+100);await page.mouse.down();await page.mouse.move(handle.x+handle.width/2+70,handle.y+100,{steps:6});
@@ -340,6 +341,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await second.locator('#reader-page').fill('2');await second.locator('#reader-page').dispatchEvent('change');
     await second.waitForFunction(()=>document.getElementById('reader-page').value==='2');
     assert.equal(await second.locator('.annotation-note').inputValue(),noteText);
+    assert.equal(await second.locator('.annotation-item').evaluate(node=>node.open),false); await second.locator('.annotation-summary').click();
     await second.locator('.annotation-jump').click();await second.waitForFunction(()=>document.getElementById('reader-page').value==='1' && document.querySelector('.pdf-highlight'));
     await second.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready'); assert.equal(await second.locator('#reader-page').inputValue(),'1'); await second.screenshot({path:path.join(shots,'reader-mobile.png'),fullPage:true});
     await second.setViewportSize({width:320,height:568});assert.equal(await second.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

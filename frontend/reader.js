@@ -52,7 +52,6 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   }
   function controls(number, force = false) {
     pageNumber = number; if (force || !editingPage) $('reader-page').value = String(number);
-    $('reader-prev').disabled = number === 1; $('reader-next').disabled = number === pdf.numPages;
   }
   function snapshot() {
     const page = currentPage();
@@ -111,14 +110,17 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '还没有标注。选中正文开始高亮。')); return; }
     for (const mark of marks) {
-      const row = el('article', 'annotation-item'); row.dataset.annotation = mark.id;
+      const row = el('details', 'annotation-item'); row.dataset.annotation = mark.id; row.open = drafts.has(mark.id) || !mark.note;
+      const summary = el('summary', 'annotation-summary'), preview = el('span', 'annotation-preview', mark.note || mark.quote);
+      summary.append(el('span', 'annotation-label', `第 ${mark.page} 页 · 高亮笔记`), preview);
+      const body = el('div', 'annotation-body');
       const jump = el('button', 'annotation-jump', `第 ${mark.page} 页 · 跳转`); jump.type = 'button'; jump.addEventListener('click', () => showPage(mark.page));
       const quote = el('blockquote', '', mark.quote), note = el('textarea', 'annotation-note');
       note.value = drafts.get(mark.id) ?? mark.note; note.maxLength = 4000; note.rows = 3; note.setAttribute('aria-label', '高亮笔记'); note.placeholder = '写下你的理解…'; note.addEventListener('input', () => drafts.set(mark.id, note.value));
       const actions = el('div', 'annotation-actions'), save = el('button', 'button compact', '保存笔记'), remove = el('button', 'annotation-delete', '删除'); save.type = remove.type = 'button';
-      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
+      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); preview.textContent = mark.note || mark.quote; row.open = false; $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
       remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
-      actions.append(save, remove); row.append(jump, quote, note, actions); list.append(row);
+      actions.append(save, remove); body.append(jump, quote, note, actions); row.append(summary, body); list.append(row);
     }
   }
   function captureSelection() {
@@ -224,8 +226,6 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     }
     append(items);
   }
-  on($('reader-prev'), 'click', () => showPage(pageNumber - 1));
-  on($('reader-next'), 'click', () => showPage(pageNumber + 1));
   const inputPage = () => { const number = $('reader-page').valueAsNumber; if (Number.isFinite(number)) showPage(number); else { editingPage = false; controls(pageNumber, true); } };
   on($('reader-page'), 'input', () => { editingPage = true; });
   on($('reader-page'), 'change', inputPage);
