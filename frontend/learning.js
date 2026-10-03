@@ -51,7 +51,10 @@ export function createLearning({ api, write }) {
         document.body.classList.add('reading-page');
         $('reader-status').textContent = '正在打开教材…'; $('reader-save-status').textContent = '';
         const reader = await import('./reader.js'); if (version !== generation) return;
-        const controller = reader.openReader(Number(reading[1]), { api, write }); stopReader = controller.close;
+        const book = await api('/api/learning/books/' + reading[1]); if (version !== generation) return;
+        const controller = book.selected_document_id
+          ? reader.openReader(book.selected_document_id, { api, write, basePath:'/api/library/documents', backHref:'#/apps/mathematics/directions/' + book.direction, backLabel:'← 返回教材' })
+          : reader.openReader(Number(reading[1]), { api, write }); stopReader = controller.close;
         await controller.ready;
       } else if (detail) {
         $('textbook-list').replaceChildren(); $('direction-questions').replaceChildren(); $('direction-title').textContent = '正在加载…';
@@ -59,15 +62,46 @@ export function createLearning({ api, write }) {
         $('direction-title').textContent = direction.name; $('direction-description').textContent = direction.description;
         $('direction-symbol').textContent = symbols[direction.slug] || 'ℳ';
         for (const question of direction.questions) $('direction-questions').append(el('li', '', question));
-        function renderBook(target, book, i) {
-          const row = el('article', 'textbook-row'); const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
-          const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', '需要基础：' + book.prerequisites));
+        function renderBook(target, book, i, previous = null) {
+          const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id; const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
+          const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', book.selected_document_id ? '个人自选文献' : '需要基础：' + book.prerequisites));
           const actions = el('div', 'textbook-actions'), readingActions = el('div', 'book-reading-actions');
           if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; readingActions.append(link); }
           else readingActions.append(el('span', 'book-unavailable', 'PDF 待接入'));
-          const choose = el('a', 'button book-library-choice', '文献库自选'); choose.href = '#/library?module=mathematics&direction=' + direction.slug; choose.setAttribute('aria-label', book.title + '：从本方向文档库选取文献阅读'); readingActions.append(choose); actions.append(readingActions);
+          const choose = el('button', 'button book-library-choice', '文献库自选'); choose.type = 'button'; choose.setAttribute('aria-expanded','false'); readingActions.append(choose); actions.append(readingActions);
+          const picker = el('div', 'book-picker'); picker.hidden = true; picker.id = 'book-picker-' + book.id; choose.setAttribute('aria-controls',picker.id);
+          const search = el('form', 'book-picker-search'), query = el('input'); query.type = 'search'; query.placeholder = '搜索标题或作者'; query.setAttribute('aria-label','搜索本方向文献'); const searchButton = el('button','button','搜索'); searchButton.type = 'submit'; search.append(query,searchButton);
+          const label = el('label','','选择本方向文献'), select = el('select','book-picker-select'); select.id = 'book-choice-' + book.id; label.htmlFor = select.id;
+          const status = el('p','book-picker-status'); status.setAttribute('role','status');
+          const paging = el('div','book-picker-paging'), prev = el('button','button','上一页'), next = el('button','button','下一页'), page = el('span'); prev.type = next.type = 'button'; prev.disabled = next.disabled = true; paging.append(prev,page,next);
+          picker.append(search,label,select,status,paging); let offset = 0, serial = 0;
+          async function loadChoices() {
+            const request = ++serial; select.disabled = true; prev.disabled = next.disabled = true; status.textContent = '正在加载文献…';
+            try {
+              const result = await api('/api/library/documents?' + new URLSearchParams({module:'mathematics',direction:direction.slug,q:query.value.trim(),offset}));
+              if (request !== serial || version !== generation) return;
+              const candidates = result.documents.filter(doc => doc.language === (book.language || 'en') || doc.language === 'und');
+              const placeholder = el('option','','请选择文献'); placeholder.value = ''; select.replaceChildren(placeholder);
+              if (book.selected_document_id && !candidates.some(doc => doc.id === book.selected_document_id)) { const current = el('option','',book.title); current.value = book.selected_document_id; select.append(current); }
+              for (const doc of candidates) { const option = el('option','',doc.title + (doc.authors ? ' — ' + doc.authors : '') + (doc.language === 'und' ? '（语种未标注）' : '')); option.value = doc.id; select.append(option); }
+              select.value = book.selected_document_id || ''; select.disabled = !candidates.length; prev.disabled = offset === 0; next.disabled = result.documents.length < 20; page.textContent = '第 ' + (offset / 20 + 1) + ' 页';
+              status.textContent = candidates.length ? '选取后将替换此卡片，作为你的个人学习教材。' : next.disabled ? '本页没有匹配文献，可搜索其他关键词或查看上一页。' : '本页没有匹配文献，可查看下一页或搜索。';
+            } catch (error) { if (request === serial && version === generation) status.textContent = error instanceof TypeError ? '连接失败，请重试。' : error.message; }
+          }
+          async function saveChoice(document) {
+            ++serial; for (const control of picker.querySelectorAll('button,input,select')) control.disabled = true; choose.disabled = true; status.textContent = '正在保存选择…';
+            try {
+              const selected = await write('/api/learning/books/' + book.id + '/selection', {document_id:document}, 'PUT');
+              if (version !== generation) return; renderBook(target,selected,i,row);
+            } catch (error) { if (version === generation) { for (const control of picker.querySelectorAll('button,input,select')) control.disabled = false; prev.disabled = offset === 0; choose.disabled = false; status.textContent = error instanceof TypeError ? '连接失败，请重新选择。' : error.message; } }
+          }
+          choose.addEventListener('click', () => { picker.hidden = !picker.hidden; choose.setAttribute('aria-expanded',String(!picker.hidden)); if (!picker.hidden) loadChoices(); });
+          search.addEventListener('submit',event => { event.preventDefault(); offset = 0; loadChoices(); });
+          prev.addEventListener('click',()=>{ offset = Math.max(0,offset - 20); loadChoices(); }); next.addEventListener('click',()=>{ offset += 20; loadChoices(); });
+          select.addEventListener('change',()=>{ if (select.value) saveChoice(Number(select.value)); });
+          if (book.selected_document_id) { const restore = el('button','book-restore','恢复推荐'); restore.type = 'button'; restore.addEventListener('click',()=>{ picker.hidden = false; choose.setAttribute('aria-expanded','true'); restore.disabled = true; saveChoice(null).finally(()=>restore.disabled = false); }); actions.append(restore); }
           const source = el('a', 'book-source', '教材信息 ↗'); source.href = book.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer'; if (book.source_url) actions.append(source);
-          row.append(spine, info, actions); target.append(row);
+          row.append(spine, info, actions, picker); if (previous) { previous.replaceWith(row); choose.focus(); } else target.append(row);
         }
         for (const [index, stage] of ['基础入门', '核心理论', '进阶学习'].entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;

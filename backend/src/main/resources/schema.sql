@@ -84,4 +84,9 @@ CREATE INDEX IF NOT EXISTS idx_document_marks_owner ON document_marks(username,d
 CREATE TABLE IF NOT EXISTS document_mark_rects (
 mark_id INTEGER NOT NULL REFERENCES document_marks(id) ON DELETE CASCADE, position INTEGER NOT NULL,
 x REAL NOT NULL, y REAL NOT NULL, width REAL NOT NULL, height REAL NOT NULL, PRIMARY KEY(mark_id,position));
+CREATE TABLE IF NOT EXISTS learning_selections (
+username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+book_id INTEGER NOT NULL REFERENCES learning_books(id) ON DELETE CASCADE,
+document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+PRIMARY KEY(username,book_id));
 COMMIT;

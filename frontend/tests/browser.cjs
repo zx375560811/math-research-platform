@@ -20,7 +20,11 @@ async function main() {
     let port; let invitation = 'I'.repeat(43); let invitationUsed = false;
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : index === 0 ? 'Test textbook' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length, module:'mathematics', language:index === 0 ? 'en' : 'und', directions:['algebra'], file_url:`/api/documents/${index+1}/file` }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
-      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); let annotationId = 0;
+      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0;
+      const bookValue = (book,user) => {
+        const selected = selections.get(user+':'+book.id), doc = documents.find(doc=>doc.id===selected);
+        return {...book,...(doc ? {title:doc.title,authors:doc.authors,source_url:'',available:true,file_url:doc.file_url} : {}),selected_document_id:selected||null,progress:progress.get(user+':doc:'+(selected||1))||null};
+      };
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, 'http://localhost');
         const json = (body, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
@@ -58,18 +62,23 @@ async function main() {
         }
         if (url.pathname.startsWith('/api/learning')) {
           if (!session?.user) return json({error:'login_required'},401);
-          const user = session.user.username; const bookPath = url.pathname.match(/^\/api\/learning\/books\/(\d+)(?:\/(progress|annotations)(?:\/(\d+))?)?$/);
+          const user = session.user.username; const bookPath = url.pathname.match(/^\/api\/learning\/books\/(\d+)(?:\/(progress|annotations|selection)(?:\/(\d+))?)?$/);
           if (req.method === 'GET') {
             if (url.pathname === '/api/learning/directions') return json({directions});
-            if (url.pathname.startsWith('/api/learning/directions/')) { const slug = url.pathname.split('/').pop(); const direction = directions.find(d => d.slug === slug); return direction ? json({...direction,questions:['如何研究运算与代数结构？','如何描述和理解对称性？','如何分类与表示代数结构？'],books:mockBooks.filter(b => b.direction === slug).map(b => ({...b,progress:progress.get(user+':doc:1')||null}))}) : json({error:'not_found'},404); }
+            if (url.pathname.startsWith('/api/learning/directions/')) { const slug = url.pathname.split('/').pop(); const direction = directions.find(d => d.slug === slug); return direction ? json({...direction,questions:['如何研究运算与代数结构？','如何描述和理解对称性？','如何分类与表示代数结构？'],books:mockBooks.filter(b => b.direction === slug).map(b => bookValue(b,user))}) : json({error:'not_found'},404); }
           }
           if (bookPath) {
             const book = mockBooks.find(b => b.id === Number(bookPath[1])); if (!book) return json({error:'not_found'},404);
-            const key = user+':doc:1';
-            if (req.method === 'GET' && !bookPath[2]) return json({...book,progress:progress.get(key)||null});
+            const key = user+':doc:'+(selections.get(user+':'+book.id)||1);
+            if (req.method === 'GET' && !bookPath[2]) return json(bookValue(book,user));
             if (req.method === 'GET' && bookPath[2] === 'annotations') return json({annotations:annotations.get(key)||[]});
             if (req.headers['x-csrf-token'] !== session.token) return json({error:'invalid_csrf'},403);
             const parts=[];for await(const part of req)parts.push(part);const raw=Buffer.concat(parts).toString();const body=raw?JSON.parse(raw):{};
+            if (req.method === 'PUT' && bookPath[2] === 'selection') {
+              if(body.document_id==null)selections.delete(user+':'+book.id);
+              else {const doc=documents.find(d=>d.id===body.document_id);if(!doc)return json({error:'not_found'},404);if(!doc.directions.includes(book.direction)||(doc.language!=='und'&&doc.language!==(book.language||'en')))return json({error:'document_direction_mismatch'},400);selections.set(user+':'+book.id,doc.id);}
+              return json(bookValue(book,user));
+            }
             if (req.method === 'PUT' && bookPath[2] === 'progress') {progress.set(key,body);return json({status:'ok'});}
             if (req.method === 'POST' && bookPath[2] === 'annotations') {const mark={...body,id:++annotationId};annotations.set(key,[...(annotations.get(key)||[]),mark]);return json({id:mark.id});}
             const marks=annotations.get(key)||[];const mark=marks.find(m=>m.id===Number(bookPath[3]));if(!mark)return json({error:'not_found'},404);
@@ -164,7 +173,21 @@ async function main() {
     await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
-    await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('[data-book="7"]').click();
+    await page.setViewportSize({ width: 1440, height: 1100 });
+    const choiceRow = page.locator('[data-recommendation="8"]');
+    await choiceRow.locator('.book-library-choice').click();
+    await choiceRow.locator('.book-picker input').fill('Test textbook'); await choiceRow.locator('.book-picker-search button').click();
+    await choiceRow.locator('.book-picker-select option[value="1"]').waitFor({state:'attached'});
+    await page.screenshot({path:path.join(shots,'textbook-picker-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await page.screenshot({path:path.join(shots,'textbook-picker-mobile.png'),fullPage:true}); await page.setViewportSize({width:1440,height:1100});
+    await choiceRow.locator('.book-picker-select').selectOption('1'); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
+    assert.match(page.url(),/directions\/algebra$/); assert.equal(await choiceRow.locator('[data-book="8"]').textContent(),'开始学习');
+    await page.reload(); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
+    await choiceRow.locator('[data-book="8"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
+    await page.locator('#reader-back').click(); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('h3').filter({hasText:'Abstract Algebra'}).waitFor();
+    assert.equal(await choiceRow.locator('.book-unavailable').textContent(),'PDF 待接入');
+    await page.locator('[data-book="7"]').click();
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
     assert.equal(await page.locator('#reader-pages').textContent(),'12');
     assert.equal(await page.locator('.pdf-page').count(),12);
@@ -271,8 +294,7 @@ async function main() {
     await secondContext.close();
     await page.locator('#reader-back').click();await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
-    await page.locator('.book-library-choice').first().click(); await page.locator('#library-view').waitFor();
-    assert.equal(await page.locator('#library-direction').inputValue(),'algebra'); await page.locator('.library-document').first().waitFor();
+    await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
     await page.screenshot({path:path.join(shots,'library-desktop.png'),fullPage:true});

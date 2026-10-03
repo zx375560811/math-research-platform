@@ -13,6 +13,8 @@ public class LearningController {
     @GetMapping("/directions") public Map<String, Object> directions() throws SQLException { return Map.of("directions", learning.directions()); }
     @GetMapping("/directions/{slug}") public Map<String, Object> direction(@PathVariable String slug, Authentication user) throws SQLException { return learning.direction(slug, user.getName()); }
     @GetMapping("/books/{book}") public Map<String, Object> book(@PathVariable long book, Authentication user) throws SQLException { return learning.book(book, user.getName()); }
+    public record Selection(Long document_id) {}
+    @PutMapping("/books/{book}/selection") public Map<String,Object> select(@PathVariable long book, @RequestBody Selection value, Authentication user) throws SQLException { learning.select(book,user.getName(),value.document_id()); return learning.book(book,user.getName()); }
     @PutMapping("/books/{book}/progress") public Map<String, String> progress(@PathVariable long book, @RequestBody LearningRepository.Progress progress, Authentication user) throws SQLException { learning.progress(book, user.getName(), progress); return Map.of("status", "ok"); }
     @GetMapping("/books/{book}/annotations") public Map<String, Object> marks(@PathVariable long book, Authentication user) throws SQLException { return Map.of("annotations", learning.marks(book, user.getName())); }
     @PostMapping("/books/{book}/annotations") public Map<String, Long> create(@PathVariable long book, @RequestBody LearningRepository.Mark mark, Authentication user) throws SQLException { return Map.of("id", learning.createMark(book, user.getName(), mark)); }

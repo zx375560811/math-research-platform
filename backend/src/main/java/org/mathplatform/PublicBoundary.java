@@ -31,7 +31,7 @@ class PublicBoundary implements Filter {
         var incoming = (HttpServletRequest) request;
         boolean authWrite = incoming.getMethod().equals("POST") && java.util.Set.of("/api/auth/register", "/api/auth/login", "/api/auth/logout").contains(incoming.getRequestURI());
         String path = incoming.getRequestURI(); String method = incoming.getMethod();
-        boolean learningWrite = (method.equals("PUT") && path.matches("/api/learning/books/[0-9]+/progress"))
+        boolean learningWrite = (method.equals("PUT") && path.matches("/api/learning/books/[0-9]+/(progress|selection)"))
             || (method.equals("POST") && path.matches("/api/learning/books/[0-9]+/annotations"))
             || (java.util.Set.of("PATCH", "DELETE").contains(method) && path.matches("/api/learning/books/[0-9]+/annotations/[0-9]+"));
         learningWrite |= (method.equals("PUT") && path.matches("/api/library/documents/[0-9]+/progress"))

@@ -162,7 +162,19 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/books', {**recommendation,'document_id':chinese[1]['id'],'language':'en'})[0] == 400
             assert write('/api/admin/documents/' + str(document), {**classified,'language':'und','directions':['analysis']}, 'PATCH')[0] == 409
             assert request('/api/documents/' + str(document))[1]['language'] == 'und'
+            selection = '/api/learning/books/106/selection'
+            assert request(selection,'PUT',b'{}',{'Content-Type':'application/json'})[0] == 403
+            assert write('/api/learning/books/7/selection',{'document_id':chinese[1]['id']},'PUT')[0] == 400
+            assert write('/api/learning/books/123/selection',{'document_id':chinese[1]['id']},'PUT')[0] == 400
+            assert write(selection,{'document_id':9999},'PUT')[0] == 404
+            selected = write(selection,{'document_id':chinese[1]['id']},'PUT'); assert selected[0] == 200
+            assert selected[1]['title'] == '中文文献' and selected[1]['selected_document_id'] == chinese[1]['id']
+            assert selected[1]['available'] and selected[1]['progress'] is None
+            assert next(b for b in request('/api/admin/books')[1]['books'] if b['id']==106)['document_id'] is None
+            assert write('/api/learning/books/106/progress',position,'PUT')[0] == 200
+            assert request('/api/library/documents/' + str(chinese[1]['id']))[1]['progress'] == position
             assert write('/api/auth/login', {'username':'invited_reader','password':credentials['password']})[0] == 200
+            assert request('/api/learning/books/106')[1]['selected_document_id'] is None
             assert request(library_path)[1]['progress'] is None
             assert request(library_path + '/annotations')[1]['annotations'] == []
             assert write(library_path + '/annotations/' + str(mark), {'note':'Steal'}, 'PATCH')[0] == 404
@@ -174,6 +186,20 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/auth/me')[1]['user']['role'] == 'USER'
             assert request('/api/admin/books') == (403, {'error': 'admin_required'})
             assert write('/api/admin/invitations', {'days': 7})[0] == 403
+            process.terminate(); process.wait(timeout=10)
+            process = subprocess.Popen(['java','-jar',str(backend / 'target/math-server.jar')],cwd=root,
+                env={**os.environ,'MATH_PORT':str(port),'MATH_WEB_DIR':str(backend.parent / 'frontend')},stdout=log,stderr=log)
+            for _ in range(300):
+                try:
+                    if request('/api/health')[0] == 200: break
+                except OSError: time.sleep(.1)
+            else: raise AssertionError('Restart failed')
+            assert write('/api/auth/login',credentials)[0] == 200
+            assert request('/api/learning/books/106')[1]['selected_document_id'] == chinese[1]['id']
+            assert request('/api/learning/books/106')[1]['progress'] == position
+            assert write(selection,{'document_id':None},'PUT')[1]['title'] == '高等代数'
+            assert request('/api/learning/books/106')[1]['available'] is False
+            assert request('/api/library/documents/' + str(chinese[1]['id']))[1]['progress'] == position
             with sqlite3.connect(database) as db:
                 assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 2
                 assert db.execute('PRAGMA foreign_key_check').fetchall() == []
