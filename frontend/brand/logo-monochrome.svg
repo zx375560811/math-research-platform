@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 64" role="img" aria-labelledby="title" color="#182b46"><title id="title">公理，单色版</title><rect width="64" height="64" rx="15" fill="currentColor"/>
+<g fill="none" stroke="#f8fbff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17 44V23H26"/><path d="M17 44L40 21H49"/><path d="M17 44H47V35"/>
+</g><path d="M13 40H21V48H13Z" fill="#f8fbff"/><g transform="translate(88 0)"><g fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M28 10C24 17 18 22 10 26M38 10C43 17 49 22 57 25M32 27L20 44H48M41 35L51 47"/>
+<path d="M75 13H94M77 27H93M74 45L96 39M85 13V42M103 10H125V30H103ZM114 10V49M103 20H125M102 39H126M100 49H128"/>
+</g></g></svg>

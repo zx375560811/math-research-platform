@@ -34,14 +34,14 @@ function route() {
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
   document.body.classList.toggle('auth-page', inAuth);
   $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inLibrary || inAuth; $('library-view').hidden = !inLibrary || inAuth; $('module-view').hidden = !inApp;
-  $('auth-title').textContent = registering ? '注册云数学账号' : '登录云数学'; $('account-submit').textContent = registering ? '注册账号' : '登录';
+  $('auth-title').textContent = registering ? '注册公理账号' : '登录公理'; $('account-submit').textContent = registering ? '注册账号' : '登录';
   $('invitation-label').hidden = !registering; $('account-invitation').hidden = !registering; $('account-invitation').required = registering;
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
   $('account-password').autocomplete = registering ? 'new-password' : 'current-password'; $('account-password').minLength = registering ? 12 : 1;
   $('login-tab').classList.toggle('active', !registering); $('register-tab').classList.toggle('active', registering);
   $('breadcrumb').textContent = inLibrary ? '文档库' : inApp ? '数学与应用数学' : '应用工作台';
   for (const [id, active] of [['home-link', !inApp && !inLibrary], ['library-link', inLibrary], ['math-app-link', inApp]]) { $(id).classList.toggle('active', active); if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); }
-  document.title = inAuth ? `${registering ? '注册' : '登录'} · 云数学` : inLibrary ? '文档库 · 云数学' : inApp ? '数学与应用数学 · 云数学' : '云数学 · 数学研究平台';
+  document.title = inAuth ? `${registering ? '注册' : '登录'} · 公理` : inLibrary ? '文档库 · 公理' : inApp ? '数学与应用数学 · 公理' : '公理 · 数学研究平台';
   if (inLibrary && state.user) { learning.close(); library.navigate(location.hash); } else { library.close(); if (inApp && state.user) learning.navigate(location.hash); else learning.close(); }
   window.scrollTo(0, 0);
 }
