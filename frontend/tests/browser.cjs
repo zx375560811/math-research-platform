@@ -65,7 +65,7 @@ async function main() {
           const user = session.user.username; const bookPath = url.pathname.match(/^\/api\/learning\/books\/(\d+)(?:\/(progress|annotations|selection)(?:\/(\d+))?)?$/);
           if (req.method === 'GET') {
             if (url.pathname === '/api/learning/directions') return json({directions});
-            if (url.pathname.startsWith('/api/learning/directions/')) { const slug = url.pathname.split('/').pop(); const direction = directions.find(d => d.slug === slug); return direction ? json({...direction,questions:['如何研究运算与代数结构？','如何描述和理解对称性？','如何分类与表示代数结构？'],books:mockBooks.filter(b => b.direction === slug).map(b => bookValue(b,user))}) : json({error:'not_found'},404); }
+            if (url.pathname.startsWith('/api/learning/directions/')) { const slug = url.pathname.split('/').pop(); const direction = directions.find(d => d.slug === slug); return direction ? json({...direction,introduction:{research_object:'研究运算规则，以及群、环、域和向量空间等结构中的关系与对称性。',core_content:'线性代数、群论、环与域、表示论、交换代数。',prerequisites:'高中代数、集合与映射、基本证明方法。'},books:mockBooks.filter(b => b.direction === slug).map(b => bookValue(b,user))}) : json({error:'not_found'},404); }
           }
           if (bookPath) {
             const book = mockBooks.find(b => b.id === Number(bookPath[1])); if (!book) return json({error:'not_found'},404);
@@ -173,7 +173,7 @@ async function main() {
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('[data-direction="algebra"]').click(); await page.locator('.textbook-row').first().waitFor();
-    assert.equal(await page.locator('#direction-questions li').count(),3);
+    assert.equal(await page.locator('#direction-introduction dt').count(),3); assert.match(await page.locator('#direction-introduction').textContent(),/研究对象.*核心内容.*需要基础/); assert.equal(await page.locator('#direction-questions').count(),0);
     assert.equal(await page.locator('.textbook-row').count(),6); assert.equal(await page.locator('.textbook-stage').count(),3); for(const stage of ['基础入门','核心理论','进阶学习']) for(const language of ['zh','en']) assert.equal(await page.locator(`.textbook-stage[data-stage="${stage}"] .recommendation-language[data-language="${language}"] .textbook-row`).count(),1);
     assert.equal(await page.locator('[data-book="7"]').textContent(),'开始学习');
     assert.equal(await page.locator('input[type=file],#upload-form').count(),0);

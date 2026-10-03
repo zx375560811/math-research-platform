@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS learning_directions (
 slug TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, featured INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS learning_questions (
 direction TEXT NOT NULL REFERENCES learning_directions(slug), position INTEGER NOT NULL, question TEXT NOT NULL, PRIMARY KEY(direction,position));
+CREATE TABLE IF NOT EXISTS learning_direction_introductions (
+direction TEXT PRIMARY KEY REFERENCES learning_directions(slug) ON DELETE CASCADE,
+research_object TEXT NOT NULL, core_content TEXT NOT NULL, prerequisites TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS learning_books (
 id INTEGER PRIMARY KEY, direction TEXT NOT NULL REFERENCES learning_directions(slug), title TEXT NOT NULL, authors TEXT NOT NULL,
 stage TEXT NOT NULL, prerequisites TEXT NOT NULL, sort_order INTEGER NOT NULL, source_url TEXT NOT NULL,

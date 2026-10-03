@@ -8,6 +8,7 @@ sql = (Path(__file__).resolve().parents[1] / 'src/main/resources/schema.sql').re
 with sqlite3.connect(':memory:') as db:
     db.executescript(sql)
     db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))
+    assert db.execute('SELECT COUNT(*) FROM learning_direction_introductions').fetchone()[0] == 8
     assert db.execute('SELECT COUNT(*) FROM learning_books').fetchone()[0] == 48
     coverage = db.execute("SELECT direction,stage,COALESCE(language,'en') FROM learning_books b LEFT JOIN learning_book_details d ON d.book_id=b.id").fetchall()
     assert len(set(coverage)) == 8 * 3 * 2

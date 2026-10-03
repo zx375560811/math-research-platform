@@ -34,11 +34,13 @@ public class LearningRepository {
                 if (!row.next()) throw new ApiProblem(404, "not_found");
                 value.put("slug", slug); value.put("name", row.getString("name")); value.put("description", row.getString("description"));
             }
-            var questions = new ArrayList<String>();
-            try (var q = c.prepareStatement("SELECT question FROM learning_questions WHERE direction=? ORDER BY position")) {
-                q.setString(1, slug); try (var rows = q.executeQuery()) { while (rows.next()) questions.add(rows.getString(1)); }
+            var introduction = new LinkedHashMap<String,Object>();
+            try (var q = c.prepareStatement("SELECT research_object,core_content,prerequisites FROM learning_direction_introductions WHERE direction=?")) {
+                q.setString(1,slug); try (var row = q.executeQuery()) {
+                    if (row.next()) for (String field : List.of("research_object","core_content","prerequisites")) introduction.put(field,row.getString(field));
+                }
             }
-            value.put("questions", questions);
+            value.put("introduction",introduction);
             var books = new ArrayList<Map<String, Object>>();
             try (var q = c.prepareStatement(bookQuery() + " WHERE b.direction=? ORDER BY b.sort_order,b.id")) {
                 q.setString(1, user); q.setString(2, user); q.setString(3, slug); try (var rows = q.executeQuery()) { while (rows.next()) books.add(bookValue(rows)); }

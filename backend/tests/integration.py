@@ -108,7 +108,10 @@ with tempfile.TemporaryDirectory() as directory:
             assert len(directions) == 8 and sum(d['featured'] for d in directions) == 3
             assert [d['slug'] for d in directions[:3]] == ['analysis','geometry-topology','algebra']
             algebra = request('/api/learning/directions/algebra')[1]
-            assert len(algebra['questions']) == 3 and len(algebra['books']) == 6 and {b['language'] for b in algebra['books']} == {'zh','en'}
+            assert set(algebra['introduction']) == {'research_object','core_content','prerequisites'} and len(algebra['books']) == 6 and {b['language'] for b in algebra['books']} == {'zh','en'}
+            for direction in directions:
+                introduction = request('/api/learning/directions/' + direction['slug'])[1]['introduction']
+                assert len(introduction) == 3 and all(isinstance(v,str) and v.strip() for v in introduction.values())
             assert request('/api/learning/directions/unknown')[0] == 404
             assert request('/api/learning/books/7')[1]['available'] is False
             position = {'page':2,'total_pages':10,'position':.35,'zoom':1.25}

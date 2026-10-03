@@ -57,11 +57,13 @@ export function createLearning({ api, write }) {
           : reader.openReader(Number(reading[1]), { api, write }); stopReader = controller.close;
         await controller.ready;
       } else if (detail) {
-        $('textbook-list').replaceChildren(); $('direction-questions').replaceChildren(); $('direction-title').textContent = '正在加载…';
+        $('textbook-list').replaceChildren(); $('direction-introduction').replaceChildren(); $('direction-title').textContent = '正在加载…';
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
         $('direction-title').textContent = direction.name; $('direction-description').textContent = direction.description;
         $('direction-symbol').textContent = symbols[direction.slug] || 'ℳ';
-        for (const question of direction.questions) $('direction-questions').append(el('li', '', question));
+        for (const [field,label] of [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']]) {
+          const item = el('div','introduction-item'); item.append(el('dt','',label),el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。')); $('direction-introduction').append(item);
+        }
         function renderBook(target, book, i, previous = null) {
           const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id; const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
           const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', book.selected_document_id ? '个人自选文献' : '需要基础：' + book.prerequisites));
