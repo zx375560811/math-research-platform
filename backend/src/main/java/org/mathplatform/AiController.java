@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class AiController {
-    record Settings(String source, boolean enabled, String base_url, String model, String api_key, boolean clear_key, Integer daily_limit) {}
+    public record Settings(String source, Boolean enabled, String base_url, String model, String api_key, Boolean clear_key, Integer daily_limit) {}
     private final AiRepository settings;
     private final AiService service;
     private final UserRepository users;
@@ -27,16 +27,17 @@ public class AiController {
         return settings(user);
     }
     private AiRepository.Provider validated(Settings body, AiRepository.Provider old, boolean admin) {
+        boolean enabled = Boolean.TRUE.equals(body.enabled()), clear = Boolean.TRUE.equals(body.clear_key());
         String url = body.base_url() == null ? "" : body.base_url().trim();
         String model = body.model() == null ? "" : body.model().trim();
         String input = body.api_key() == null ? "" : body.api_key().trim();
         if (model.length() > 200 || model.codePoints().anyMatch(c -> c < 32 || c == 127) || input.length() > 4096 || input.codePoints().anyMatch(c -> c < 33 || c > 126)
-            || (body.clear_key() && !input.isEmpty())) throw new ApiProblem(400, "ai_invalid_settings");
+            || (clear && !input.isEmpty())) throw new ApiProblem(400, "ai_invalid_settings");
         if (!url.isEmpty()) service.endpoint(url);
-        String key = body.clear_key() ? "" : input.isEmpty() ? old.key() : input;
+        String key = clear ? "" : input.isEmpty() ? old.key() : input;
         int limit = admin && body.daily_limit() != null ? body.daily_limit() : old.dailyLimit();
-        if (limit < 1 || limit > 1000 || (body.enabled() && (url.isEmpty() || model.isEmpty() || key.isEmpty()))) throw new ApiProblem(400, "ai_invalid_settings");
-        return new AiRepository.Provider(url, model, key, body.enabled(), limit);
+        if (limit < 1 || limit > 1000 || (enabled && (url.isEmpty() || model.isEmpty() || key.isEmpty()))) throw new ApiProblem(400, "ai_invalid_settings");
+        return new AiRepository.Provider(url, model, key, enabled, limit);
     }
     @PostMapping("/api/ai/chat")
     public Map<String, String> chat(Authentication user, @RequestBody AiService.Chat body) throws SQLException {

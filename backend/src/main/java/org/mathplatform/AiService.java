@@ -25,9 +25,9 @@ import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class AiService {
-    record Message(String role, String content) {}
-    record Context(long document_id, int page, String quote) {}
-    record Chat(String source, List<Message> messages, Context context) {}
+    public record Message(String role, String content) {}
+    public record Context(long document_id, int page, String quote) {}
+    public record Chat(String source, List<Message> messages, Context context) {}
     private final LibraryRepository library;
     private final AiRepository settings;
     private final ObjectMapper json = new ObjectMapper();
