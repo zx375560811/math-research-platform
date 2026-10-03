@@ -157,6 +157,13 @@ async function main() {
     assert.equal(await page.locator('#more-directions .direction-small').count(),5);
     await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
     assert.equal(await page.locator('#admin-link').isVisible(), false);
+    const libraryIcon = page.locator('#library-link [data-icon]');
+    await page.locator('#library-link').hover();
+    assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
+    const duringMorph = await libraryIcon.locator('path').getAttribute('d');
+    await page.waitForFunction(previous=>document.querySelector('#library-link path').getAttribute('d')!==previous,duringMorph);
+    await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'workspace');
+
     await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);

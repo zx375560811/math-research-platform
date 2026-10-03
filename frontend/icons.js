@@ -35,7 +35,18 @@ export function icon(name) {
   return svg;
 }
 export function mountIcons() {
-  for (const host of document.querySelectorAll('[data-icon]')) host.append(icon(host.dataset.icon));
+  for (const host of document.querySelectorAll('[data-icon]')) {
+    if (host.querySelector('svg')) continue;
+    const initial = host.dataset.icon; host.append(icon(initial));
+    const target = host.closest('a,button');
+    const active = { workspace:'book', compass:'algebra', forward:'check' }[initial];
+    if (!target || !active) continue;
+    let hovered = false;
+    const update = () => changeIcon(host, hovered || target.matches(':focus-visible') ? active : initial);
+    target.addEventListener('mouseenter', () => { hovered = true; update(); });
+    target.addEventListener('mouseleave', () => { hovered = false; update(); });
+    target.addEventListener('focus', update); target.addEventListener('blur', update);
+  }
 }
 export function changeIcon(host, name) {
   let controller = controllers.get(host);
