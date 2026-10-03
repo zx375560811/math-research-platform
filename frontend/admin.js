@@ -33,7 +33,9 @@ let bookDocGeneration = 0;
 async function loadBookDocuments(selected = '') {
   const generation = ++bookDocGeneration; const book = state.newBook ? null : state.books.find(book => book.id === Number($('book-select').value));
   const locked = book?.document_id != null;
-  $('book-document').disabled = locked; $('book-document-query').disabled = locked; $('book-doc-search').disabled = locked;
+  $('book-document').disabled = true; $('book-document-query').disabled = locked; $('book-doc-search').disabled = locked;
+  const pending = element('option','正在加载文献…'); pending.value = ''; $('book-document').replaceChildren(pending); state.bookDocuments = [];
+  $('book-doc-prev').disabled = $('book-doc-next').disabled = true;
   $('book-binding-hint').textContent = locked ? '已关联 PDF，文件保持固定，以保护原有教材阅读记录。' : '仅列出此方向且语种匹配的文献；未标注语种的资料也可选择。';
   if (locked) {
     const doc = await api('/api/documents/' + book.document_id); if (generation !== bookDocGeneration) return;
@@ -44,6 +46,7 @@ async function loadBookDocuments(selected = '') {
   const first = element('option', state.newBook ? '请选择文献' : '暂不关联 PDF'); first.value = ''; $('book-document').replaceChildren(first);
   for (const doc of docs) { const option = element('option', `${doc.language === 'zh' ? '中文' : doc.language === 'en' ? '英文' : '未标语种'} / ${doc.title} / ${doc.authors || '作者未填写'}`); option.value = doc.id; $('book-document').append(option); }
   if (docs.some(doc => doc.id === Number(selected))) $('book-document').value = selected;
+  $('book-document').disabled = false;
   $('book-doc-prev').disabled = !state.bookDocOffset; $('book-doc-next').disabled = body.documents.length < 20; $('book-doc-page').textContent = `第 ${(state.bookDocOffset || 0) / 20 + 1} 页`;
   if (!docs.length) $('book-binding-hint').textContent = '此页暂无匹配资料，可翻页、搜索，或先到文献库导入并分类。';
 }
@@ -83,7 +86,7 @@ $('document-cancel').addEventListener('click', resetDocument);
 $('document-search').addEventListener('submit', event => { event.preventDefault(); state.docOffset = 0; state.query = $('document-query').value.trim(); action(event.currentTarget, async () => { await loadDocuments(); message(''); }); });
 $('book-select').addEventListener('change', () => selectBook($('book-select').value).catch(error => message(error.message, true)));
 $('new-book').addEventListener('click', () => action($('new-book').parentElement, async () => {
-  state.newBook = true; $('book-select').disabled = true; $('book-editor-title').textContent = '新增推荐教材'; $('book-authors').textContent = '从本方向文献中选择一本，加入中文或英文推荐。'; $('book-title').value = ''; $('book-author-input').value = ''; $('book-source').value = ''; $('book-prerequisites').value = ''; $('book-order').value = '10'; state.bookDocOffset = 0; $('book-document-query').value = ''; await loadBookDocuments(); message('');
+  state.newBook = true; $('book-select').disabled = true; $('book-editor-title').textContent = '新增推荐教材'; $('book-authors').textContent = '从本方向文献中选择一本，加入中文或英文推荐。'; $('book-title').value = ''; $('book-author-input').value = ''; $('book-source').value = ''; $('book-prerequisites').value = ''; $('book-order').value = '10'; state.bookDocOffset = 0; $('book-document-query').value = ''; message(''); await loadBookDocuments();
 }));
 for (const id of ['book-direction', 'book-language']) $(id).addEventListener('change', () => { state.bookDocOffset = 0; loadBookDocuments().catch(error => message(error.message, true)); });
 $('book-document').addEventListener('change', () => { if (state.newBook) { const doc = state.bookDocuments.find(doc => doc.id === Number($('book-document').value)); if (doc) { $('book-title').value = doc.title; $('book-author-input').value = doc.authors; } } });
