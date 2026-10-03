@@ -258,6 +258,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#selection-tools').waitFor();
     await page.locator('#reader-ask-ai').click();
     assert.equal(await page.locator('#ai-context').isVisible(),true); assert.match(await page.locator('#ai-context-quote').textContent(),/Mathematics/);
+    const naturalWrap=await page.evaluate(()=>['selection-quote','ai-context-quote'].map(id=>{const node=document.getElementById(id),original=node.textContent;node.textContent='measure\nintegral';const range=document.createRange();range.selectNodeContents(node);const lines=range.getClientRects().length;node.textContent=original;return lines===1;})); assert.ok(naturalWrap.every(Boolean));
+
     await page.locator('#ai-question').fill('解释这个选段 <img src=x onerror=alert(1)>'); await page.locator('#ai-send').click();
     assert.equal(await page.locator('#ai-context').isVisible(),false); assert.equal(await page.locator('#selection-tools').isVisible(),false);
     await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0); assert.ok(await page.locator('.ai-assistant .katex').count()>=3); assert.ok(await page.locator('.ai-assistant .katex-display').count()>0); assert.equal(await page.locator('.ai-assistant table').count(),1); assert.equal(await page.locator('.ai-assistant strong').count(),1); assert.equal(await page.locator('.ai-assistant a[href^="javascript:"]').count(),0);

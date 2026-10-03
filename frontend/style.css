@@ -280,3 +280,6 @@ body.reading-page { overflow:hidden; }
 .annotation-markers .annotation-summary { min-width:28px;width:28px;height:28px;padding:2px;font-size:14px; }
 .annotation-markers:not(.expanded) .annotation-summary[data-extra] { display:none; }
 .annotation-more { grid-column:31;grid-row:1;border:0;background:transparent;color:#36517b;font:inherit;font-size:14px;padding:2px 5px;margin:0;height:28px;white-space:nowrap;cursor:pointer; }
+
+/* PDF line endings do not force narrow lines in selected-text previews. */
+#selection-quote,.ai-context p,.annotation-item blockquote { white-space:normal;word-break:normal;overflow-wrap:break-word;max-width:100%; }
