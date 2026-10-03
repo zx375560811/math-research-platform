@@ -177,7 +177,24 @@ async function main() {
     const noteText='My proof <img src=x onerror=alert(1)>';
     await page.locator('.annotation-note').fill(noteText); await page.locator('.annotation-actions .button').click();
     await page.waitForFunction(() => document.getElementById('reader-status').textContent==='笔记已保存');
-    await page.locator('#reader-zoom').selectOption('1.25');
+    await page.locator('#reader-zoom').fill('137'); await page.locator('#reader-zoom').press('Enter');
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
+    await page.locator('#reader-zoom-in').click(); assert.equal(await page.locator('#reader-zoom').inputValue(),'147');
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
+    await page.locator('#reader-zoom-out').click(); assert.equal(await page.locator('#reader-zoom').inputValue(),'137');
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
+    const point=await page.locator('.pdf-page[data-page="1"]').evaluate(node=>{const r=node.getBoundingClientRect();return {x:r.left+350,y:r.top+250};});
+    const fraction=await page.locator('.pdf-page[data-page="1"]').evaluate((node,p)=>{const r=node.getBoundingClientRect();return {x:(p.x-r.left)/r.width,y:(p.y-r.top)/r.height};},point);
+    await page.mouse.move(point.x,point.y);await page.keyboard.down('Control');await page.mouse.wheel(0,-100);await page.keyboard.up('Control');
+    await page.waitForFunction(()=>Number(document.getElementById('reader-zoom').value)>137 && document.getElementById('pdf-pages').dataset.layout==='ready');
+    const scaledFraction=await page.locator('.pdf-page[data-page="1"]').evaluate((node,p)=>{const r=node.getBoundingClientRect();return {x:(p.x-r.left)/r.width,y:(p.y-r.top)/r.height};},point);
+    assert.ok(Math.abs(fraction.x-scaledFraction.x)<.02 && Math.abs(fraction.y-scaledFraction.y)<.02);
+    for (const percent of ['400','25']) {await page.locator('#reader-zoom').fill(percent);await page.locator('#reader-zoom').press('Enter');await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');}
+    assert.equal(await page.locator('#reader-zoom-out').isDisabled(),true);
+    await page.locator('#reader-fit-width').click();assert.equal(await page.locator('#reader-zoom').inputValue(),'100');
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
+    await page.locator('#reader-zoom').fill('137'); await page.locator('#reader-zoom').press('Enter');
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
     assert.ok(await page.locator('.pdf-highlight').count()>0);
     await page.screenshot({path:path.join(shots,'reader-desktop.png'),fullPage:true});
@@ -190,7 +207,7 @@ async function main() {
     await second.goto(base+'/#/apps/mathematics/read/7');await second.waitForFunction(()=>location.hash==='#/login');
     await second.locator('#account-username').fill('browser_reader');await second.locator('#account-password').fill('BrowserPass123!');await second.locator('#account-submit').click();
     await second.waitForFunction(()=>document.getElementById('reader-page').value==='2' && document.querySelector('.pdf-page[data-page="2"] .textLayer span')?.textContent==='Mathematics 2');
-    await second.locator('#reader-page').fill('12');await second.locator('#reader-page').dispatchEvent('change');
+    assert.equal(await second.locator('#reader-zoom').inputValue(),'137'); await second.locator('#reader-page').fill('12');await second.locator('#reader-page').dispatchEvent('change');
     await second.waitForFunction(()=>document.getElementById('reader-page').value==='12' && document.querySelector('.pdf-page[data-page="12"][data-loaded]'));
     await second.locator('#reader-page').fill('2');await second.locator('#reader-page').dispatchEvent('change');
     await second.waitForFunction(()=>document.getElementById('reader-page').value==='2');

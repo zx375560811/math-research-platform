@@ -67,7 +67,7 @@
           <button id="reader-prev" class="button compact">上一页</button>
           <label class="reader-page-control">第 <input id="reader-page" type="number" min="1" value="1" aria-label="页码"> / <span id="reader-pages">—</span> 页</label>
           <button id="reader-next" class="button compact">下一页</button>
-          <label class="reader-zoom-control">缩放 <select id="reader-zoom"><option value="0.75">75%</option><option value="1" selected>适合宽度</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+          <div class="reader-zoom-control" role="group" aria-label="PDF 缩放"><button id="reader-zoom-out" class="button compact" aria-label="缩小">−</button><label><input id="reader-zoom" type="number" min="25" max="400" step="1" value="100" aria-label="缩放百分比" title="25%–400%，100% 对应适合宽度">%</label><button id="reader-zoom-in" class="button compact" aria-label="放大">＋</button><button id="reader-fit-width" class="button compact">适合宽度</button></div>
           <button id="reader-notes-toggle" class="button compact" aria-expanded="false">高亮笔记</button>
           <button id="reader-fullscreen" class="button compact">全屏</button>
         </div>

@@ -130,3 +130,6 @@ body.reading-page { overflow:hidden; }
 }
 
 .reader-panel-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px; }.reader-panel-heading h2 { margin:0;font-size:14px; }.reader-panel-heading .button { font-size:18px;line-height:1;padding:3px 8px;min-height:28px; }.reader-outline .reader-panel-heading { padding:0 8px; }
+
+.reader-zoom-control { display:inline-flex;align-items:center;gap:5px; }.reader-zoom-control label { display:inline-flex;align-items:center;gap:3px; }.reader-toolbar #reader-zoom { width:62px;text-align:center; }.reader-toolbar #reader-zoom-in,.reader-toolbar #reader-zoom-out { font-size:17px;line-height:1;padding:4px 9px; }.reader-toolbar #reader-zoom::-webkit-inner-spin-button { -webkit-appearance:none; }.reader-toolbar #reader-zoom { appearance:textfield;-moz-appearance:textfield; }
+@media (max-width:650px) { .reader-toolbar #reader-zoom { width:51px; }.reader-zoom-control { gap:4px; }.reader-toolbar #reader-zoom-in,.reader-toolbar #reader-zoom-out { padding:4px 7px; } }

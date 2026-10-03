@@ -114,6 +114,11 @@ with tempfile.TemporaryDirectory() as directory:
                 db.execute('UPDATE learning_books SET document_id=41 WHERE id=7')
             assert request('/api/learning/books/7/progress','PUT',json.dumps(position).encode(),{'Content-Type':'application/json'})[0] == 403
             assert auth('/api/learning/books/7/progress',{**position,'page':11},'PUT')[0] == 400
+            for scale in [.25,1.37,4]:
+                assert auth('/api/learning/books/7/progress',{**position,'zoom':scale},'PUT')[0] == 200
+                assert request('/api/learning/books/7')[1]['progress']['zoom'] == scale
+            for scale in [.24,4.01]:
+                assert auth('/api/learning/books/7/progress',{**position,'zoom':scale},'PUT')[0] == 400
             assert auth('/api/learning/books/7/progress',position,'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['progress'] == position
             mark = {'page':2,'quote':'Selected theorem','note':'My proof <img src=x>','color':'yellow','rects':[{'x':.1,'y':.2,'width':.3,'height':.04}]}

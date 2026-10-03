@@ -71,7 +71,7 @@ public class LearningRepository {
         }
     }
     public void progress(long id, String user, Progress p) throws SQLException {
-        if (p.page < 1 || p.total_pages < p.page || p.total_pages > 100000 || !Double.isFinite(p.position) || p.position < 0 || p.position > 1 || !Double.isFinite(p.zoom) || p.zoom < .5 || p.zoom > 2.5) throw new ApiProblem(400, "invalid_progress");
+        if (p.page < 1 || p.total_pages < p.page || p.total_pages > 100000 || !Double.isFinite(p.position) || p.position < 0 || p.position > 1 || !Double.isFinite(p.zoom) || p.zoom < .25 || p.zoom > 4) throw new ApiProblem(400, "invalid_progress");
         try (var c = database.connect(false)) {
             available(c, id);
             try (var s = c.prepareStatement("INSERT INTO learning_progress(username,book_id,page,total_pages,position,zoom) VALUES(?,?,?,?,?,?) ON CONFLICT(username,book_id) DO UPDATE SET page=excluded.page,total_pages=excluded.total_pages,position=excluded.position,zoom=excluded.zoom,updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')")) {
