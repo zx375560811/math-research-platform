@@ -62,13 +62,13 @@ export function createLearning({ api, write }) {
         function renderBook(target, book, i) {
           const row = el('article', 'textbook-row'); const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
           const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', '需要基础：' + book.prerequisites));
-          const actions = el('div', 'textbook-actions');
-          if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; actions.append(link); }
-          else actions.append(el('span', 'book-unavailable', 'PDF 待接入'));
+          const actions = el('div', 'textbook-actions'), readingActions = el('div', 'book-reading-actions');
+          if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; readingActions.append(link); }
+          else readingActions.append(el('span', 'book-unavailable', 'PDF 待接入'));
+          const choose = el('a', 'button book-library-choice', '文献库自选'); choose.href = '#/library?module=mathematics&direction=' + direction.slug; choose.setAttribute('aria-label', book.title + '：从本方向文档库选取文献阅读'); readingActions.append(choose); actions.append(readingActions);
           const source = el('a', 'book-source', '教材信息 ↗'); source.href = book.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer'; if (book.source_url) actions.append(source);
           row.append(spine, info, actions); target.append(row);
         }
-        $('direction-library').href = '#/library?module=mathematics&direction=' + direction.slug;
         for (const [index, stage] of ['基础入门', '核心理论', '进阶学习'].entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
           const heading = el('div', 'stage-heading'); heading.append(el('span', 'stage-number', String(index + 1)), el('h3', '', stage)); section.append(heading);

@@ -271,7 +271,8 @@ async function main() {
     await secondContext.close();
     await page.locator('#reader-back').click();await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
-    await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
+    await page.locator('.book-library-choice').first().click(); await page.locator('#library-view').waitFor();
+    assert.equal(await page.locator('#library-direction').inputValue(),'algebra'); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
     await page.screenshot({path:path.join(shots,'library-desktop.png'),fullPage:true});
