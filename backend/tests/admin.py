@@ -138,7 +138,7 @@ with tempfile.TemporaryDirectory() as directory:
             library_path = '/api/library/documents/' + str(document)
             assert request('/api/library/categories')[1]['modules'][0]['slug'] == 'mathematics'
             assert len(request('/api/library/documents?direction=algebra')[1]['documents']) == 1
-            assert request('/api/library/documents?direction=discrete')[1]['documents'] == []
+            assert request('/api/library/documents?direction=discrete-foundations')[1]['documents'] == []
             assert request('/api/library/documents?direction=invalid')[0] == 400
             assert request(library_path)[1]['progress']['position'] == .3
             assert request(library_path + '/progress', 'PUT', b'{}', {'Content-Type':'application/json'})[0] == 403
@@ -151,11 +151,17 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/learning/books/7/annotations/' + str(mark), {'note':'Updated'}, 'PATCH')[0] == 200
             assert request(library_path + '/annotations')[1]['annotations'][0]['note'] == 'Updated'
             recommendation = {**config, 'title':'中文推荐','authors':'Author','direction':'algebra','language':'zh','source_url':''}
-            assert write('/api/admin/books', {**recommendation,'direction':'discrete'})[0] == 400
+            assert write('/api/admin/books', {**recommendation,'direction':'discrete-foundations'})[0] == 400
             added = write('/api/admin/books', recommendation); assert added[0] == 201
             assert request('/api/learning/books/' + str(added[1]['id']))[1]['progress'] == position
             classified = {**metadata,'module':'mathematics','language':'zh','directions':['algebra','analysis']}
             assert write('/api/admin/documents/' + str(document), classified, 'PATCH')[0] == 409  # existing English binding
+            chinese = write('/api/admin/documents?' + urllib.parse.urlencode({'title':'中文文献','authors':'作者','subject_id':1,'direction':'algebra','language':'zh'}), pdf, pdf=True)
+            assert chinese[0] == 201
+            assert len(request('/api/library/documents?direction=algebra&language=zh')[1]['documents']) == 1
+            assert write('/api/admin/books', {**recommendation,'document_id':chinese[1]['id'],'language':'en'})[0] == 400
+            assert write('/api/admin/documents/' + str(document), {**classified,'language':'und','directions':['analysis']}, 'PATCH')[0] == 409
+            assert request('/api/documents/' + str(document))[1]['language'] == 'und'
             assert write('/api/auth/login', {'username':'invited_reader','password':credentials['password']})[0] == 200
             assert request(library_path)[1]['progress'] is None
             assert request(library_path + '/annotations')[1]['annotations'] == []
@@ -174,3 +180,4 @@ with tempfile.TemporaryDirectory() as directory:
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')
+
