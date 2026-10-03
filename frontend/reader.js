@@ -10,7 +10,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let editingPage = false, verticalDrag = null, noteRatio = .35;
+  let editingPage = false, verticalDrag = null, noteRatio = .35, expandedMark = null;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
@@ -108,21 +108,31 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
   }
   applyPanelWidths();
-  function notes() {
+  function notes(openId = expandedMark) {
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '还没有标注。选中正文开始高亮。')); return; }
-    for (const mark of marks) {
-      const row = el('details', 'annotation-item'); row.dataset.annotation = mark.id; row.open = drafts.has(mark.id) || !mark.note;
-      const summary = el('summary', 'annotation-summary'), preview = el('span', 'annotation-preview', mark.note || mark.quote);
-      summary.append(el('span', 'annotation-label', `第 ${mark.page} 页 · 高亮笔记`), preview);
+    expandedMark = marks.some(mark => mark.id === openId) ? openId : null;
+    const markers = el('div', 'annotation-markers'); markers.setAttribute('role', 'group'); markers.setAttribute('aria-label', '高亮笔记编号'); list.append(markers);
+    for (const [index, mark] of marks.entries()) {
+      const row = el('article', 'annotation-item'); row.dataset.annotation = mark.id; row.id = `annotation-panel-${mark.id}`; row.hidden = expandedMark !== mark.id;
+      const summary = el('button', 'annotation-summary', String(index + 1)); summary.type = 'button'; summary.dataset.color = mark.color; summary.id = `annotation-marker-${mark.id}`;
+      summary.setAttribute('aria-controls', row.id); summary.setAttribute('aria-expanded', String(!row.hidden)); summary.setAttribute('aria-label', `笔记 ${index + 1}，第 ${mark.page} 页`); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`;
+      row.setAttribute('aria-labelledby', summary.id);
+      summary.addEventListener('click', () => {
+        const show = row.hidden; expandedMark = show ? mark.id : null;
+        for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
+        for (const button of markers.children) button.setAttribute('aria-expanded', 'false');
+        row.hidden = !show; summary.setAttribute('aria-expanded', String(show));
+      });
+      markers.append(summary);
       const body = el('div', 'annotation-body');
       const jump = el('button', 'annotation-jump', `第 ${mark.page} 页 · 跳转`); jump.type = 'button'; jump.addEventListener('click', () => showPage(mark.page));
       const quote = el('blockquote', '', mark.quote), note = el('textarea', 'annotation-note');
       note.value = drafts.get(mark.id) ?? mark.note; note.maxLength = 4000; note.rows = 3; note.setAttribute('aria-label', '高亮笔记'); note.placeholder = '写下你的理解…'; note.addEventListener('input', () => drafts.set(mark.id, note.value));
       const actions = el('div', 'annotation-actions'), save = el('button', 'button compact', '保存笔记'), remove = el('button', 'annotation-delete', '删除'); save.type = remove.type = 'button';
-      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); preview.textContent = mark.note || mark.quote; row.open = false; $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
+      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`; row.hidden = true; summary.setAttribute('aria-expanded', 'false'); if (expandedMark === mark.id) expandedMark = null; $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
       remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
-      actions.append(save, remove); body.append(jump, quote, note, actions); row.append(summary, body); list.append(row);
+      actions.append(save, remove); body.append(jump, quote, note, actions); row.append(body); list.append(row);
     }
   }
   function captureSelection() {
@@ -268,7 +278,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
       if (!selection) return; const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
