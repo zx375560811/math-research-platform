@@ -84,7 +84,7 @@ try:
                 default = {'enabled':True,'base_url':endpoint,'model':'math-default','api_key':'private-default-key','daily_limit':2}
                 assert request('/api/admin/ai/settings','PUT',json.dumps(default).encode(),{'Content-Type':'application/json'})[0] == 403
                 saved = write('/api/admin/ai/settings',default,'PUT')
-                assert saved[0] == 200 and saved[1]['has_key'] is True
+                assert saved[0] == 200 and saved[1]['has_key'] is True, saved
                 assert 'private-default-key' not in json.dumps(saved)
                 with closing(sqlite3.connect(database)) as db:
                     cipher = db.execute("SELECT api_key FROM ai_provider_settings WHERE owner='default'").fetchone()[0]
