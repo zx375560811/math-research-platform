@@ -68,13 +68,13 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     await save({ source: 'custom', enabled: true, base_url: $('ai-base-url').value.trim(), model: $('ai-model').value.trim(), api_key: $('ai-api-key').value.trim() });
   });
   on($('ai-clear-key'), 'click', () => save({ ...payload(config.source), enabled: false, clear_key: true }));
-  function setContext(value) {
+  function setContext(value, focus = true) {
     if (closed) return;
     const document = getDocumentContext();
     if (!document?.document_id) { status('这份 PDF 尚未关联文献库，无法附加选段。'); return; }
     context = { document_id: document.document_id, page: value.page, quote: value.quote };
     $('ai-context').hidden = false; $('ai-context-label').textContent = `第 ${value.page} 页选段`; $('ai-context-quote').textContent = value.quote;
-    status('选段已附加，发送问题时会一并提供给所选模型。'); $('ai-question').focus();
+    status('选段已附加，发送问题时会一并提供给所选模型。'); if (focus) $('ai-question').focus();
   }
   on($('ai-context-remove'), 'click', () => { context = null; $('ai-context').hidden = true; });
   on($('ai-clear'), 'click', () => { history = []; $('ai-messages').replaceChildren(node('p', '可以讨论概念、推导，或选中 PDF 文字后点击“问 AI”。', 'ai-empty')); controls(); });
@@ -101,5 +101,5 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   $('ai-messages').replaceChildren(node('p', '可以讨论概念、推导，或选中 PDF 文字后点击“问 AI”。', 'ai-empty'));
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');
   request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value.enabled ? '选择文字后可附加选段提问。' : '选择 API 来源，或点击“设置”接入个人 API。'); }).catch(error => status(error.message));
-  return { setContext, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
+  return { setContext, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }

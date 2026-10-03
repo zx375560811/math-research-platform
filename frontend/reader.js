@@ -105,7 +105,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if ($('reader-' + name).hidden === !visible) return;
     const anchor = pdf && pages.length ? snapshot() : null;
     $('reader-' + name).hidden = !visible; $('reader-' + name + '-toggle').setAttribute('aria-expanded', String(visible)); applyPanelWidths();
-    if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
+    if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && selection === chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
   }
   applyPanelWidths();
   function notes(openId = expandedMark) {
@@ -119,6 +119,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       summary.setAttribute('aria-controls', row.id); summary.setAttribute('aria-expanded', String(!row.hidden)); summary.setAttribute('aria-label', `笔记 ${index + 1}，第 ${mark.page} 页`); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`;
       row.setAttribute('aria-labelledby', summary.id);
       summary.addEventListener('click', () => {
+        selection = null; $('selection-tools').hidden = true; $('selection-quote').textContent = ''; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
         const show = row.hidden; expandedMark = show ? mark.id : null;
         for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
         for (const button of markers.children) button.setAttribute('aria-expanded', 'false');
@@ -150,7 +151,10 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       if (right > x && bottom > y) rects.push({ x: (x - bounds.left) / bounds.width, y: (y - bounds.top) / bounds.height, width: (right - x) / bounds.width, height: (bottom - y) / bounds.height });
     }
     if (!rects.length) { selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
-    selection = { page: Number(frame.dataset.page), quote, rects }; $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
+    expandedMark = null;
+    for (const panel of $('annotation-list').querySelectorAll('.annotation-item')) panel.hidden = true;
+    for (const button of $('annotation-list').querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
+    selection = { page: Number(frame.dataset.page), quote, rects }; ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
   }
   function release(page) {
     page.renderTask?.cancel(); page.textLayer?.cancel(); page.renderTask = page.textLayer = null;
@@ -212,7 +216,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   async function layout(anchor = snapshot()) {
     if (!pdf || closed) return;
     clearTimeout(resizeTimer); pendingAnchor = null;
-    layingOut = true; const version = ++generation; layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; stack.dataset.layout = 'busy'; selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
+    layingOut = true; const version = ++generation; layoutSignature = `${scroll.clientWidth}:${scroll.clientHeight}:${zoom}`; stack.dataset.layout = 'busy'; window.getSelection()?.removeAllRanges();
     for (const page of pages) { release(page); delete page.frame.dataset.loaded; size(page); }
     stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px';
     endSpace(); layingOut = false;

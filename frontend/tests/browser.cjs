@@ -279,8 +279,12 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-note').fill(noteText); await page.locator('.annotation-actions .button').click();
     await page.waitForFunction(() => document.getElementById('reader-status').textContent==='笔记已保存');
     assert.equal(await page.locator('.annotation-item').evaluate(node=>!node.hidden),false); await page.locator('.annotation-summary').click(); assert.equal(await page.locator('.annotation-note').isVisible(),true);
+    const newQuote=await page.evaluate(() => {const spans=document.querySelectorAll('.pdf-page[data-page="1"] .textLayer span'),span=spans[spans.length-1];const range=document.createRange();range.selectNodeContents(span);const selected=window.getSelection();selected.removeAllRanges();selected.addRange(range);return span.textContent;});
+    await page.locator('#selection-tools').waitFor(); assert.equal(await page.locator('#selection-quote').textContent(),newQuote); assert.equal(await page.locator('.annotation-note').isVisible(),false);
+    await page.locator('#reader-ask-ai').click(); assert.equal(await page.locator('#ai-context-quote').textContent(),newQuote);
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selected=window.getSelection();selected.removeAllRanges();selected.addRange(range);});
-    await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="blue"]').click();
+    await page.waitForFunction(()=>document.getElementById('selection-quote').textContent==='Mathematics 1'); assert.equal(await page.locator('#ai-context-quote').textContent(),'Mathematics 1');
+    await page.locator('[data-highlight="blue"]').click();
     await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===2);
     assert.deepEqual(await page.locator('.annotation-summary').allTextContents(),['1','2']);
     const numbered=await page.locator('.annotation-summary').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().top)); assert.ok(Math.abs(numbered[0]-numbered[1])<1);
