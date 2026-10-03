@@ -129,7 +129,7 @@ try:
                 client = owner
                 assert request('/api/ai/settings')[1]['custom']['has_key'] is False
                 with closing(sqlite3.connect(database)) as db:
-                    db.execute("DELETE FROM admins WHERE username='ai_owner'"); db.commit()
+                    db.execute("DELETE FROM administrators WHERE username='ai_owner'"); db.commit()
                 assert request('/api/admin/ai/settings')[0] == 403
                 roles.grant_admin('ai_owner',database)
                 client = reader
