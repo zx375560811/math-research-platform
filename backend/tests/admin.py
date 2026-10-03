@@ -101,15 +101,19 @@ with tempfile.TemporaryDirectory() as directory:
             query = '/api/admin/documents?' + urllib.parse.urlencode({'title': '线性代数 <img src=x>', 'authors': 'Author', 'subject_id': 1})
             assert write(query, b'invalid', pdf=True)[0] == 400
             assert write('/api/admin/documents?title=Test&subject_id=9999', pdf, pdf=True)[0] == 400
-            assert write(query, b'%PDF-' + b'0' * (20 * 1024 * 1024), pdf=True)[0] == 413
             token = request('/api/auth/csrf')[1]
+            outgoing = urllib.request.Request(base + '/api/auth/csrf')
+            for handler in client.handlers:
+                if isinstance(handler, urllib.request.HTTPCookieProcessor): handler.cookiejar.add_cookie_header(outgoing)
+            headers = {'Content-Type': 'application/pdf', token['header']: token['token'], 'Cookie': outgoing.get_header('Cookie')}
+            # Header rejection happens before reading a body. Half-close the sending side
+            # so the HTTP server need not drain a fictitious oversized request.
             with closing(http.client.HTTPConnection('127.0.0.1', port, timeout=15)) as connection:
-                # Copy session cookies without logging them.
-                outgoing = urllib.request.Request(base + '/api/auth/csrf')
-                for handler in client.handlers:
-                    if isinstance(handler, urllib.request.HTTPCookieProcessor): handler.cookiejar.add_cookie_header(outgoing)
-                headers = {'Content-Type': 'application/pdf', token['header']: token['token'], 'Cookie': outgoing.get_header('Cookie'), 'Transfer-Encoding': 'chunked'}
-                connection.request('POST', query, body=iter([b'%PDF-' + b'0' * (1024 * 1024)] * 21), headers=headers, encode_chunked=True)
+                connection.request('POST', query, body=b'', headers={**headers, 'Content-Length': str(20 * 1024 * 1024 + 1)})
+                connection.sock.shutdown(socket.SHUT_WR)
+                response = connection.getresponse(); assert response.status == 413; response.read()
+            with closing(http.client.HTTPConnection('127.0.0.1', port, timeout=15)) as connection:
+                connection.request('POST', query, body=iter([b'%PDF-' + b'0' * (1024 * 1024)] * 21), headers={**headers, 'Transfer-Encoding': 'chunked'}, encode_chunked=True)
                 response = connection.getresponse(); assert response.status == 413; response.read()
             assert not list((root / 'data/files').iterdir())
             imported = write(query, pdf, pdf=True); assert imported[0] == 201
