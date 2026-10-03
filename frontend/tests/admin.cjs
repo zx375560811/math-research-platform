@@ -26,12 +26,15 @@ async function main() {
         const chunks = []; for await (const chunk of req) chunks.push(chunk); const bytes = Buffer.concat(chunks); const body = req.headers['content-type'] === 'application/json' ? JSON.parse(bytes.toString() || '{}') : {};
         if (p === '/api/auth/login') { session = { username: body.username, role: body.username === 'owner_one' ? 'ADMIN' : 'USER' }; return json({ user: session }); }
         if (p === '/api/auth/logout') { session = null; return json({ status: 'ok' }); }
+        if (p === '/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions:[{slug:'algebra',name:'代数'}]}]});
+        if (/^\/api\/documents\/\d+$/.test(p)) return json(docs.find(d=>d.id===Number(p.split('/').pop())));
         if (p === '/api/subjects') return json({ subjects: [{ id: 1, name: '代数', slug: 'algebra' }] });
         if (p.startsWith('/api/admin')) {
           if (session?.role !== 'ADMIN') return json({ error: session ? 'admin_required' : 'login_required' }, session ? 403 : 401);
-          if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], file_size: bytes.length, file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
+          if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], module:'mathematics', directions:url.searchParams.getAll('directions'), language:url.searchParams.get('language')||'und', file_size: bytes.length, file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
           if (p === '/api/admin/documents') return json({ documents: docs.filter(d => d.title.includes(url.searchParams.get('q') || '')), offset: 0, limit: 20 });
           if (/^\/api\/admin\/documents\/\d+$/.test(p)) { Object.assign(docs.find(d => d.id === Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
+          if (p === '/api/admin/books' && req.method === 'POST') {const id=Math.max(...books.map(b=>b.id))+1;books.push({...body,id,direction_name:'代数'});return json({id},201);}
           if (p === '/api/admin/books') return json({ books });
           if (p === '/api/admin/books/7') { Object.assign(books[0], body); return json({ status: 'ok' }); }
           if (p === '/api/admin/invitations' && req.method === 'POST') { const id = 'a'.repeat(64); invites.unshift({ id, created_at: new Date().toISOString(), expires_at: Math.floor(Date.now()/1000) + body.days * 86400, status: 'active' }); return json({ code: 'C'.repeat(43), id, expires_at: invites[0].expires_at }, 201); }
@@ -66,9 +69,12 @@ async function main() {
     await page.locator('#document-list button').first().click(); await page.locator('#document-title').fill('线性代数学习资料'); await page.locator('#document-save').click(); await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('文献信息已保存'));
     await page.locator('#document-query').fill('线性代数'); await page.locator('#document-search button').click(); await page.waitForFunction(() => document.getElementById('document-list').textContent.includes('线性代数学习资料'));
     const shots = path.join(frontend, 'tests/artifacts'); fs.mkdirSync(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, 'admin-library.png'), fullPage: true });
-    await page.locator('[data-view="books"]').click(); await page.locator('#book-select').selectOption('7'); await page.locator('#book-document').fill(String(doc.id)); await page.locator('#book-order').fill('25'); await page.locator('#book-form button').click();
+    await page.locator('[data-view="books"]').click(); await page.locator('#book-select').selectOption('7'); await page.locator('#book-document').selectOption(String(doc.id)); await page.locator('#book-order').fill('25'); await page.locator('#book-form button[type="submit"]').click();
     await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('教材配置已保存'));
     assert.equal(await page.locator('#book-document').isDisabled(), true); assert.equal((await (await page.request.get(base + '/api/learning/books/7')).json()).available, true);
+    await page.locator('#new-book').click(); await page.locator('#book-direction').selectOption('algebra'); await page.locator('#book-language').selectOption('zh'); await page.locator('#book-document').selectOption(String(doc.id)); await page.locator('#book-title').fill('中文推荐教材'); await page.locator('#book-stage').selectOption('核心理论'); await page.locator('#book-form button[type="submit"]').click();
+    await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('教材配置已保存') && document.getElementById('book-list').textContent.includes('中文推荐教材'));
+    const configured=(await(await page.request.get(base+'/api/admin/books')).json()).books.find(b=>b.title==='中文推荐教材'); assert.equal(configured.language,'zh'); assert.equal(configured.document_id,doc.id); assert.equal(configured.direction,'algebra');
     await page.screenshot({ path: path.join(shots, 'admin-books.png'), fullPage: true });
     await page.locator('[data-view="invitations"]').click(); await page.locator('#invitation-form button').click(); await page.locator('#created-invitation').waitFor(); assert.equal((await page.locator('#invitation-code').inputValue()).length, 43);
     await page.locator('#invitation-list button').first().click(); await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('邀请码已撤销'));

@@ -66,7 +66,7 @@ with tempfile.TemporaryDirectory() as directory:
             else:
                 log.seek(0)
                 raise AssertionError(log.read())
-            for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations']:
+            for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations', '/api/library/documents']:
                 assert request(path)[0] == 401
             assert b'account-form' in request('/admin')[1]  # anonymous redirect to login shell
             credentials = {'username': 'owner_one', 'password': 'AdministratorPass123!', 'invitation': invitations.create_invitation(database)}
@@ -124,7 +124,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/documents/' + str(document), {**metadata, 'subject_ids': [999]}, 'PATCH')[0] == 400
             assert write('/api/admin/documents/' + str(document), metadata, 'PATCH')[0] == 200
             assert request('/api/documents/' + str(document))[1]['subject_ids'] == [1, 3]
-            books = request('/api/admin/books')[1]['books']; assert len(books) == 19
+            books = request('/api/admin/books')[1]['books']; assert len(books) == 48
             book = next(book for book in books if book['id'] == 7)
             config = {'stage': '基础入门', 'prerequisites': 'Proofs', 'sort_order': 20, 'document_id': document}
             assert write('/api/admin/books/7', {**config, 'document_id': 999}, 'PUT')[0] == 404
@@ -135,6 +135,34 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/7')[1]['progress']['position'] == .3
             assert write('/api/admin/books/7', {**config, 'stage': '核心理论'}, 'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['stage'] == '核心理论'
+            library_path = '/api/library/documents/' + str(document)
+            assert request('/api/library/categories')[1]['modules'][0]['slug'] == 'mathematics'
+            assert len(request('/api/library/documents?direction=algebra')[1]['documents']) == 1
+            assert request('/api/library/documents?direction=discrete')[1]['documents'] == []
+            assert request('/api/library/documents?direction=invalid')[0] == 400
+            assert request(library_path)[1]['progress']['position'] == .3
+            assert request(library_path + '/progress', 'PUT', b'{}', {'Content-Type':'application/json'})[0] == 403
+            position = {'page': 2, 'total_pages': 3, 'position': .4, 'zoom': 1.5}
+            assert write(library_path + '/progress', position, 'PUT')[0] == 200
+            assert request('/api/learning/books/7')[1]['progress'] == position
+            annotation = {'page':2,'quote':'Shared highlight','note':'Personal note','color':'yellow','rects':[{'x':.1,'y':.1,'width':.2,'height':.03}]}
+            mark = write(library_path + '/annotations', annotation)[1]['id']
+            assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['id'] == mark
+            assert write('/api/learning/books/7/annotations/' + str(mark), {'note':'Updated'}, 'PATCH')[0] == 200
+            assert request(library_path + '/annotations')[1]['annotations'][0]['note'] == 'Updated'
+            recommendation = {**config, 'title':'中文推荐','authors':'Author','direction':'algebra','language':'zh','source_url':''}
+            assert write('/api/admin/books', {**recommendation,'direction':'discrete'})[0] == 400
+            added = write('/api/admin/books', recommendation); assert added[0] == 201
+            assert request('/api/learning/books/' + str(added[1]['id']))[1]['progress'] == position
+            classified = {**metadata,'module':'mathematics','language':'zh','directions':['algebra','analysis']}
+            assert write('/api/admin/documents/' + str(document), classified, 'PATCH')[0] == 409  # existing English binding
+            assert write('/api/auth/login', {'username':'invited_reader','password':credentials['password']})[0] == 200
+            assert request(library_path)[1]['progress'] is None
+            assert request(library_path + '/annotations')[1]['annotations'] == []
+            assert write(library_path + '/annotations/' + str(mark), {'note':'Steal'}, 'PATCH')[0] == 404
+            assert write(library_path + '/annotations/' + str(mark), {}, 'DELETE')[0] == 404
+            assert write('/api/auth/login', credentials)[0] == 200
+            assert write(library_path + '/annotations/' + str(mark), {}, 'DELETE')[0] == 200
             assert request('/api/documents', 'POST', pdf)[0] == 405
             roles.grant_admin('owner_one', database, revoke=True)
             assert request('/api/auth/me')[1]['user']['role'] == 'USER'

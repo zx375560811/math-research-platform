@@ -2,7 +2,8 @@ import { getDocument, GlobalWorkerOptions, TextLayer } from './vendor/pdfjs/pdf.
 GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
 const $ = id => document.getElementById(id);
 function el(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
-export function openReader(id, { api, write }) {
+export function openReader(id, { api, write, basePath = '/api/learning/books', backHref, backLabel = '← 返回教材' }) {
+  const endpoint = `${basePath}/${id}`;
   let closed = false, pdf = null, task = null, book = null, csrf = null;
   let pageNumber = 1, zoom = 1, marks = [], selection = null, saveTimer, resizeTimer, scrollFrame, zoomTimer, pendingZoom = null;
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
@@ -43,7 +44,7 @@ export function openReader(id, { api, write }) {
       while (desired) {
         const value = desired; desired = null; const json = JSON.stringify(value); if (json === saved) continue;
         if (!closed) $('reader-save-status').textContent = '正在保存阅读位置…';
-        await api(`/api/learning/books/${id}/progress`, { method: 'PUT', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token }, body: json });
+        await api(`${endpoint}/progress`, { method: 'PUT', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json', [csrf.header]: csrf.token }, body: json });
         saved = json; if (!closed) $('reader-save-status').textContent = '阅读位置已保存';
       }
     } catch (error) { if (!closed) { $('reader-save-status').textContent = '阅读位置未保存：' + errorText(error); $('reader-save-status').classList.add('save-error'); } }
@@ -95,8 +96,8 @@ export function openReader(id, { api, write }) {
       const quote = el('blockquote', '', mark.quote), note = el('textarea', 'annotation-note');
       note.value = drafts.get(mark.id) ?? mark.note; note.maxLength = 4000; note.rows = 3; note.setAttribute('aria-label', '高亮笔记'); note.placeholder = '写下你的理解…'; note.addEventListener('input', () => drafts.set(mark.id, note.value));
       const actions = el('div', 'annotation-actions'), save = el('button', 'button compact', '保存笔记'), remove = el('button', 'annotation-delete', '删除'); save.type = remove.type = 'button';
-      save.addEventListener('click', async () => { save.disabled = true; try { await write(`/api/learning/books/${id}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
-      remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`/api/learning/books/${id}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
+      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
+      remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
       actions.append(save, remove); row.append(jump, quote, note, actions); list.append(row);
     }
   }
@@ -244,7 +245,7 @@ export function openReader(id, { api, write }) {
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
       if (!selection) return; const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`/api/learning/books/${id}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(); paintHighlights(); selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(); paintHighlights(); selection = null; $('selection-tools').hidden = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
@@ -299,15 +300,15 @@ export function openReader(id, { api, write }) {
   on(window, 'pagehide', saveNow);
   const ready = (async () => {
     try {
-      book = await api(`/api/learning/books/${id}`); if (closed) return;
-      $('reader-title').textContent = book.title; $('reader-back').href = `#/apps/mathematics/directions/${book.direction}`;
+      book = await api(`${endpoint}`); if (closed) return;
+      $('reader-title').textContent = book.title; $('reader-back').href = backHref || `#/apps/mathematics/directions/${book.direction}`; $('reader-back').textContent = backLabel;
       if (!book.available) throw new Error('这本教材的 PDF 尚未接入，请先选择其他教材。');
       csrf = await api('/api/auth/csrf'); if (closed) return;
       task = getDocument({ url: book.file_url, withCredentials: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
       if (pdf.numPages > 100000) throw new Error('教材页数超出支持范围。');
       const first = await pdf.getPage(1); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
       $('reader-pages').textContent = String(pdf.numPages); $('reader-page').max = String(pdf.numPages);
-      marks = (await api(`/api/learning/books/${id}/annotations`)).annotations; if (closed) return;
+      marks = (await api(`${endpoint}/annotations`)).annotations; if (closed) return;
       notes(); zoom = book.progress?.zoom || 1; if (!Number.isFinite(zoom) || zoom < .25 || zoom > 4) zoom = 1; zoomControls();
       const fragment = document.createDocumentFragment();
       for (let number = 1; number <= pdf.numPages; number++) {

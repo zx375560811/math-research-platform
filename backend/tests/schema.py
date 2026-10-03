@@ -7,6 +7,14 @@ from pathlib import Path
 sql = (Path(__file__).resolve().parents[1] / 'src/main/resources/schema.sql').read_text(encoding='utf-8')
 with sqlite3.connect(':memory:') as db:
     db.executescript(sql)
+    db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))
+    assert db.execute('SELECT COUNT(*) FROM learning_books').fetchone()[0] == 48
+    coverage = db.execute("SELECT direction,stage,COALESCE(language,'en') FROM learning_books b LEFT JOIN learning_book_details d ON d.book_id=b.id").fetchall()
+    assert len(set(coverage)) == 8 * 3 * 2
+    db.execute("UPDATE learning_books SET title='管理员修改' WHERE id=7")
+    db.commit()
+    db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))
+    assert db.execute('SELECT title FROM learning_books WHERE id=7').fetchone()[0] == '管理员修改'
     assert db.execute('SELECT COUNT(*) FROM subjects').fetchone()[0] == 5
     db.execute("UPDATE subjects SET name = '代数研究' WHERE id = 1")
     db.commit()

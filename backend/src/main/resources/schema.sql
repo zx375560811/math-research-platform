@@ -60,4 +60,28 @@ CREATE INDEX IF NOT EXISTS idx_learning_marks_owner ON learning_marks(username,b
 CREATE TABLE IF NOT EXISTS learning_mark_rects (
 mark_id INTEGER NOT NULL REFERENCES learning_marks(id) ON DELETE CASCADE, position INTEGER NOT NULL,
 x REAL NOT NULL, y REAL NOT NULL, width REAL NOT NULL, height REAL NOT NULL, PRIMARY KEY(mark_id,position));
+CREATE TABLE IF NOT EXISTS document_catalog (
+document_id INTEGER PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+module TEXT NOT NULL DEFAULT 'mathematics', language TEXT NOT NULL DEFAULT 'und' CHECK(language IN ('zh','en','und')));
+CREATE TABLE IF NOT EXISTS document_directions (
+document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+direction TEXT NOT NULL REFERENCES learning_directions(slug), PRIMARY KEY(document_id,direction));
+CREATE TABLE IF NOT EXISTS learning_book_details (
+book_id INTEGER PRIMARY KEY REFERENCES learning_books(id) ON DELETE CASCADE,
+language TEXT NOT NULL DEFAULT 'en' CHECK(language IN ('zh','en')));
+CREATE TABLE IF NOT EXISTS document_progress (
+username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+page INTEGER NOT NULL CHECK(page>0), total_pages INTEGER NOT NULL CHECK(total_pages>=page),
+position REAL NOT NULL DEFAULT 0, zoom REAL NOT NULL DEFAULT 1,
+updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')), PRIMARY KEY(username,document_id));
+CREATE TABLE IF NOT EXISTS document_marks (
+id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE, page INTEGER NOT NULL CHECK(page>0),
+quote TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', color TEXT NOT NULL,
+created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
+CREATE INDEX IF NOT EXISTS idx_document_marks_owner ON document_marks(username,document_id);
+CREATE TABLE IF NOT EXISTS document_mark_rects (
+mark_id INTEGER NOT NULL REFERENCES document_marks(id) ON DELETE CASCADE, position INTEGER NOT NULL,
+x REAL NOT NULL, y REAL NOT NULL, width REAL NOT NULL, height REAL NOT NULL, PRIMARY KEY(mark_id,position));
 COMMIT;

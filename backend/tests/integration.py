@@ -108,7 +108,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert len(directions) == 8 and sum(d['featured'] for d in directions) == 3
             assert [d['slug'] for d in directions[:3]] == ['analysis','geometry-topology','algebra']
             algebra = request('/api/learning/directions/algebra')[1]
-            assert len(algebra['questions']) == 3 and [b['stage'] for b in algebra['books']] == ['基础入门','核心理论','进阶学习']
+            assert len(algebra['questions']) == 3 and len(algebra['books']) == 6 and {b['language'] for b in algebra['books']} == {'zh','en'}
             assert request('/api/learning/directions/unknown')[0] == 404
             assert request('/api/learning/books/7')[1]['available'] is False
             position = {'page':2,'total_pages':10,'position':.35,'zoom':1.25}
@@ -150,7 +150,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['note'] == 'Edited note'
             assert auth('/api/learning/books/7/annotations/'+str(mark_id),{},'DELETE')[0] == 200
             assert request('/api/learning/books/7/annotations')[1]['annotations'] == []
-            with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM learning_mark_rects').fetchone()[0] == 0
+            with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM document_mark_rects').fetchone()[0] == 0
             retained_mark = auth('/api/learning/books/7/annotations',mark)[1]['id']
             assert request('/api/documents')[1]['documents'][0]['id'] == 41
             assert request('/api/documents/41/file') == (200, pdf)
@@ -187,6 +187,15 @@ with tempfile.TemporaryDirectory() as directory:
             assert auth('/api/auth/login', credentials)[0] == 200
             assert request('/api/documents/41/file') == (200, pdf)
             process.terminate(); process.wait(timeout=10)
+            # Simulate upgrading the previous per-textbook reading schema.
+            with sqlite3.connect(root / 'data/math.db') as db:
+                db.execute("INSERT OR REPLACE INTO learning_progress SELECT username,7,page,total_pages,position,zoom,updated_at FROM document_progress WHERE document_id=41")
+                db.execute("INSERT OR REPLACE INTO learning_marks SELECT id,username,7,page,quote,note,color,created_at FROM document_marks WHERE document_id=41")
+                db.execute('INSERT OR REPLACE INTO learning_mark_rects SELECT * FROM document_mark_rects')
+                db.execute('DELETE FROM document_mark_rects')
+                db.execute('DELETE FROM document_marks')
+                db.execute('DELETE FROM document_progress')
+                db.execute("DELETE FROM account_migrations WHERE name='document_reading_v1'")
             process = subprocess.Popen(['java', '-jar', str(backend / 'target/math-server.jar')], cwd=root, env={**os.environ, 'MATH_PORT': str(port), 'MATH_WEB_DIR': str(backend.parent / 'frontend')}, stdout=log, stderr=log)
             for _ in range(300):
                 try:
@@ -202,6 +211,8 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents/41/file') == (200, pdf)
             assert request('/api/learning/books/7')[1]['progress'] == position
             assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['id'] == retained_mark
+            assert request('/api/library/documents/41')[1]['progress'] == position
+            assert request('/api/library/documents/41/annotations')[1]['annotations'][0]['rects'] == mark['rects']
 
         finally:
             os.chdir(previous); process.terminate(); process.wait(timeout=10)

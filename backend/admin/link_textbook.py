@@ -18,6 +18,9 @@ def link_textbook(book, document, database='data/math.db'):
         if not db.execute('SELECT 1 FROM documents WHERE id=?', (document,)).fetchone():
             raise ValueError('Unknown library document ID')
         db.execute('UPDATE learning_books SET document_id=? WHERE id=?', (document, book))
+        if db.execute("SELECT 1 FROM sqlite_master WHERE name='document_catalog'").fetchone():
+            db.execute('INSERT OR IGNORE INTO document_catalog(document_id) VALUES(?)', (document,))
+            db.execute('INSERT OR IGNORE INTO document_directions SELECT ?,direction FROM learning_books WHERE id=?', (document, book))
 
 
 if __name__ == '__main__':

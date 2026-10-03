@@ -13,7 +13,7 @@
   <a class="skip-link" href="#main-content">跳到主要内容</a>
   <aside class="sidebar">
     <a class="brand" href="#/"><span class="brand-mark" aria-hidden="true">𝓜</span><span>云数学<small>数学研究平台</small></span></a>
-    <nav aria-label="工作空间导航"><a href="#/" id="home-link" class="workspace-link"><span data-icon="workspace" aria-hidden="true"></span>应用工作台</a><p class="nav-heading">应用模块</p><div class="subject-nav"><a id="math-app-link" href="#/apps/mathematics"><span data-icon="compass" aria-hidden="true"></span>数学与应用数学</a></div></nav>
+    <nav aria-label="工作空间导航"><a href="#/" id="home-link" class="workspace-link"><span data-icon="workspace" aria-hidden="true"></span>应用工作台</a><p class="nav-heading">应用模块</p><div class="subject-nav"><a id="library-link" href="#/library"><span data-icon="workspace" aria-hidden="true"></span>文档库</a><a id="math-app-link" href="#/apps/mathematics"><span data-icon="compass" aria-hidden="true"></span>数学与应用数学</a></div></nav>
     <div class="sidebar-future"><span class="small-mark" data-icon="spark" aria-hidden="true"></span><strong>更多研究应用</strong><p>AI 文献助手与扩展模块<br>将在后续加入。</p></div>
     <a id="admin-link" class="workspace-link" href="#/admin" hidden>管理平台</a><div class="sidebar-foot">从研究内容出发</div>
   </aside>
@@ -38,11 +38,16 @@
         </div>
         <section class="applications-section" aria-labelledby="applications-title">
           <div class="section-heading"><h2 id="applications-title">应用模块</h2><span class="section-description">选择应用，开始探索</span></div>
-          <div class="application-grid">
+          <div class="application-grid"><a class="application-card library-application" href="#/library"><span data-icon="workspace" aria-hidden="true"></span><h2>文档库</h2><p>按模块和方向浏览收录的文献，在同一个阅读器中保存进度与理解。</p><span class="application-action">进入文档库</span><span class="application-notation" aria-hidden="true">Σ</span></a>
             <a class="application-card" href="#/apps/mathematics"><span data-icon="compass" aria-hidden="true"></span><h2>数学与应用数学</h2><p>从主要问题出发，循序阅读教材，保存你的理解与思考。</p><span class="application-action">进入应用 <span data-icon="forward" aria-hidden="true"></span></span><span class="application-notation" aria-hidden="true">∫</span></a>
             <div class="application-planned"><span data-icon="spark" aria-hidden="true"></span><h2>后续研发应用</h2><p>在已有研究内容上，逐步加入新的专业应用与 AI 辅助功能。</p><span class="pill">规划中</span></div>
           </div>
         </section>
+      </section>
+      <section id="library-view" hidden aria-labelledby="library-title">
+        <div class="module-heading"><div><h1 id="library-title">文档库</h1><p>按应用模块与研究方向，阅读平台收录的全部文献。</p></div></div>
+        <form id="library-filter" class="library-filter"><label>应用模块<select id="library-module"><option value="">所有模块</option></select></label><label>研究方向<select id="library-direction"><option value="">所有方向</option></select></label><label>语种<select id="library-language"><option value="">全部语种</option><option value="zh">中文</option><option value="en">英文</option><option value="und">未标注</option></select></label><label class="library-search">搜索<input id="library-query" placeholder="文献标题或作者" maxlength="200"></label><button class="button primary" type="submit">搜索</button></form>
+        <p id="library-status" role="status" aria-live="polite"></p><div id="library-documents"></div><div class="library-pagination"><button id="library-prev" class="button">上一页</button><span id="library-page"></span><button id="library-next" class="button">下一页</button><button id="library-retry" class="button">刷新</button></div>
       </section>
       <section id="module-view" hidden>
         <a class="back-link" href="#/"><span data-icon="back" aria-hidden="true"></span>返回应用工作台</a>
@@ -56,7 +61,7 @@
           <a href="#/apps/mathematics" class="back-link">← 全部研究方向</a>
           <div class="direction-heading"><div><h2 id="direction-title"></h2><p id="direction-description" class="muted"></p></div><span id="direction-symbol" class="direction-symbol" aria-hidden="true"></span></div>
           <section class="questions-section" aria-labelledby="questions-title"><h2 id="questions-title">这个方向要解决什么？</h2><ol id="direction-questions" class="big-questions"></ol></section>
-          <section aria-labelledby="textbooks-title"><div class="section-heading"><h2 id="textbooks-title">递进教材</h2><span class="muted">按基础选择起点</span></div><p class="muted textbook-context">先从这一条学习线开始；教材阶段表示推荐顺序，不代表必须读完上一册。</p><div id="textbook-list" class="textbook-list"></div></section>
+          <section aria-labelledby="textbooks-title"><div class="section-heading"><h2 id="textbooks-title">递进教材</h2><span class="muted">按基础选择起点</span></div><p class="muted textbook-context">每个阶段可选择中文或英文教材；推荐是并行选择，不要求两种语言都读。</p><a id="direction-library" class="direction-library-link" href="#/library">从本方向文档库选取文献阅读</a><div id="textbook-list" class="textbook-list"></div></section>
         </section>
         <p id="learning-status" class="list-status" role="status"></p><button id="retry-learning" class="button" hidden>重新加载</button>
       </section>

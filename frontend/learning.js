@@ -26,8 +26,8 @@ function diagram(slug) {
   const art = el('div', 'direction-art'); art.append(svg); return art;
 }
 export function createLearning({ api, write }) {
-  let directions = [], generation = 0, stopReader = null, current = '';
-  function close() { ++generation; if (stopReader) stopReader(); stopReader = null; $('reader-view').hidden = true; document.body.classList.remove('reading-page'); }
+  let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
+  function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function loadDirections() {
     directions = (await api('/api/learning/directions')).directions;
     $('featured-directions').replaceChildren(); $('more-directions').replaceChildren();
@@ -42,6 +42,7 @@ export function createLearning({ api, write }) {
     close(); current = hash; const version = generation;
     $('learning-status').textContent = ''; $('retry-learning').hidden = true;
     const reading = hash.match(/^#\/apps\/mathematics\/read\/(\d+)$/);
+    ownsReader = !!reading;
     const detail = hash.match(/^#\/apps\/mathematics\/directions\/([a-z-]+)$/);
     $('reader-view').hidden = !reading; $('module-view').hidden = !!reading;
     $('direction-overview').hidden = !!detail; $('direction-detail').hidden = !detail;
@@ -58,14 +59,28 @@ export function createLearning({ api, write }) {
         $('direction-title').textContent = direction.name; $('direction-description').textContent = direction.description;
         $('direction-symbol').textContent = symbols[direction.slug] || 'ℳ';
         for (const question of direction.questions) $('direction-questions').append(el('li', '', question));
-        for (const [i, book] of direction.books.entries()) {
+        function renderBook(target, book, i) {
           const row = el('article', 'textbook-row'); const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
           const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', '需要基础：' + book.prerequisites));
           const actions = el('div', 'textbook-actions');
           if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; actions.append(link); }
           else actions.append(el('span', 'book-unavailable', 'PDF 待接入'));
-          const source = el('a', 'book-source', '教材信息 ↗'); source.href = book.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer'; actions.append(source);
-          row.append(spine, info, actions); $('textbook-list').append(row);
+          const source = el('a', 'book-source', '教材信息 ↗'); source.href = book.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer'; if (book.source_url) actions.append(source);
+          row.append(spine, info, actions); target.append(row);
+        }
+        $('direction-library').href = '#/library?module=mathematics&direction=' + direction.slug;
+        for (const [index, stage] of ['基础入门', '核心理论', '进阶学习'].entries()) {
+          const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
+          const heading = el('div', 'stage-heading'); heading.append(el('span', 'stage-number', String(index + 1)), el('h3', '', stage)); section.append(heading);
+          const columns = el('div', 'recommendation-columns');
+          for (const [language, label] of [['zh', '中文推荐'], ['en', '英文推荐']]) {
+            const group = el('section', 'recommendation-language'); group.dataset.language = language; group.append(el('h4', '', label));
+            const books = direction.books.filter(book => book.stage === stage && (book.language || 'en') === language);
+            books.forEach((book, i) => renderBook(group, book, i));
+            if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐，管理员可从本方向文献库中添加。'));
+            columns.append(group);
+          }
+          section.append(columns); $('textbook-list').append(section);
         }
       } else if (!directions.length) await loadDirections();
     } catch (error) {

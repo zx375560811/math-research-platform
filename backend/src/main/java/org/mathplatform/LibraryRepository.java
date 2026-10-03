@@ -46,6 +46,22 @@ public class LibraryRepository {
                 if (applied == 1) statement.executeUpdate("DELETE FROM users");
                 statement.execute("COMMIT");
             } catch (SQLException failure) { statement.execute("ROLLBACK"); throw failure; }
+            statement.execute("INSERT OR IGNORE INTO document_catalog(document_id) SELECT id FROM documents");
+            statement.execute("BEGIN IMMEDIATE");
+            try {
+                if (statement.executeUpdate("INSERT OR IGNORE INTO account_migrations(name) VALUES('library_catalog_v1')") == 1) {
+                    statement.execute("INSERT OR IGNORE INTO document_directions SELECT ds.document_id,d.slug FROM document_subjects ds JOIN subjects s ON s.id=ds.subject_id JOIN learning_directions d ON d.slug=s.slug");
+                    statement.execute("INSERT OR IGNORE INTO document_directions SELECT document_id,direction FROM learning_books WHERE document_id IS NOT NULL");
+                    statement.execute("UPDATE document_catalog SET language='en' WHERE document_id IN(SELECT document_id FROM learning_books WHERE document_id IS NOT NULL)");
+                }
+                if (statement.executeUpdate("INSERT OR IGNORE INTO account_migrations(name) VALUES('document_reading_v1')") == 1) {
+                    // If multiple old textbook entries share a PDF, retain the most recent position.
+                    statement.execute("INSERT OR REPLACE INTO document_progress SELECT p.username,b.document_id,p.page,p.total_pages,p.position,p.zoom,p.updated_at FROM learning_progress p JOIN learning_books b ON b.id=p.book_id WHERE b.document_id IS NOT NULL ORDER BY p.updated_at,p.book_id");
+                    statement.execute("INSERT INTO document_marks(id,username,document_id,page,quote,note,color,created_at) SELECT m.id,m.username,b.document_id,m.page,m.quote,m.note,m.color,m.created_at FROM learning_marks m JOIN learning_books b ON b.id=m.book_id WHERE b.document_id IS NOT NULL");
+                    statement.execute("INSERT INTO document_mark_rects SELECT r.* FROM learning_mark_rects r JOIN document_marks m ON m.id=r.mark_id");
+                }
+                statement.execute("COMMIT");
+            } catch (SQLException failure) { statement.execute("ROLLBACK"); throw failure; }
         }
     }
 
@@ -85,6 +101,14 @@ public class LibraryRepository {
             try (var rows = links.executeQuery()) { while (rows.next()) subjects.add(rows.getLong(1)); }
         }
         value.put("subject_ids", subjects);
+        try (var query = connection.prepareStatement("SELECT module,language FROM document_catalog WHERE document_id=?")) {
+            query.setLong(1, id); try (var row = query.executeQuery()) { boolean found = row.next(); value.put("module", found ? row.getString(1) : "mathematics"); value.put("language", found ? row.getString(2) : "und"); }
+        }
+        List<String> directions = new ArrayList<>();
+        try (var query = connection.prepareStatement("SELECT direction FROM document_directions WHERE document_id=? ORDER BY direction")) {
+            query.setLong(1, id); try (var rows = query.executeQuery()) { while (rows.next()) directions.add(rows.getString(1)); }
+        }
+        value.put("directions", directions);
         return value;
     }
 

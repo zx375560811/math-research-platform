@@ -49,6 +49,9 @@ def import_document(source, title, authors, subject, database='data/math.db'):
             cursor = db.execute('INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)', (title, authors, stored, size))
             doc_id = cursor.lastrowid
             db.execute('INSERT INTO document_subjects(document_id,subject_id) VALUES(?,?)', (doc_id, subject))
+            if db.execute("SELECT 1 FROM sqlite_master WHERE name='document_catalog'").fetchone():
+                db.execute('INSERT INTO document_catalog(document_id) VALUES(?)', (doc_id,))
+                db.execute('INSERT OR IGNORE INTO document_directions SELECT ?,d.slug FROM subjects s JOIN learning_directions d ON d.slug=s.slug WHERE s.id=?', (doc_id, subject))
             db.commit()
             committed = True
             return {'id': doc_id, 'file_url': '/api/documents/{}/file'.format(doc_id)}

@@ -19,7 +19,7 @@ runuser -u math-platform -- python3 admin/grant_admin.py YOUR_USERNAME --revoke
 
 管理员资格保存在独立 `administrators` 表，保留原 users 结构；邀请码撤销记录独立保存，注册事务会拒绝已撤销码。邀请码完整值仅生成时显示，数据库只存 SHA-256 哈希。撤销未使用码不会删除已注册账号。
 
-教材设置填写文献库编号，保存后学习模块自动使用对应 `/api/documents/{id}/file`。已关联教材禁止改绑/解绑，以保护个人进度与标注；标题等文献元数据仍可编辑。当前后台配置已有教材目录，新增教材和研究方向仍通过目录维护。
+教材设置选择方向、阶段与推荐语种，通过文献搜索框选择本方向的中文、英文或尚未标注语种的 PDF，保存后学习模块自动使用对应 `/api/documents/{id}/file`。文献可属于多个方向；已标注语种必须与推荐语种匹配。已关联教材禁止改绑/解绑，以保护个人进度与标注；标题等文献元数据仍可编辑。后台可修改推荐名称、作者、信息链接和学习排序，也可从文献库新增推荐；新增研究方向仍通过目录维护。
 
 | 方法 | 管理地址 | 用途 |
 | --- | --- | --- |
@@ -27,7 +27,7 @@ runuser -u math-platform -- python3 admin/grant_admin.py YOUR_USERNAME --revoke
 | POST | /api/admin/documents?title=...&authors=...&subject_id=1 | 原始 PDF 请求体，Content-Type: application/pdf |
 | PATCH | /api/admin/documents/{id} | JSON: title、authors、subject_ids |
 | GET | /api/admin/books | 教材与关联状态 |
-| PUT | /api/admin/books/{id} | JSON: stage、prerequisites、sort_order、document_id |
+| POST / PUT | /api/admin/books、/api/admin/books/{id} | JSON: direction、language（zh/en）、title、authors、source_url、stage、prerequisites、sort_order、document_id |
 | GET | /api/admin/invitations?offset=0 | 分页使用记录，无明文邀请码 |
 | POST | /api/admin/invitations | JSON: days（1–365），返回一次性明文 |
 | POST | /api/admin/invitations/{hash}/revoke | 撤销未使用码 |
@@ -141,9 +141,9 @@ python3 admin/create_invitation.py
 
 ### 数学与应用数学学习模块
 
-入口突出分析、几何与拓扑、代数，保留另外五个方向。每个方向只展示核心大问题和按阶段排列的推荐教材。教材目录保存在 `learning_books`，通过 `document_id` 关联共享文献库；研究论文不会自动变成教材。初始推荐覆盖各方向的一条学习线，并非该方向的全部分支。
+入口突出分析、几何与拓扑、代数，保留另外五个方向。每个方向先展示核心大问题，再展示基础入门、核心理论、进阶学习三个阶段，每阶段并排展示中文与英文推荐。初始目录含 48 条推荐；仅提供教材信息，未接入的 PDF 明确标注待接入。中英文是分别推荐，未必为互译版本；阶段划分可由管理员调整。教材目录保存在 `learning_books`，通过 `document_id` 关联共享文献库；研究论文不会自动变成教材。初始推荐覆盖各方向的一条学习线，并非该方向的全部分支。
 
-PDF.js 5.6.205 本地托管，提供连续滚动、目录、页码、缩放、选中文字高亮及高亮笔记。缩放可输入 25%–400% 的整数百分比，也支持加减按钮、适合宽度与 Ctrl/Command 滚轮；100% 对应当前阅读区域的适合宽度，进度接口中的 `zoom` 为 0.25–4 的倍率。扫描页无文字层时明确提示，当前不自动 OCR。位置按账号和教材保存，包括页码、页内滚动位置及缩放；阅读位置不等于知识掌握程度。高亮用页面归一化矩形保存，缩放后仍定位。个人进度与标注在 SQLite 中保存，同账号跨设备可继续阅读；原 PDF 不修改。
+PDF.js 5.6.205 本地托管，提供连续滚动、目录、页码、缩放、选中文字高亮及高亮笔记。缩放可输入 25%–400% 的整数百分比，也支持加减按钮、适合宽度与 Ctrl/Command 滚轮；100% 对应当前阅读区域的适合宽度，进度接口中的 `zoom` 为 0.25–4 的倍率。扫描页无文字层时明确提示，当前不自动 OCR。位置按账号和文献保存，包括页码、页内滚动位置及缩放；阅读位置不等于知识掌握程度。高亮用页面归一化矩形保存，缩放后仍定位。个人进度与标注在 SQLite 中保存，同账号跨设备可继续阅读；原 PDF 不修改。
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
@@ -173,3 +173,20 @@ runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返
 ```
 
 可在服务器用 sqlite3/Python 查询 `SELECT id,title,document_id FROM learning_books` 获取教材 ID。绑定后用户看到“开始学习”，无 PDF 时显示“PDF 待接入”。已有绑定禁止换成不同文献，避免旧进度和标注错位。
+
+## 文档库与共用阅读记录
+
+用户工作台的“文档库”提供模块、方向（含尚未分类）、语种与标题/作者搜索，以及每页 20 条的分页。当前应用模块为数学与应用数学，覆盖八个方向；后续模块需新增对应分类支持。普通文献与教材共用 PDF.js 阅读器及个人数据，推荐教材绑定同一 PDF 时也共用记录。
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | /api/library/categories | 模块与方向 |
+| GET | /api/library/documents | module、direction、language、q、offset 筛选 |
+| GET | /api/library/documents/{id} | 文献与当前用户的进度 |
+| PUT | /api/library/documents/{id}/progress | 保存个人位置，字段与学习接口一致 |
+| GET / POST | /api/library/documents/{id}/annotations | 个人高亮列表 / 创建 |
+| PATCH / DELETE | /api/library/documents/{id}/annotations/{mark} | 修改个人笔记 / 删除 |
+
+管理员上传和编辑文献支持 module（当前 mathematics）、language（zh/en/und）和 directions（方向 slug 数组；上传为重复查询参数）。绑定教材后不能去掉教材所需的方向，也不能改为不匹配语种。
+
+启动执行一次性事务迁移：按旧分类和教材关联补充方向，将旧教材阅读进度、高亮及坐标迁入文献记录。多个旧教材关联同一 PDF 时保留最近进度并合并高亮。迁移保留原表与管理员已有配置，重复启动不重置个人数据。此前目录是英文推荐，旧关联教材的 PDF 初始标记为英文；其他文献标记为尚未标注语种，管理员可补充分类。

@@ -1,5 +1,6 @@
 import { mountIcons } from './icons.js';
 import { createLearning } from './learning.js';
+import { createLibrary } from './library.js';
 const $ = id => document.getElementById(id);
 const state = { generation: 0, user: null, ready: false, returnTo: '#/', authBusy: false };
 mountIcons();
@@ -23,24 +24,25 @@ function accountDisplay() {
 }
 function friendly(error) { return error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message; }
 const learning = createLearning({ api, write: authPost });
+const library = createLibrary({ api, write: authPost });
 function route() {
-  if (!state.ready) { document.body.classList.add('auth-page'); $('home-view').hidden = true; $('module-view').hidden = true; $('auth-view').hidden = true; $('reader-view').hidden = true; return; }
+  if (!state.ready) { document.body.classList.add('auth-page'); $('library-view').hidden = true; $('home-view').hidden = true; $('module-view').hidden = true; $('auth-view').hidden = true; $('reader-view').hidden = true; return; }
   ++state.generation;
-  const inApp = location.hash.startsWith('#/apps/mathematics');
+  const inApp = location.hash.startsWith('#/apps/mathematics'); const inLibrary = location.hash.startsWith('#/library');
   if (!state.user && !['#/login', '#/register'].includes(location.hash)) { state.returnTo = location.hash || '#/'; location.replace('#/login'); route(); return; }
   if (location.hash === '#/admin' && state.user) { if (state.user.role === 'ADMIN') { location.replace('/admin'); return; } $('notice').textContent = '此账号没有管理员权限。'; $('notice').hidden = false; location.replace('#/'); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
   document.body.classList.toggle('auth-page', inAuth);
-  $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inAuth; $('module-view').hidden = !inApp;
+  $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inLibrary || inAuth; $('library-view').hidden = !inLibrary || inAuth; $('module-view').hidden = !inApp;
   $('auth-title').textContent = registering ? '注册云数学账号' : '登录云数学'; $('account-submit').textContent = registering ? '注册账号' : '登录';
   $('invitation-label').hidden = !registering; $('account-invitation').hidden = !registering; $('account-invitation').required = registering;
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
   $('account-password').autocomplete = registering ? 'new-password' : 'current-password'; $('account-password').minLength = registering ? 12 : 1;
   $('login-tab').classList.toggle('active', !registering); $('register-tab').classList.toggle('active', registering);
-  $('breadcrumb').textContent = inApp ? '数学与应用数学' : '应用工作台';
-  for (const [id, active] of [['home-link', !inApp], ['math-app-link', inApp]]) { $(id).classList.toggle('active', active); if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); }
-  document.title = inAuth ? `${registering ? '注册' : '登录'} · 云数学` : inApp ? '数学与应用数学 · 云数学' : '云数学 · 数学研究平台';
-  if (inApp && state.user) learning.navigate(location.hash); else learning.close();
+  $('breadcrumb').textContent = inLibrary ? '文档库' : inApp ? '数学与应用数学' : '应用工作台';
+  for (const [id, active] of [['home-link', !inApp && !inLibrary], ['library-link', inLibrary], ['math-app-link', inApp]]) { $(id).classList.toggle('active', active); if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); }
+  document.title = inAuth ? `${registering ? '注册' : '登录'} · 云数学` : inLibrary ? '文档库 · 云数学' : inApp ? '数学与应用数学 · 云数学' : '云数学 · 数学研究平台';
+  if (inLibrary && state.user) { learning.close(); library.navigate(location.hash); } else { library.close(); if (inApp && state.user) learning.navigate(location.hash); else learning.close(); }
   window.scrollTo(0, 0);
 }
 async function loadDirections() { try { await learning.loadDirections(); } catch { $('notice').textContent = '研究方向加载失败，请进入模块后重试。'; $('notice').hidden = false; } }
@@ -67,7 +69,7 @@ $('account-form').addEventListener('submit', async event => {
 });
 $('logout-button').addEventListener('click', async () => {
   $('logout-button').disabled = true;
-  try { await authPost('/api/auth/logout'); state.user = null; ++state.generation; learning.close(); accountDisplay(); location.hash = '#/login'; route(); }
+  try { await authPost('/api/auth/logout'); state.user = null; ++state.generation; learning.close(); library.close(); accountDisplay(); location.hash = '#/login'; route(); }
   catch (error) { $('notice').textContent = friendly(error); $('notice').hidden = false; }
   finally { $('logout-button').disabled = false; }
 });
