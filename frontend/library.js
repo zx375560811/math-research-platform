@@ -16,8 +16,8 @@ export function createLibrary({ api, write }) {
       const body = await api('/api/library/documents?' + params); if (version !== generation) return;
       const list = $('library-documents'); list.replaceChildren(); const names = new Map(categories.flatMap(module => module.directions).map(direction => [direction.slug, direction.name]));
       for (const doc of body.documents) {
-        const row = el('article', null, 'library-document'), info = el('div', null, 'library-document-info'); info.append(el('h2', doc.title), el('p', doc.authors || '作者未填写')); const language=el('span',languages[doc.language] || '语种未标注','document-language'), direction=el('p',(doc.directions || []).map(slug => names.get(slug) || slug).join('、') || '尚未分类','document-directions');
-        const link = el('a', doc.progress ? `继续阅读 · 第 ${doc.progress.page} 页` : '开始阅读', 'button primary'); link.href = `#/library/read/${doc.id}?${filterUrl()}`; link.dataset.document = doc.id; const type=el('span','PDF','document-filetype'); type.setAttribute('aria-label','PDF 文档'); row.append(type,info,direction,language,link); list.append(row);
+        const row = el('article', null, 'library-document'), info = el('div', null, 'library-document-info'); info.append(el('span', languages[doc.language] || '语种未标注', 'document-language'), el('h2', doc.title), el('p', doc.authors || '作者未填写'), el('p', (doc.directions || []).map(slug => names.get(slug) || slug).join('、') || '尚未分类', 'document-directions'));
+        const link = el('a', doc.progress ? `继续阅读 · 第 ${doc.progress.page} 页` : '开始阅读', 'button primary'); link.href = `#/library/read/${doc.id}?${filterUrl()}`; link.dataset.document = doc.id; row.append(info, link); list.append(row);
       }
       $('library-status').textContent = body.documents.length ? '' : '此分类暂无文献，可切换分类或搜索其他关键词。';
       $('library-prev').disabled = offset === 0; $('library-next').disabled = body.documents.length < 20; $('library-page').textContent = `第 ${offset / 20 + 1} 页`;

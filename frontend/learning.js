@@ -30,14 +30,10 @@ export function createLearning({ api, write }) {
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function loadDirections() {
     directions = (await api('/api/learning/directions')).directions;
-    $('featured-directions').replaceChildren(); $('more-directions').replaceChildren(); $('home-directions').replaceChildren();
+    $('featured-directions').replaceChildren(); $('more-directions').replaceChildren();
     for (const direction of directions) {
       const link = el('a', direction.featured ? 'direction-card' : 'direction-small', ''); link.href = `#/apps/mathematics/directions/${direction.slug}`; link.dataset.direction = direction.slug;
-      if (direction.featured) {
-        link.append(diagram(direction.slug), el('h3', '', direction.name), el('p', '', direction.description), el('span', 'direction-enter', '进入方向'));
-        const homeLink=el('a','home-direction'); homeLink.href=link.href; homeLink.dataset.homeDirection=direction.slug;
-        homeLink.append(diagram(direction.slug),el('strong','',direction.name),el('span','',direction.description)); $('home-directions').append(homeLink);
-      }
+      if (direction.featured) { link.append(diagram(direction.slug), el('h3', '', direction.name), el('p', '', direction.description), el('span', 'direction-enter', '进入方向')); }
       else link.append(el('strong', '', direction.name));
       $(direction.featured ? 'featured-directions' : 'more-directions').append(link);
     }
