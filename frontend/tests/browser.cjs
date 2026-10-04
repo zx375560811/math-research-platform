@@ -199,6 +199,25 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(previous=>document.querySelector('#library-link path').getAttribute('d')!==previous,duringMorph);
     await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'workspace');
 
+    const mathCases = await page.evaluate(async () => {
+      const {renderAnswer}=await import('/richtext.js');
+      const inputs=[
+        String.raw`行内 $x_n^2$ 与 \(\frac{1}{2}\)`,
+        String.raw`\[\sum_{n=1}^{\infty}\frac1{n^2}\]`,
+        String.raw`\begin{align}x&=1\\y&=2\end{align}`,
+        '```latex\n\\frac{S_n}{n}=\\frac12+\\frac{3}{2n}\n```',
+        String.raw`| 公式 | 含义 |
+| --- | --- |
+| $\left|x\right|$ | 绝对值 |`,
+        '[\n\\frac{S_n}{n}\n\\approx\n\\frac{3+(n-3)/2}{n}\n\\frac12+\\frac{3}{2n}.\n]',
+        '`$x$`\n\n```js\nconst cost = "$5";\n```\n\n[普通文字]\n\n\\$5'
+      ];
+      inputs.push(inputs[5].replaceAll('\n', '\r\n'));
+      return inputs.map(text=>{const node=renderAnswer(text);return {formulas:node.querySelectorAll('.katex').length,errors:node.querySelectorAll('.katex-error').length,cells:node.querySelectorAll('td').length,code:node.querySelectorAll('code').length,text:node.textContent};});
+    });
+    assert.deepEqual(mathCases.map(row=>row.formulas),[2,1,1,1,1,1,0,1]);
+    assert.ok(mathCases.every(row=>row.errors===0));assert.equal(mathCases[4].cells,2);
+    assert.equal(mathCases[6].code,2);assert.match(mathCases[6].text,/\[普通文字\]/);
     await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
