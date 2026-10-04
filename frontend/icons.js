@@ -2,6 +2,11 @@ import { createMorph } from './vendor/morphicons/dom.js';
 
 // Original 24×24 stroke artwork; Morphicons supplies the transition engine.
 export const paths = {
+  fit: 'M3 5V19M21 5V19M6 12H18M9 9L6 12L9 15M15 9L18 12L15 15',
+  expand: 'M3 9V3H9M15 3H21V9M21 15V21H15M9 21H3V15',
+  settings: 'M4 6H20M4 12H20M4 18H20M8 3V9M16 9V15M10 15V21',
+  send: 'M3 4L21 12L3 20L6 12ZM6 12H21',
+  chat: 'M4 4H20V17H10L4 21ZM8 8H16M8 12H14',
   workspace: 'M3 3H10V10H3ZM14 3H21V10H14ZM3 14H10V21H3ZM14 14H21V21H14Z',
   algebra: 'M12 3L20 7.5V16.5L12 21L4 16.5V7.5ZM4 7.5L12 12L20 7.5M12 12V21',
   number: 'M9 3L6 21M17 3L14 21M4 8H21M3 16H20',
@@ -39,7 +44,7 @@ export function mountIcons() {
     if (host.querySelector('svg')) continue;
     const initial = host.dataset.icon; host.append(icon(initial));
     const target = host.closest('a,button');
-    const active = { workspace:'book', compass:'algebra', forward:'check' }[initial];
+    const active = { workspace:'book', compass:'algebra', forward:'check', book:'file', fit:'expand', expand:'fit', settings:'refresh', refresh:'check', send:'check', spark:'chat' }[initial];
     if (!target || !active) continue;
     let hovered = false;
     const update = () => changeIcon(host, hovered || target.matches(':focus-visible') ? active : initial);

@@ -40,7 +40,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     $('ai-clear-key').disabled = busy || saving || !config?.custom.has_key;
     $('ai-clear').disabled = busy || !history.length;
     $('ai-question').disabled = busy;
-    $('ai-send').textContent = busy ? '正在思考…' : '发送';
+    $('ai-send-label').textContent = busy ? '正在思考…' : '发送';
     $('ai-provider-label').textContent = provider?.available ? provider.model : '尚未配置';
     $('ai-source').title = provider?.available ? `当前模型：${provider.model}` : '选择 API 来源';
   }

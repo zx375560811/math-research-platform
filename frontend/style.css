@@ -339,3 +339,11 @@ body.reading-page { overflow:hidden; }
 .reader-ai-pane { padding-bottom:0; }
 .reader-ai-pane .ai-chat-form { margin-bottom:0;border-bottom-color:var(--line);border-bottom-left-radius:8px;border-bottom-right-radius:8px; }
 .reader-ai-pane .ai-status { margin:4px 0; }
+
+.reader-ai-pane>.reader-panel-heading h2 { padding:3px 9px;border:1px solid #d8e1fa;border-radius:7px;background:var(--soft-blue);color:#3655c2;font-size:16px;line-height:1.5; }
+.reader-heading-actions .button,.ai-heading-actions .button,.ai-compose-foot .button { display:inline-flex;align-items:center;justify-content:center;gap:4px; }
+.reader-heading-actions .icon,.ai-heading-actions .icon,.ai-compose-foot .icon { width:15px;height:15px; }
+.ai-compose-foot .button { font-size:14px; }
+.ai-compose-foot .button>span { color:inherit;font:inherit; }
+@container(max-width:250px) { .ai-compose-foot .icon { width:13px;height:13px; } }
+@media(max-width:650px) { .reader-heading-actions .button { gap:2px;padding:3px 4px; }.reader-heading-actions .icon { width:13px;height:13px; } }
