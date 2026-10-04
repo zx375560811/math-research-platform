@@ -55,7 +55,7 @@ public class LearningRepository {
         value.put("id", row.getLong("id"));
         for (String key : List.of("direction", "title", "authors", "stage", "prerequisites", "source_url", "language")) value.put(key, row.getString(key));
         long selected = row.getLong("selected_document_id"); value.put("selected_document_id", selected == 0 ? null : selected);
-        if (selected != 0) { value.put("title", row.getString("selected_title")); value.put("authors", row.getString("selected_authors")); value.put("source_url", ""); }
+        if (selected != 0) { value.put("title", LibraryRepository.displayTitle(row.getString("selected_title"))); value.put("authors", row.getString("selected_authors")); value.put("source_url", ""); }
         long document = row.getLong("effective_document_id"); value.put("available", document != 0);
         value.put("file_url", document == 0 ? null : "/api/documents/" + document + "/file");
         value.put("format", document == 0 ? "pdf" : database.format(document));

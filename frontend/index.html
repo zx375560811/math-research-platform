@@ -52,11 +52,10 @@
             <div id="library-breadcrumbs" class="library-breadcrumbs" aria-label="当前目录"></div>
             <form id="library-filter" class="library-filter">
               <label class="library-search"><span class="sr-only">搜索文献</span><input id="library-query" placeholder="在当前目录搜索标题或作者" maxlength="200"></label><button class="button primary" type="submit">搜索</button>
-              <label class="library-language-label"><span class="sr-only">语种</span><select id="library-language"><option value="">全部语种</option><option value="zh">中文</option><option value="en">英文</option><option value="und">未标注</option></select></label>
               <details class="library-extra-filters"><summary>筛选</summary><div><label>应用模块<select id="library-module"><option value="">所有模块</option></select></label><label>研究方向<select id="library-direction"><option value="">所有方向</option></select></label></div></details>
             </form>
             <p id="library-status" role="status" aria-live="polite"></p>
-            <div class="library-table-scroll"><table class="library-table"><thead><tr><th scope="col">文献名称</th><th scope="col" class="library-author-column">作者</th><th scope="col">格式</th><th scope="col" class="library-language-column">语种</th><th scope="col"><span class="sr-only">阅读</span></th></tr></thead><tbody id="library-documents"></tbody></table></div>
+            <div class="library-table-scroll"><table class="library-table"><thead><tr><th scope="col">文献名称</th><th scope="col" class="library-author-column">作者</th><th scope="col">格式</th><th scope="col"><span class="sr-only">阅读</span></th></tr></thead><tbody id="library-documents"></tbody></table></div>
             <div class="library-pagination"><button id="library-prev" class="button">上一页</button><span id="library-page"></span><button id="library-next" class="button">下一页</button><button id="library-retry" class="button">刷新</button></div>
           </div>
         </div>

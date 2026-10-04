@@ -640,7 +640,7 @@ input,select,textarea { accent-color:var(--blue); }
 .library-table-scroll { min-height:0;flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:#bdc9db transparent; }
 .library-table { border-collapse:collapse;table-layout:fixed;width:100%;text-align:left;font-size:15px;line-height:1.5; }
 .library-table th { position:sticky;top:0;background:#f7f9fd;color:#526580;font-weight:500;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px; }
-.library-table th:nth-child(2) { width:22%; }.library-table th:nth-child(3) { width:64px; }.library-table th:nth-child(4) { width:70px; }.library-table th:last-child { width:140px; }
+.library-table th:nth-child(2) { width:22%; }.library-table th:nth-child(3) { width:64px; }.library-table th:last-child { width:140px; }
 #library-view #library-documents { border:0;border-radius:0;background:transparent;overflow:visible; }
 #library-view .library-document { display:table-row;padding:0;border:0; }
 .library-table td { padding:12px;border-bottom:1px solid #edf0f5;vertical-align:middle; }
@@ -658,7 +658,7 @@ input,select,textarea { accent-color:var(--blue); }
   #library-folders-toggle { display:inline-flex;align-items:center;gap:6px;min-height:42px; }
   .library-browser { display:flex;flex-direction:column;overflow:visible; }.library-folders { display:none;border-right:0;border-bottom:1px solid var(--line);max-height:45dvh; }
   .library-folders.open { display:block; }.library-folder-select { min-height:44px; }.library-content { padding:16px 12px; }.library-table-scroll { max-height:65dvh; }
-  #library-view .library-language-label { max-width:118px; }.library-extra-filters[open] { flex-basis:100%; }.library-extra-filters>div { position:static;width:100%;grid-template-columns:repeat(2,minmax(0,1fr)); }.library-author-column,.library-language-column { display:none; }
+  .library-extra-filters[open] { flex-basis:100%; }.library-extra-filters>div { position:static;width:100%;grid-template-columns:repeat(2,minmax(0,1fr)); }.library-author-column { display:none; }
   .library-table th:nth-child(3) { width:52px; }.library-table th:last-child { width:92px; }.library-table td,.library-table th { padding:10px 6px; }
   .library-table .library-read { min-height:42px;padding:6px;font-size:14px; }.library-read .icon { display:none; }.library-document-title { font-size:15px; }
   #library-view .library-pagination .button { min-height:42px;padding:6px 8px; }

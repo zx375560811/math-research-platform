@@ -135,10 +135,12 @@ with tempfile.TemporaryDirectory() as directory:
             document = imported[1]['id']
             assert request('/api/documents/' + str(document) + '/file') == (200, pdf)
             assert len(request('/api/admin/documents?q=' + urllib.parse.quote('线性'))[1]['documents']) == 1
-            metadata = {'title': 'Changed title', 'authors': 'New author', 'subject_ids': [1, 3]}
+            metadata = {'title': 'Changed title (Z-Library)', 'authors': 'New author', 'subject_ids': [1, 3]}
             assert write('/api/admin/documents/' + str(document), {**metadata, 'subject_ids': [999]}, 'PATCH')[0] == 400
             assert write('/api/admin/documents/' + str(document), metadata, 'PATCH')[0] == 200
             assert request('/api/documents/' + str(document))[1]['subject_ids'] == [1, 3]
+            assert request('/api/documents/' + str(document))[1]['title'] == 'Changed title'
+            assert request('/api/library/documents/' + str(document))[1]['title'] == 'Changed title'
             books = request('/api/admin/books')[1]['books']; assert len(books) == 56
             book = next(book for book in books if book['id'] == 7)
             config = {'stage': '基础入门', 'prerequisites': 'Proofs', 'sort_order': 20, 'document_id': document}

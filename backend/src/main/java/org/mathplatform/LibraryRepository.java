@@ -96,10 +96,12 @@ public class LibraryRepository {
         return values;
     }
 
+    static String displayTitle(String title) { return title == null ? null : title.replaceFirst("(?i)\\s*[（(]Z-Library[）)]\\s*$", ""); }
+
     private Map<String, Object> document(Connection connection, ResultSet result) throws SQLException {
         long id = result.getLong("id");
         Map<String, Object> value = new LinkedHashMap<>();
-        value.put("id", id); value.put("title", result.getString("title")); value.put("authors", result.getString("authors"));
+        value.put("id", id); value.put("title", displayTitle(result.getString("title"))); value.put("authors", result.getString("authors"));
         value.put("file_size", result.getLong("file_size")); value.put("created_at", result.getString("created_at"));
         value.put("file_url", "/api/documents/" + id + "/file");
         value.put("format", format(id));
