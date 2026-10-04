@@ -2,7 +2,7 @@
 
 ## 独立管理后台
 
-`/admin` 提供文献 PDF 导入（无应用层文件大小上限）、标题/作者/分类编辑、已有教材的阶段/前置知识/排序/文献关联，以及邀请码创建/使用记录/撤销。管理员也能返回普通应用学习。未登录访问后台跳转到登录，普通用户返回 403；管理 API 校验 ADMIN 会话和数据库中的管理员资格，写入还校验 CSRF。撤销管理员资格后，即使旧会话仍在，管理 API 也立即拒绝访问。
+`/admin` 提供文献 PDF / DJVU 导入（无应用层文件大小上限）、标题/作者/分类编辑、已有教材的阶段/前置知识/排序/文献关联，以及邀请码创建/使用记录/撤销。管理员也能返回普通应用学习。未登录访问后台跳转到登录，普通用户返回 403；管理 API 校验 ADMIN 会话和数据库中的管理员资格，写入还校验 CSRF。撤销管理员资格后，即使旧会话仍在，管理 API 也立即拒绝访问。
 
 首次部署先更新并启动服务，让新增表自动创建，再为**已有的指定账号**授权。将 `YOUR_USERNAME` 替换为自己的用户名：
 
@@ -24,7 +24,7 @@ runuser -u math-platform -- python3 admin/grant_admin.py YOUR_USERNAME --revoke
 | 方法 | 管理地址 | 用途 |
 | --- | --- | --- |
 | GET | /api/admin/documents?q=&offset=0 | 搜索标题/作者，每页 20 份 |
-| POST | /api/admin/documents?title=...&authors=...&subject_id=1 | 原始 PDF 请求体，Content-Type: application/pdf |
+| POST | /api/admin/documents?title=...&authors=...&subject_id=1 | 原始 PDF / DJVU 请求体，Content-Type: application/pdf 或 image/vnd.djvu |
 | PATCH | /api/admin/documents/{id} | JSON: title、authors、subject_ids |
 | GET | /api/admin/books | 教材与关联状态 |
 | POST / PUT | /api/admin/books、/api/admin/books/{id} | JSON: direction、language（zh/en）、title、authors、source_url、stage、prerequisites、sort_order、document_id |
@@ -58,7 +58,7 @@ java -jar target/math-server.jar
 | GET | /api/subjects | 应用使用的研究方向 |
 | GET | /api/documents?subject_id=1&offset=0 | 应用参考资料，每页 20 份 |
 | GET | /api/documents/1 | 参考文献元数据 |
-| GET | /api/documents/1/file | 获取原文 PDF |
+| GET | /api/documents/1/file | 获取原始 PDF / DJVU |
 | GET | /api/ai/status | 当前账号的 AI 来源与可用状态 |
 
 文献 HTTP 写入方法返回 405，原先的 POST /api/documents 继续返回 405；独立 /api/admin/* 仅供管理员访问。账号注册/登录/退出及个人学习进度/标注写入均校验 CSRF。数据库和管理脚本不能经静态文件路由访问。服务不能生成文献摘要或数学知识；学习模块展示方向介绍与递进教材，并提供个人 PDF 阅读。
@@ -78,7 +78,7 @@ rm /tmp/math-import.pdf
 
 未配置专用账号、前台运行时，用与服务相同的账号执行本地脚本。脚本支持 MATH_DB_PATH，与服务器配置保持一致。
 
-标题和作者各不超过 500 个 UTF-8 字节，不允许控制字符。必须为具有 `%PDF-` 头部的文件，不设应用层文件大小上限；该检查不代替完整 PDF 解析。网页上传以流式写入磁盘，完成后再提交文献记录，不将整份文件读入 Java 内存；服务器导入脚本同样支持大 PDF。专业 ID 必须存在，入库失败会清理新文件并回滚数据库。现有文献 ID、路径和关联保持兼容。入库成功后应用自动读取同一数据库，刷新即可。
+标题和作者各不超过 500 个 UTF-8 字节，不允许控制字符。支持具有 `%PDF-` 头部的 PDF，以及具有 `AT&TFORM` / `DJVU` / `DJVM` 头部的原始 DJVU 文件，不设应用层文件大小上限；该检查不代替完整 PDF 解析。网页上传以流式写入磁盘，完成后再提交文献记录，不将整份文件读入 Java 内存；服务器导入脚本同样支持大 PDF。专业 ID 必须存在，入库失败会清理新文件并回滚数据库。现有文献 ID、路径和关联保持兼容。入库成功后应用自动读取同一数据库，刷新即可。
 
 ## Zotero 文件夹批量导入
 
@@ -89,7 +89,7 @@ cd /opt/math-platform/backend
 sudo -u math-platform python3 admin/import_zotero.py '/opt/math-platform/imports/大学数学基础/大学数学基础.rdf' --report data/zotero-preview.json
 ```
 
-默认只检查文件、生成 JSON 预览，不修改数据库。预览逐项记录标题、作者、语种、原分类路径、网站方向、文件大小与待补充字段；缺失或无效 PDF 记录失败，DJVU/EPUB/网页/压缩包记录跳过。中文独立附件可按标题标为中文，没有明确依据的语种保留未标注；其他语言不误标为英文。
+默认只检查文件、生成 JSON 预览，不修改数据库。预览逐项记录标题、作者、语种、原分类路径、网站方向、文件大小与待补充字段；缺失或无效 PDF 记录失败，DJVU 同样入库，EPUB/网页/压缩包记录跳过。中文独立附件可按标题标为中文，没有明确依据的语种保留未标注；其他语言不误标为英文。
 
 确认预览后正式入库：
 
@@ -97,7 +97,7 @@ sudo -u math-platform python3 admin/import_zotero.py '/opt/math-platform/imports
 sudo -u math-platform python3 admin/import_zotero.py '/opt/math-platform/imports/大学数学基础/大学数学基础.rdf' --apply --report data/zotero-import.json
 ```
 
-PDF 以流式复制到现有 `data/files/`，不设文件大小上限，每个文件单独提交数据库事务。首次运行会校验现有文献文件的 SHA-256；内容相同的附件复用原文献 ID，不覆盖原有标题、语种、分类、教材关联或个人进度。重复及失败文件的暂存副本会清理；失败不影响已成功条目，可以用同一命令重跑，已导入文件自动跳过。原书目 XML、原始标题/作者/语种与 Zotero 分类路径保存在 `zotero_import_sources`；内容校验值保存在 `zotero_import_hashes`。这些来源表只供服务器管理，不新增公开上传接口，也不自动配置推荐教材。
+PDF / DJVU 以流式复制到现有 `data/files/`，不设文件大小上限，每个文件单独提交数据库事务。首次运行会校验现有文献文件的 SHA-256；内容相同的附件复用原文献 ID，不覆盖原有标题、语种、分类、教材关联或个人进度。重复及失败文件的暂存副本会清理；失败不影响已成功条目，可以用同一命令重跑，已导入文件自动跳过。原书目 XML、原始标题/作者/语种与 Zotero 分类路径保存在 `zotero_import_sources`；内容校验值保存在 `zotero_import_hashes`。这些来源表只供服务器管理，不新增公开上传接口，也不自动配置推荐教材。
 
 可使用 `--mapping mapping.json` 调整映射，JSON 格式为 `{"分类名称":["analysis","geometry-topology"]}`；值必须为现有方向 slug。默认映射覆盖大学数学基础导出中的 29 个分类，未匹配的文献保留待分类。语种、标题等可在管理员文献页面继续修正。`--database` 或 `MATH_DB_PATH` 可指定数据库，但仍须在平台 `backend` 目录执行，以兼容现有文件路径。
 
@@ -260,3 +260,17 @@ AI 回答在浏览器本地通过 Marked、DOMPurify 与 KaTeX 渲染 Markdown �
 分析方向的教材 `stage` 表示路线图课程：数学分析、高等代数、复分析、实分析与测度论、常微分方程、泛函分析、偏微分方程。其他方向仍使用基础入门、核心理论、进阶学习。方向 API 返回 `courses`，管理员教材 API 返回 `analysis_courses`，保存时按方向验证课程。
 
 启动时一次性执行 `learning-courses.sql`：保留原教材 ID、PDF 关联、个人选择和阅读记录，将可确认的旧默认教材归入课程，补齐七门课的中英文书目。管理员修改过标题且无法确认课程的旧条目保留，由管理员重新归类。推荐书目不自动下载 PDF，仍由管理员关联文献库文件。
+
+### 原生 DJVU 阅读
+
+管理员网页上传、`import_document.py` 和 Zotero RDF 批量导入支持 `.djvu`、`.djv`。
+文献原始字节保持不变，不转换为 PDF。格式保存在 `document_formats`，旧 PDF 默认保持兼容；
+文件下载根据实际头部返回 MIME 类型与正确扩展名。绑定推荐教材和用户自选共用文献 ID。
+
+DjVu.js 0.5.4 及 Worker 本地托管，浏览器直接解码单文件和 bundled 多页 DJVU。
+沿用连续滚动、缩放、目录、私有阅读位置、高亮笔记和选段 AI，仅渲染附近页面并释放离屏 canvas。
+有 OCR 文字坐标的页支持选段与高亮；没有文字层的扫描页支持阅读，不自动做 OCR。
+不自动下载 indirect DJVU 索引引用的外部文件：请先把整组文件封装成单个 DJVU（仍为 DJVU）。
+源码、发布版及 GPL-2.0-or-later 许可见 `frontend/vendor/djvu/README.md`、`LICENSE`、`NOTICE.md`。
+
+更新服务器后重新构建 Java 后端并重启，再运行原 Zotero 命令；已导入 PDF 会复用 ID，新增 DJVU 会正常入库。

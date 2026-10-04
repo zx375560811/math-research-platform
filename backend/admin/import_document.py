@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import sqlite3
 import tempfile
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from document_format import detect, remember
 
 
 def metadata(value, required=False):
@@ -28,8 +31,7 @@ def import_document(source, title, authors, subject, database='data/math.db'):
             raise ValueError('Unknown subject')
         try:
             with Path(source).open('rb') as original:
-                if original.read(5) != b'%PDF-':
-                    raise ValueError('File must have a PDF header')
+                kind = detect(original.read(16))
                 original.seek(0)
                 with tempfile.NamedTemporaryFile(prefix='upload-', dir='data/files', delete=False) as output:
                     saved_path = Path(output.name)
@@ -47,6 +49,7 @@ def import_document(source, title, authors, subject, database='data/math.db'):
             db.execute('BEGIN IMMEDIATE')
             cursor = db.execute('INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)', (title, authors, stored, size))
             doc_id = cursor.lastrowid
+            remember(db, doc_id, kind)
             db.execute('INSERT INTO document_subjects(document_id,subject_id) VALUES(?,?)', (doc_id, subject))
             if db.execute("SELECT 1 FROM sqlite_master WHERE name='document_catalog'").fetchone():
                 db.execute('INSERT INTO document_catalog(document_id) VALUES(?)', (doc_id,))
@@ -61,12 +64,12 @@ def import_document(source, title, authors, subject, database='data/math.db'):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('pdf')
+    parser.add_argument('document')
     parser.add_argument('--title', required=True)
     parser.add_argument('--authors', default='')
     parser.add_argument('--subject-id', type=int, required=True)
     args = parser.parse_args()
     try:
-        print(json.dumps(import_document(args.pdf, args.title, args.authors, args.subject_id, os.getenv('MATH_DB_PATH') or 'data/math.db'), ensure_ascii=False))
+        print(json.dumps(import_document(args.document, args.title, args.authors, args.subject_id, os.getenv('MATH_DB_PATH') or 'data/math.db'), ensure_ascii=False))
     except (OSError, ValueError, sqlite3.Error) as error:
         parser.exit(1, 'Import failed: {}\n'.format(error))

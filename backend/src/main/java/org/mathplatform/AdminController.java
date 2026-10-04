@@ -57,11 +57,13 @@ public class AdminController {
             @RequestParam String title, @RequestParam(defaultValue="") String authors, @RequestParam long subject_id,
             @RequestParam(defaultValue="mathematics") String module, @RequestParam(defaultValue="und") String language, @RequestParam(required=false) String direction, @RequestParam(required=false) List<String> directions) throws SQLException, IOException {
         authorize(user); title = text(title, true); authors = text(authors, false);
-        if (!"application/pdf".equalsIgnoreCase(request.getContentType())) throw new ApiProblem(400, "invalid_pdf");
+        if (!Set.of("application/pdf", "image/vnd.djvu", "image/x-djvu", "application/octet-stream").contains(request.getContentType() == null ? "" : request.getContentType().toLowerCase(java.util.Locale.ROOT))) throw new ApiProblem(400, "invalid_document");
         Path saved = null; boolean committed = false;
         try (var input = request.getInputStream()) {
-            byte[] header = input.readNBytes(5);
-            if (header.length < 5 || !new String(header, StandardCharsets.US_ASCII).equals("%PDF-")) throw new ApiProblem(400, "invalid_pdf");
+            byte[] header = input.readNBytes(16);
+            String format;
+            try { format = DocumentFormat.detect(header); }
+            catch (ApiProblem failure) { throw new ApiProblem(400, "application/pdf".equalsIgnoreCase(request.getContentType()) ? "invalid_pdf" : "invalid_document"); }
             try { saved = Files.createTempFile(Path.of("data/files"), "upload-", "", PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))); }
             catch (UnsupportedOperationException failure) { saved = Files.createTempFile(Path.of("data/files"), "upload-", ""); }
             long fileSize;
@@ -81,6 +83,7 @@ public class AdminController {
                     }
                     long id;
                     try (var result = transaction.executeQuery("SELECT last_insert_rowid()")) { result.next(); id = result.getLong(1); }
+                    try (var insert = db.prepareStatement("INSERT INTO document_formats VALUES(?,?)")) { insert.setLong(1,id); insert.setString(2,format); insert.executeUpdate(); }
                     links(db, id, List.of(subject_id));
                     CatalogRepository.classify(db, id, module, language, directions != null ? directions : direction == null ? directionsForSubjects(db, List.of(subject_id)) : List.of(direction));
                     transaction.execute("COMMIT"); committed = true;

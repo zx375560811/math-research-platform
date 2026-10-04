@@ -601,3 +601,6 @@ input,select,textarea { accent-color:var(--blue); }
 @media(prefers-reduced-motion:reduce) {
  .button,.auth-tabs a,.workspace-link,.subject-nav a,.direction-small,.application-card,.direction-card,.application-action { transition:none;transform:none; }
 }
+
+/* Native DjVu selectable OCR layer, using the existing annotation surface. */
+.djvu-text-layer span { position:absolute; display:block; color:transparent; white-space:pre; line-height:1; font-family:sans-serif; font-weight:400; letter-spacing:normal; cursor:text; }

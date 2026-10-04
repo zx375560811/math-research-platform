@@ -115,3 +115,5 @@ CREATE TABLE IF NOT EXISTS ai_usage (
     minute INTEGER NOT NULL,
     minute_count INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS document_formats (document_id INTEGER PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE, format TEXT NOT NULL CHECK(format IN ('pdf','djvu')));

@@ -10,6 +10,9 @@ const frontend = path.resolve(__dirname, '..');
 const repo = path.resolve(frontend, '..');
 const { fixturePdf } = require('./fixture.cjs');
 const pdf = fixturePdf(12);
+const {fixtureDjvuBundle} = require('./fixture-djvu.cjs');
+const djvu = fixtureDjvuBundle(3);
+let nativeId;
 const directions = [['analysis','分析',true],['geometry-topology','几何与拓扑',true],['algebra','代数',true],['number-theory','数论',false],['probability-statistics','概率与统计',false],['computational','计算数学与数值方法',false],['optimization','优化与数学建模',false],['discrete-foundations','离散数学与数学基础',false]].map(([slug,name,featured]) => ({slug,name,featured,description:'研究结构与数学问题'}));
 const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:false,file_url:null}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
 for (const [i, stage] of ['基础入门','核心理论','进阶学习'].entries()) mockBooks.push({id:106+i,direction:'algebra',title:['高等代数','近世代数基础','交换代数基础'][i],authors:'中文推荐作者',stage,language:'zh',prerequisites:'前一阶段基础',source_url:'https://2d.hep.com.cn/585562293/3',available:false,file_url:null});
@@ -35,6 +38,7 @@ async function main() {
     let port; let invitation = 'I'.repeat(43); let invitationUsed = false;
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : index === 0 ? 'Test textbook' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length, module:'mathematics', language:index === 0 ? 'en' : 'und', directions:['algebra'], file_url:`/api/documents/${index+1}/file` }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
+      nativeId = 22; const nativeDocument = {id:nativeId,title:'Native DjVu',authors:'Test',subject_ids:[1],file_size:djvu.length,module:'mathematics',language:'en',directions:['algebra'],format:'djvu',file_url:'/api/documents/22/file'};
       const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0;
       const bookValue = (book,user) => {
         const selected = selections.get(user+':'+book.id), doc = documents.find(doc=>doc.id===selected);
@@ -61,6 +65,7 @@ async function main() {
         if (url.pathname.startsWith('/api/library')) {
           if (!session?.user) return json({error:'login_required'},401);
           const user=session.user.username, docPath=url.pathname.match(/^\/api\/library\/documents\/(\d+)(?:\/(progress|annotations)(?:\/(\d+))?)?$/);
+          if (url.pathname==='/api/library/documents/22' && !documents.some(d=>d.id===22)) documents.push(nativeDocument);
           if (url.pathname==='/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions}]});
           if (url.pathname==='/api/library/documents') {const q=url.searchParams.get('q')||'', direction=url.searchParams.get('direction')||'', language=url.searchParams.get('language')||'', offset=Number(url.searchParams.get('offset')||0);return json({documents:documents.filter(d=>(!q||d.title.includes(q)||d.authors.includes(q))&&(!direction||d.directions.includes(direction))&&(!language||d.language===language)).slice().reverse().slice(offset,offset+20).map(d=>({...d,progress:progress.get(user+':doc:'+d.id)||null})),limit:20,offset});}
           if(docPath){const doc=documents.find(d=>d.id===Number(docPath[1]));if(!doc)return json({error:'not_found'},404);const key=user+':doc:'+doc.id;
@@ -109,9 +114,9 @@ async function main() {
           const id = Number(url.searchParams.get('subject_id')); const offset = Number(url.searchParams.get('offset') || 0);
           return json({ documents: documents.filter(d => !id || d.subject_ids.includes(id)).slice().reverse().slice(offset, offset + 20), limit: 20, offset });
         }
-        if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { res.writeHead(200, { 'Content-Type': 'application/pdf' }); return res.end(pdf); }
+        if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { const native = Number(url.pathname.split('/')[3])===nativeId; res.writeHead(200, { 'Content-Type': native?'image/vnd.djvu':'application/pdf' }); return res.end(native?djvu:pdf); }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
-        for (const name of ['icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        for (const name of ['reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -276,7 +281,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.reload(); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
     await choiceRow.locator('[data-book="8"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
     await readerControl(page, 'reader-back'); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('h3').filter({hasText:'Abstract Algebra'}).waitFor();
-    assert.equal(await choiceRow.locator('.book-unavailable').textContent(),'PDF 待接入');
+    assert.equal(await choiceRow.locator('.book-unavailable').textContent(),'文档待接入');
     await page.locator('[data-book="7"]').click();
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
     assert.equal(await page.locator('#reader-scroll').getAttribute('data-total-pages'),'12');
@@ -468,6 +473,25 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.screenshot({path:path.join(shots,'reader-folded-markers.png'),fullPage:true});
     await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),30);assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),false);
     await readerControl(page, 'reader-back'); await page.locator('[data-book="7"]').waitFor();
+    if(process.env.MATH_BROWSER_MOCK !== '1'){fs.writeFileSync(path.join(temp,'source.djvu'),djvu);const nativeImport=spawnSync('python3',[path.join(repo,'backend/admin/import_document.py'),'source.djvu','--title','Native DjVu','--subject-id','1'],{cwd:temp,encoding:'utf8'});assert.equal(nativeImport.status,0,nativeImport.stderr);nativeId=JSON.parse(nativeImport.stdout).id;}
+    await page.goto(base + '/#/library/read/' + nativeId);
+    await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="1"][data-loaded] .djvu-text-layer span')?.textContent==='Native DjVu mathematics');
+    assert.equal(await page.locator('.pdf-page').count(),3);
+    assert.equal(await page.locator('.pdf-page[data-page="1"] canvas').evaluate(c=>c.getContext('2d').getImageData(10,10,1,1).data[3]),255);
+    await scrollToPage(page,2); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="2"] .djvu-text-layer span'));
+    await page.evaluate(()=>{const span=document.querySelector('.pdf-page[data-page="2"] .djvu-text-layer span');const range=document.createRange();range.selectNodeContents(span);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));});
+    await page.locator('#selection-tools').waitFor(); assert.equal(await page.locator('#selection-quote').textContent(),'Native DjVu mathematics');
+    await page.locator('#reader-ask-ai').click();await page.locator('#ai-question').fill('Explain this native DjVu passage');await page.locator('#ai-send').click();await page.locator('.ai-assistant').waitFor();
+    assert.equal(chatCalls.at(-1).context.document_id,nativeId);assert.equal(chatCalls.at(-1).context.page,2);assert.equal(chatCalls.at(-1).context.quote,'Native DjVu mathematics');
+    await page.evaluate(()=>{const span=document.querySelector('.pdf-page[data-page="2"] .djvu-text-layer span');const range=document.createRange();range.selectNodeContents(span);getSelection().addRange(range);document.dispatchEvent(new Event('selectionchange'));});await page.locator('#selection-tools').waitFor();
+    await page.locator('[data-highlight="yellow"]').click();await page.waitForFunction(()=>document.querySelector('.annotation-summary'));
+    await page.locator('.annotation-note').fill('Native note');await page.locator('.annotation-actions button').first().click();
+    await zoomTo(page,125);await page.waitForTimeout(650);await page.reload();
+    await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
+    assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'125');
+    await page.locator('.annotation-summary').click();assert.equal(await page.locator('.annotation-note').inputValue(),'Native note');
+    await page.screenshot({path:path.join(shots,'reader-djvu.png'),fullPage:true});
+    await readerControl(page,'reader-back'); await page.locator('#library-view').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);

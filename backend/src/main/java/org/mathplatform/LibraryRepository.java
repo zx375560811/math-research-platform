@@ -101,6 +101,7 @@ public class LibraryRepository {
         value.put("id", id); value.put("title", result.getString("title")); value.put("authors", result.getString("authors"));
         value.put("file_size", result.getLong("file_size")); value.put("created_at", result.getString("created_at"));
         value.put("file_url", "/api/documents/" + id + "/file");
+        value.put("format", format(id));
         List<Long> subjects = new ArrayList<>();
         try (var links = connection.prepareStatement("SELECT subject_id FROM document_subjects WHERE document_id=? ORDER BY subject_id")) {
             links.setLong(1, id);
@@ -136,6 +137,12 @@ public class LibraryRepository {
                 if (!result.next()) throw new ApiProblem(404, "not_found");
                 return document(connection, result);
             }
+        }
+    }
+
+    public String format(long id) throws SQLException {
+        try (var db = connect(true); var query = db.prepareStatement("SELECT format FROM document_formats WHERE document_id=?")) {
+            query.setLong(1,id); try (var row = query.executeQuery()) { return row.next() ? row.getString(1) : "pdf"; }
         }
     }
 

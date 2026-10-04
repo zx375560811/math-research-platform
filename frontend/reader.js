@@ -1,3 +1,4 @@
+import { getDjvuDocument } from './reader-djvu.js';
 import { createReaderAi } from './reader-ai.js';
 import { getDocument, GlobalWorkerOptions, TextLayer } from './vendor/pdfjs/pdf.mjs';
 GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
@@ -194,7 +195,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     page.renderTask = proxy.render({ canvasContext: page.canvas.getContext('2d'), viewport, transform: [ratio, 0, 0, ratio, 0, 0] }); await page.renderTask.promise;
     if (closed || version !== generation) return;
     const text = await proxy.getTextContent(); if (closed || version !== generation) return;
-    page.textLayer = new TextLayer({ textContentSource: text, container: page.text, viewport }); await page.textLayer.render();
+    page.textLayer = pdf.createTextLayer ? pdf.createTextLayer({ textContentSource: text, container: page.text, viewport }) : new TextLayer({ textContentSource: text, container: page.text, viewport }); await page.textLayer.render();
     if (closed || version !== generation) return;
     page.rendered = true; page.frame.dataset.loaded = 'true'; paintHighlights();
     if (page.number === pageNumber) $('reader-status').textContent = text.items.some(item => item.str?.trim()) ? '上下滚动连续阅读，选中文字即可高亮。' : '本页为扫描页，需文字识别后才能高亮。';
@@ -347,10 +348,11 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     try {
       book = await api(`${endpoint}`); if (closed) return;
       $('reader-title').textContent = book.title; $('reader-back').href = backHref || `#/apps/mathematics/directions/${book.direction}`; $('reader-back').textContent = backLabel;
-      if (!book.available) throw new Error('这本教材的 PDF 尚未接入，请先选择其他教材。');
+      if (!book.available) throw new Error('这本教材的 文档尚未接入，请先选择其他教材。');
       csrf = await api('/api/auth/csrf'); if (closed) return;
-      task = getDocument({ url: book.file_url, withCredentials: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
+      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ url: book.file_url, withCredentials: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
       if (pdf.numPages > 100000) throw new Error('教材页数超出支持范围。');
+      pdf.pageSizes?.forEach((size, index) => dimensions.set(index + 1, size));
       const first = await pdf.getPage(1); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
       scroll.dataset.totalPages = String(pdf.numPages);
       marks = (await api(`${endpoint}/annotations`)).annotations; if (closed) return;
@@ -358,7 +360,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       const fragment = document.createDocumentFragment();
       for (let number = 1; number <= pdf.numPages; number++) {
         const frame = el('div', 'pdf-page'), canvas = el('canvas', 'pdf-canvas'), highlights = el('div', 'pdf-highlights'), text = el('div', 'textLayer');
-        frame.dataset.page = String(number); frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `PDF 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `PDF 第 ${number} 页`);
+        frame.dataset.page = String(number); frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`);
         frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false });
       }
       stack.append(fragment); await layout({ page: book.progress?.page || 1, position: book.progress?.position || 0 });

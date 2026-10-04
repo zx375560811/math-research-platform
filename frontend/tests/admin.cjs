@@ -33,7 +33,7 @@ async function main() {
         if (p.startsWith('/api/admin')) {
           if (session?.role !== 'ADMIN') return json({ error: session ? 'admin_required' : 'login_required' }, session ? 403 : 401);
           if(p==='/api/admin/ai/settings'){if(req.method==='PUT')ai={...ai,base_url:body.base_url,model:body.model,enabled:body.enabled,daily_limit:body.daily_limit,has_key:body.clear_key?false:!!body.api_key||ai.has_key};return json(ai);}
-          if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], module:'mathematics', directions:url.searchParams.getAll('directions'), language:url.searchParams.get('language')||'und', file_size: bytes.length, file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
+          if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], module:'mathematics', directions:url.searchParams.getAll('directions'), language:url.searchParams.get('language')||'und', file_size: bytes.length, format: req.headers['content-type']==='image/vnd.djvu'?'djvu':'pdf', file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
           if (p === '/api/admin/documents') return json({ documents: docs.filter(d => d.title.includes(url.searchParams.get('q') || '')), offset: 0, limit: 20 });
           if (/^\/api\/admin\/documents\/\d+$/.test(p)) { Object.assign(docs.find(d => d.id === Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
           if (p === '/api/admin/books' && req.method === 'POST') {const id=Math.max(...books.map(b=>b.id))+1;books.push({...body,id,direction_name:'代数'});return json({id},201);}
@@ -89,7 +89,11 @@ async function main() {
     assert.match(await page.locator('#invitation-list').textContent(), /已撤销/); await page.screenshot({ path: path.join(shots, 'admin-invitations.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'admin-mobile.png'), fullPage: true }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    assert.deepEqual(errors, []); console.log('Admin PDF import, metadata, textbook binding, invitation revocation and mobile UI passed.');
+    await page.setViewportSize({width:1440,height:1000});await page.locator('[data-view="documents"]').click();if(await page.locator('#document-cancel').isVisible())await page.locator('#document-cancel').click();
+    await page.locator('#document-title').fill('Native DjVu upload');await page.locator('#document-file').setInputFiles({name:'textbook.djvu',mimeType:'image/vnd.djvu',buffer:require('./fixture-djvu.cjs').fixtureDjvu()});await page.locator('#document-save').click();
+    await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('文献已导入'));
+    const native=(await(await page.request.get(base+'/api/admin/documents')).json()).documents.find(d=>d.title==='Native DjVu upload');assert.equal(native.format,'djvu');assert.match(await page.locator('#document-list').textContent(),/下载 DJVU/);
+    assert.deepEqual(errors, []); console.log('Admin PDF/DJVU import, metadata, textbook binding, invitation revocation and mobile UI passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));
     if (child && child.exitCode === null) { const stop = new Promise(resolve => child.once('exit', resolve)); child.kill('SIGTERM'); await stop; }

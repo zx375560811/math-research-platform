@@ -205,6 +205,22 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/300')[1]['stage'] == '常微分方程'
             assert write('/api/admin/books/300', {**analysis_config,'stage':'核心理论'}, 'PUT')[0] == 400
             assert write('/api/admin/books/300', {**analysis_config,'direction':'algebra'}, 'PUT')[0] == 400
+            # Original DjVu upload and download, metadata, recommendation and private progress.
+            djvu = b'AT&TFORM\x00\x00\x00\x04DJVU'
+            csrf = request('/api/auth/csrf')[1]
+            upload = request('/api/admin/documents?title=Native%20DjVu&subject_id=1&direction=algebra&language=en', 'POST', djvu, {'Content-Type':'image/vnd.djvu', csrf['header']:csrf['token']})
+            assert upload[0] == 201
+            native_id = upload[1]['id']
+            assert request('/api/documents/' + str(native_id))[1]['format'] == 'djvu'
+            assert request('/api/documents/' + str(native_id) + '/file') == (200, djvu)
+            with client.open(base + '/api/documents/' + str(native_id) + '/file') as response:
+                assert response.headers.get_content_type() == 'image/vnd.djvu'
+                assert '.djvu' in response.headers['Content-Disposition']
+            assert request('/reader-djvu.js')[0] == 200 and request('/vendor/djvu/djvu.js')[0] == 200
+            assert request('/vendor/djvu/NOTICE.md')[0] == 200
+            assert request('/api/admin/documents?title=Invalid&subject_id=1','POST',b'DJVU', {'Content-Type':'image/vnd.djvu',csrf['header']:csrf['token']})[0] == 400
+            assert write('/api/learning/books/7/selection', {'document_id':native_id}, 'PUT')[1]['format'] == 'djvu'
+            assert write('/api/learning/books/7/selection', {'document_id':None}, 'PUT')[0] == 200
             roles.grant_admin('owner_one', database, revoke=True)
             assert request('/api/auth/me')[1]['user']['role'] == 'USER'
             assert request('/api/admin/books') == (403, {'error': 'admin_required'})

@@ -1,4 +1,4 @@
-"""Preview or import an exported Zotero RDF and its local PDF attachments."""
+"""Preview or import an exported Zotero RDF and its local PDF and DJVU attachments."""
 import argparse
 from collections import Counter, defaultdict
 from contextlib import closing
@@ -9,6 +9,9 @@ from pathlib import Path
 import re
 import sqlite3
 import tempfile
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from document_format import detect, remember
 from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 
@@ -142,7 +145,7 @@ def preview(rdf, mapping=None):
         authors = '; '.join(compact(' '.join(filter(None, [person.findtext('foaf:givenName', namespaces=NS), person.findtext('foaf:surname', namespaces=NS), person.findtext('foaf:name', namespaces=NS)]))) for person in people)
         title = compact(source.findtext('dc:title', namespaces=NS))
         if not sources:
-            title = re.sub(r'(?i)\.pdf$', '', title)
+            title = re.sub(r'(?i)\.(pdf|djvu|djv)$', '', title)
         warnings = []
         if not authors:
             warnings.append('作者待补充')
@@ -163,13 +166,12 @@ def preview(rdf, mapping=None):
             warnings.append('语种待标注或为其他语种')
         try:
             path = attachment_path(rdf.parent, raw_path)
-            if path.suffix.lower() != '.pdf':
+            if path.suffix.lower() not in ('.pdf', '.djvu', '.djv'):
                 row['status'] = 'skipped'; row['reason'] = '暂不支持 ' + path.suffix.lower()
             else:
                 row['size'] = path.stat().st_size
                 with path.open('rb') as stream:
-                    if stream.read(5) != b'%PDF-':
-                        raise ValueError('文件没有 PDF 头部')
+                    row['format'] = detect(stream.read(16))
         except (OSError, ValueError) as error:
             row['status'] = 'failed'; row['reason'] = str(error)
         rows.append(row)
@@ -187,7 +189,9 @@ def digest(path):
 
 def report(value, destination):
     value['summary'] = dict(Counter(row['status'] for row in value['documents']))
-    value['pdf_bytes'] = sum(row['size'] for row in value['documents'] if row['status'] != 'skipped')
+    value['pdf_bytes'] = sum(row['size'] for row in value['documents'] if row.get('format') == 'pdf')
+    value['document_bytes'] = sum(row['size'] for row in value['documents'] if row['status'] != 'skipped')
+    value['formats'] = dict(Counter(row['format'] for row in value['documents'] if row.get('format')))
     target = Path(destination).resolve(); target.parent.mkdir(parents=True, exist_ok=True)
     temp = None
     try:
@@ -247,8 +251,7 @@ def apply(value, database, destination):
                 # Copy and hash the same byte stream, preventing metadata/file drift.
                 checksum = hashlib.sha256(); size = 0
                 with path.open('rb') as original:
-                    if original.read(5) != b'%PDF-':
-                        raise ValueError('文件没有 PDF 头部')
+                    kind = detect(original.read(16))
                     original.seek(0)
                     with tempfile.NamedTemporaryFile(prefix='upload-', dir=storage, delete=False) as output:
                         saved = Path(output.name)
@@ -270,6 +273,7 @@ def apply(value, database, destination):
                     cursor = db.execute('INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)',
                                         (row['title'], row['authors'], 'data/files/' + saved.name, size))
                     doc_id = cursor.lastrowid
+                    remember(db, doc_id, kind)
                     ids = {subject_ids.get(slug, subject_ids['other']) for slug in row['directions']} or {subject_ids['other']}
                     db.executemany('INSERT INTO document_subjects VALUES(?,?)', [(doc_id, sid) for sid in sorted(ids)])
                     db.execute('INSERT INTO document_catalog(document_id,module,language) VALUES(?,?,?)', (doc_id, 'mathematics', row['language']))
@@ -307,7 +311,7 @@ def main():
         report(value, args.report)
         if args.apply:
             apply(value, args.database, args.report)
-        print(json.dumps({'summary': value['summary'], 'pdf_GiB': round(value['pdf_bytes'] / 1024**3, 2),
+        print(json.dumps({'summary': value['summary'], 'pdf_GiB': round(value['pdf_bytes'] / 1024**3, 2), 'document_GiB': round(value['document_bytes'] / 1024**3, 2), 'formats': value['formats'],
                           'report': str(Path(args.report).resolve())}, ensure_ascii=False))
         return 1 if any(row['status'] == 'failed' for row in value['documents']) else 0
     except (OSError, ValueError, sqlite3.Error, ET.ParseError) as error:

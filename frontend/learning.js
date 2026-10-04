@@ -127,7 +127,7 @@ export function createLearning({ api, write }) {
           const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', book.selected_document_id ? '个人自选文献' : '需要基础：' + book.prerequisites));
           const actions = el('div', 'textbook-actions'), readingActions = el('div', 'book-reading-actions');
           if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; readingActions.append(link); }
-          else readingActions.append(el('span', 'book-unavailable', 'PDF 待接入'));
+          else readingActions.append(el('span', 'book-unavailable', '文档待接入'));
           const choose = el('button', 'button book-library-choice', '文献库自选'); choose.type = 'button'; choose.setAttribute('aria-expanded','false'); readingActions.append(choose); actions.append(readingActions);
           const picker = el('div', 'book-picker'); picker.hidden = true; picker.id = 'book-picker-' + book.id; choose.setAttribute('aria-controls',picker.id);
           const search = el('form', 'book-picker-search'), query = el('input'); query.type = 'search'; query.placeholder = '搜索标题或作者'; query.setAttribute('aria-label','搜索本方向文献'); const searchButton = el('button','button','搜索'); searchButton.type = 'submit'; search.append(query,searchButton);

@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const state = { document: null, documents: [], subjects: [], books: [], docOffset: 0, inviteOffset: 0, query: '', ready: false };
-const errors = { ai_invalid_url: '请输入公网 HTTPS API 地址。', ai_invalid_settings: '启用默认 API 时，请填写地址、模型和密钥；每日次数为 1–1000。', ai_key_unavailable: '服务器加密密钥不可用，请检查 data/ai-secret.key。', admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', request_too_large: '请求被服务器拒绝，请检查服务配置。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查学习阶段与排序数字。', book_document_locked: '教材已关联 PDF，不能更换，以保护现有阅读进度和标注。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的 PDF。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
+const errors = { ai_invalid_url: '请输入公网 HTTPS API 地址。', ai_invalid_settings: '启用默认 API 时，请填写地址、模型和密钥；每日次数为 1–1000。', ai_key_unavailable: '服务器加密密钥不可用，请检查 data/ai-secret.key。', admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', invalid_document: '请选择有效的 PDF 或 DJVU 文件。', request_too_large: '请求被服务器拒绝，请检查服务配置。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查学习阶段与排序数字。', book_document_locked: '教材已关联文档，不能更换，以保护现有阅读进度和标注。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的文档。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
 function message(text, error = false) { $('admin-message').textContent = text; $('admin-message').hidden = !text; $('admin-message').classList.toggle('error', error); }
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
@@ -9,7 +9,7 @@ async function api(path, options = {}) {
 }
 async function write(path, body, method = 'POST', pdf = false) {
   const csrf = await api('/api/auth/csrf');
-  return api(path, { method, headers: { 'Content-Type': pdf ? 'application/pdf' : 'application/json', [csrf.header]: csrf.token }, body: pdf ? body : JSON.stringify(body) });
+  return api(path, { method, headers: { 'Content-Type': pdf ? (/\.djvu?$/i.test(body.name || '') ? 'image/vnd.djvu' : 'application/pdf') : 'application/json', [csrf.header]: csrf.token }, body: pdf ? body : JSON.stringify(body) });
 }
 async function action(form, work) {
   const fields = [...form.querySelectorAll(form.tagName === 'FORM' ? 'button[type=submit],button:not([type])' : 'button')]; form.setAttribute('aria-busy', 'true'); fields.forEach(field => field.disabled = true); message('正在处理…');
@@ -26,8 +26,8 @@ function editDocument(doc) { state.document = doc.id; $('document-module').value
 async function loadDocuments() {
   const body = await api(`/api/admin/documents?offset=${state.docOffset}&q=${encodeURIComponent(state.query)}`); state.documents = body.documents;
   const list = $('document-list'); list.replaceChildren();
-  for (const doc of body.documents) { const names = state.subjects.filter(s => doc.subject_ids.includes(s.id)).map(s => s.name).join('、'); const { row, controls } = record(doc.title, [`文献 #${doc.id} · ${doc.authors || '作者未填写'}`, `${names} · ${(doc.file_size / 1024 / 1024).toFixed(2)} MB`]); const link = element('a', '下载 PDF', 'button compact'); link.href = doc.file_url; link.target = '_blank'; link.rel = 'noopener'; controls.append(link, button('编辑', () => editDocument(doc))); list.append(row); }
-  empty(list, state.query ? '没有找到资料，试试其他标题或作者。' : '文献库暂无资料，请从左侧导入 PDF。'); paging('documents', state.docOffset, body.documents.length);
+  for (const doc of body.documents) { const names = state.subjects.filter(s => doc.subject_ids.includes(s.id)).map(s => s.name).join('、'); const { row, controls } = record(doc.title, [`文献 #${doc.id} · ${doc.authors || '作者未填写'}`, `${names} · ${(doc.file_size / 1024 / 1024).toFixed(2)} MB`]); const link = element('a', '下载 ' + (doc.format || 'pdf').toUpperCase(), 'button compact'); link.href = doc.file_url; link.target = '_blank'; link.rel = 'noopener'; controls.append(link, button('编辑', () => editDocument(doc))); list.append(row); }
+  empty(list, state.query ? '没有找到资料，试试其他标题或作者。' : '文献库暂无资料，请从左侧导入 PDF 或 DJVU。'); paging('documents', state.docOffset, body.documents.length);
 }
 let bookDocGeneration = 0;
 async function loadBookDocuments(selected = '') {
@@ -37,14 +37,14 @@ async function loadBookDocuments(selected = '') {
   const pending = element('option','正在加载文献…'); pending.value = ''; $('book-document').replaceChildren(pending); state.bookDocuments = [];
   $('book-doc-prev').disabled = $('book-doc-next').disabled = true;
   $('book-binding-hint').hidden = !locked;
-  $('book-binding-hint').textContent = locked ? '已关联 PDF，不能更换。' : '';
+  $('book-binding-hint').textContent = locked ? '已关联文档，不能更换。' : '';
   if (locked) {
     const doc = await api('/api/documents/' + book.document_id); if (generation !== bookDocGeneration) return;
     const option = element('option', doc.title); option.value = doc.id; $('book-document').replaceChildren(option); $('book-doc-prev').disabled = $('book-doc-next').disabled = true; $('book-doc-page').textContent = '已关联'; return;
   }
   const body = await api('/api/admin/documents?' + new URLSearchParams({ module: 'mathematics', direction: $('book-direction').value, q: $('book-document-query').value.trim(), offset: state.bookDocOffset || 0 })); if (generation !== bookDocGeneration) return;
   const docs = body.documents.filter(doc => !doc.language || doc.language === 'und' || doc.language === $('book-language').value); state.bookDocuments = docs;
-  const first = element('option', state.newBook ? '请选择文献' : '暂不关联 PDF'); first.value = ''; $('book-document').replaceChildren(first);
+  const first = element('option', state.newBook ? '请选择文献' : '暂不关联文档'); first.value = ''; $('book-document').replaceChildren(first);
   for (const doc of docs) { const option = element('option', `${doc.language === 'zh' ? '中文' : doc.language === 'en' ? '英文' : '未标语种'} / ${doc.title} / ${doc.authors || '作者未填写'}`); option.value = doc.id; $('book-document').append(option); }
   if (docs.some(doc => doc.id === Number(selected))) $('book-document').value = selected;
   $('book-document').disabled = false;
@@ -68,7 +68,7 @@ async function selectBook(id) {
 }
 async function loadBooks(selected = $('book-select').value) {
   const body = await api('/api/admin/books'); state.books = body.books; state.analysisCourses = body.analysis_courses; $('book-select').replaceChildren(); $('book-list').replaceChildren();
-  for (const book of body.books) { const language = book.language === 'zh' ? '中文' : '英文'; const option = element('option', `${book.direction_name} / ${book.stage} / ${language} / ${book.title}`); option.value = book.id; $('book-select').append(option); const { row, detail, controls } = record(book.title, [`${book.direction_name} / ${book.stage} / ${language}推荐 / 排序 ${book.sort_order}`, book.document_id ? `已关联文献 #${book.document_id}` : 'PDF 尚未接入']); detail.append(element('span', book.document_id ? '可以学习' : '待关联', `badge${book.document_id ? '' : ' pending'}`)); controls.append(button('配置', async () => { await selectBook(book.id); $('book-select').focus(); message(''); })); $('book-list').append(row); }
+  for (const book of body.books) { const language = book.language === 'zh' ? '中文' : '英文'; const option = element('option', `${book.direction_name} / ${book.stage} / ${language} / ${book.title}`); option.value = book.id; $('book-select').append(option); const { row, detail, controls } = record(book.title, [`${book.direction_name} / ${book.stage} / ${language}推荐 / 排序 ${book.sort_order}`, book.document_id ? `已关联文献 #${book.document_id}` : '文档尚未接入']); detail.append(element('span', book.document_id ? '可以学习' : '待关联', `badge${book.document_id ? '' : ' pending'}`)); controls.append(button('配置', async () => { await selectBook(book.id); $('book-select').focus(); message(''); })); $('book-list').append(row); }
   if (body.books.length) await selectBook(state.books.some(b => b.id === Number(selected)) ? selected : body.books[0].id);
   empty($('book-list'), '暂时没有教材，可从文献库中新增推荐。');
 }
@@ -104,7 +104,7 @@ $('document-form').addEventListener('submit', event => { event.preventDefault();
   const directions = [...$('document-directions').querySelectorAll('input:checked')].map(input => input.value), language = $('document-language').value, module = $('document-module').value;
   const ids = [...new Set(directions.map(direction => state.subjects.find(subject => subject.slug === direction)?.id || 5))]; if (!ids.length) ids.push(5);
   if (state.document) { await write(`/api/admin/documents/${state.document}`, { title, authors, subject_ids: ids, module, language, directions }, 'PATCH'); await loadDocuments(); resetDocument(); message('文献信息已保存。'); }
-  else { const file = $('document-file').files[0]; if (!file) throw new Error('请选择 PDF 文件。'); const params = new URLSearchParams({ title, authors, subject_id: ids[0], module, language }); directions.forEach(direction => params.append('directions', direction)); const result = await write('/api/admin/documents?' + params, file, 'POST', true); state.docOffset = 0; state.query = ''; $('document-query').value = ''; await loadDocuments(); resetDocument(); message(`文献已导入，编号 #${result.id}。可在教材配置中选择此文献。`); }
+  else { const file = $('document-file').files[0]; if (!file) throw new Error('请选择 PDF 或 DJVU 文件。'); const params = new URLSearchParams({ title, authors, subject_id: ids[0], module, language }); directions.forEach(direction => params.append('directions', direction)); const result = await write('/api/admin/documents?' + params, file, 'POST', true); state.docOffset = 0; state.query = ''; $('document-query').value = ''; await loadDocuments(); resetDocument(); message(`文献已导入，编号 #${result.id}。可在教材配置中选择此文献。`); }
 }); });
 $('document-cancel').addEventListener('click', resetDocument);
 $('document-search').addEventListener('submit', event => { event.preventDefault(); state.docOffset = 0; state.query = $('document-query').value.trim(); action(event.currentTarget, async () => { await loadDocuments(); message(''); }); });

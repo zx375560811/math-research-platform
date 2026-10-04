@@ -1,6 +1,6 @@
 {
   "name": "math-research-platform-ui-checks",
   "private": true,
-  "scripts": { "test": "node tests/browser.cjs && node tests/admin.cjs" },
+  "scripts": { "test": "node tests/browser.cjs && node tests/admin.cjs && node tests/djvu.cjs" },
   "devDependencies": { "playwright": "1.62.1" }
 }

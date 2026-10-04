@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
             output.write(b'%PDF-1.4\n')
             for _ in range(21): output.write(b'x' * 1024**2)
         (export / 'files/invalid.pdf').write_bytes(b'not a PDF')
-        (export / 'files/other.djvu').write_bytes(b'DJVU')
+        (export / 'files/other.djvu').write_bytes(b'AT&TFORM\x00\x00\x00\x04DJVU')
         rdf = export / 'collection.rdf'
         rdf.write_text('''<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
           xmlns:z="http://www.zotero.org/namespaces/export#" xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -66,7 +66,11 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
         </rdf:RDF>''', encoding='utf-8')
         value = zotero.preview(rdf)
         rows = value['documents']
-        assert [r['status'] for r in rows] == ['ready','ready','failed','failed','skipped','ready','failed']
+        assert [r['status'] for r in rows] == ['ready','ready','failed','failed','ready','ready','failed']
+        assert rows[4]['format'] == 'djvu'
+        try: zotero.detect(b'DJVU')
+        except ValueError: pass
+        else: raise AssertionError('Invalid DJVU accepted')
         assert rows[0]['title'] == '测试书目' and rows[0]['authors'] == '甲 作者'
         assert rows[0]['collections'] == ['分析 / 复分析'] and rows[0]['directions'] == ['analysis']
         assert rows[1]['title'] == '中文讲义' and rows[1]['language'] == 'zh' and rows[1]['size'] > 20 * 1024**2
@@ -76,9 +80,9 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
         zotero.report(value, 'preview.json'); assert not Path('data/math.db').exists()
         database('data/math.db')
         result = zotero.apply(value, 'data/math.db', 'result.json')
-        assert result['summary'] == {'duplicate':2, 'imported':1, 'failed':3, 'skipped':1}
+        assert result['summary'] == {'duplicate':2, 'imported':2, 'failed':3}
         with closing(sqlite3.connect('data/math.db')) as db:
-            assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 2
+            assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 3
             assert db.execute('SELECT title,authors FROM documents WHERE id=1').fetchone() == ('Existing title','Existing author')
             assert db.execute('SELECT language FROM document_catalog WHERE document_id=1').fetchone()[0] == 'en'
             assert db.execute('SELECT direction FROM document_directions WHERE document_id=1').fetchone()[0] == 'algebra'
@@ -88,10 +92,12 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
             assert imported[2] == (export / 'files/中文讲义.pdf').stat().st_size
             assert zotero.digest(imported[1]) == zotero.digest(export / 'files/中文讲义.pdf')
             assert db.execute('SELECT language FROM document_catalog WHERE document_id=?',(imported[0],)).fetchone()[0] == 'zh'
-            assert db.execute('SELECT COUNT(*) FROM zotero_import_sources').fetchone()[0] == 3
+            assert db.execute('SELECT COUNT(*) FROM zotero_import_sources').fetchone()[0] == 4
+        with closing(sqlite3.connect('data/math.db')) as db:
+            assert db.execute("SELECT COUNT(*) FROM document_formats WHERE format='djvu'").fetchone()[0] == 1
         before = set(Path('data/files').iterdir())
         rerun = zotero.apply(zotero.preview(rdf), 'data/math.db', 'rerun.json')
-        assert rerun['summary']['duplicate'] == 3 and set(Path('data/files').iterdir()) == before
+        assert rerun['summary']['duplicate'] == 4 and set(Path('data/files').iterdir()) == before
         assert json.loads(Path('rerun.json').read_text(encoding='utf-8'))['summary']['failed'] == 3
         # Force a database failure after copying a new PDF: no orphan file or partial record.
         (export / 'files/中文讲义.pdf').write_bytes(b'%PDF-1.4\na different file')
