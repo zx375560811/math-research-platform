@@ -19,14 +19,6 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
-  function readerTools(open) {
-    $('reader-heading').hidden = !open;
-    $('reader-tools-toggle').setAttribute('aria-expanded', String(open));
-    $('reader-tools-toggle').setAttribute('aria-label', open ? '收起阅读工具' : '展开阅读工具');
-  }
-  readerTools(false);
-  on($('reader-tools-toggle'), 'click', () => readerTools($('reader-heading').hidden));
-  on($('reader-heading'), 'keydown', event => { if (event.key === 'Escape') { readerTools(false); $('reader-tools-toggle').focus(); } });
   const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title }), () => {
     selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
   });

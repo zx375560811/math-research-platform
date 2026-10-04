@@ -14,11 +14,7 @@ const directions = [['analysis','分析',true],['geometry-topology','几何与�
 const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:false,file_url:null}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
 for (const [i, stage] of ['基础入门','核心理论','进阶学习'].entries()) mockBooks.push({id:106+i,direction:'algebra',title:['高等代数','近世代数基础','交换代数基础'][i],authors:'中文推荐作者',stage,language:'zh',prerequisites:'前一阶段基础',source_url:'https://2d.hep.com.cn/585562293/3',available:false,file_url:null});
 const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'number-theory', name: '数论' }, { id: 3, slug: 'analysis', name: '分析' }, { id: 4, slug: 'geometry-topology', name: '几何与拓扑' }, { id: 5, slug: 'other', name: '其他数学方向' }];
-async function readerControl(page, id) {
-  if (!await page.locator('#' + id).isVisible()) await page.locator('#reader-tools-toggle').click();
-  await page.locator('#' + id).click();
-  if (id !== 'reader-back' && await page.locator('#reader-heading').isVisible()) await page.locator('#reader-tools-toggle').click();
-}
+async function readerControl(page, id) { await page.locator('#' + id).click(); }
 async function scrollToPage(page, number) {
   await page.locator('#reader-scroll').evaluate((node,n)=>{const frame=document.querySelector(`.pdf-page[data-page="${n}"]`);node.scrollTop=document.getElementById('pdf-pages').offsetTop+frame.offsetTop;node.dispatchEvent(new Event('scroll'));},number);
   await page.waitForFunction(n=>document.getElementById('reader-scroll').dataset.page===String(n)&&document.querySelector(`.pdf-page[data-page="${n}"][data-loaded]`),number);
@@ -239,12 +235,12 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.pdf-page').count(),12);
     assert.equal(await page.locator('#reader-notes').isVisible(),true); assert.equal(await page.locator('#reader-outline').isVisible(),false); assert.equal(await page.locator('#reader-outline-toggle').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('.topbar').isVisible(),false);
-    assert.equal(await page.locator('#reader-heading').isVisible(),false);
-    const pdfTop=await page.locator('#reader-scroll').boundingBox();assert.equal(pdfTop.y,0);
-    await page.locator('#reader-tools-toggle').click();assert.equal(await page.locator('#reader-heading').isVisible(),true);
-    assert.equal((await page.locator('#reader-scroll').boundingBox()).height,pdfTop.height);
-    await page.locator('#reader-back').focus();await page.keyboard.press('Escape');assert.equal(await page.locator('#reader-heading').isVisible(),false);
-
+    assert.equal(await page.locator('#reader-heading').isVisible(),true);
+    assert.equal(await page.locator('#reader-tools-toggle').count(),0);
+    assert.equal(await page.locator('.reader-note-pane h2').count(),0);
+    const header=await page.locator('#reader-heading').boundingBox(), notes=await page.locator('#reader-notes').boundingBox(), pdfArea=await page.locator('#reader-scroll').boundingBox();
+    assert.equal(header.y,0);assert.ok(Math.abs(header.x+header.width-notes.x-notes.width)<1);
+    assert.ok(Math.abs(pdfArea.y-header.height)<1 && Math.abs(notes.y-header.height)<1);
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),stack=document.getElementById('pdf-pages'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=stack.offsetTop+next.offsetTop+120;});
     await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='2' && document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
     assert.equal(await page.locator('.reader-toolbar,#reader-page,#reader-zoom,#reader-notes-toggle').count(),0); assert.deepEqual(await page.locator('.reader-heading-actions button').allTextContents(),['目录','适合宽度','全屏']); await scrollToPage(page,1); await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='1');
@@ -278,7 +274,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
     const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:Math.abs(a.getBoundingClientRect().left-b.getBoundingClientRect().left)<1 && b.getBoundingClientRect().top-a.getBoundingClientRect().bottom<=3};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
     assert.ok(await page.locator('#reader-scroll').evaluate(node=>Math.abs(node.getBoundingClientRect().bottom-document.getElementById('reader-view').getBoundingClientRect().bottom)<1));
-    const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-view').top),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:ask.left-input.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
+    const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-heading').bottom),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:ask.left-input.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
     assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=13); assert.notEqual(readerChrome.askColor,'rgb(52, 88, 212)');
     const beforeVertical=await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight); const split=await page.locator('#reader-ai-resize').boundingBox();
     await page.mouse.move(split.x+split.width/2,split.y+5);await page.mouse.down();await page.mouse.move(split.x+split.width/2,split.y+75,{steps:6});await page.mouse.up();
