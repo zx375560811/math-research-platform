@@ -231,6 +231,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.textbook-row').count(),6); assert.equal(await page.locator('.textbook-stage').count(),3); for(const stage of ['基础入门','核心理论','进阶学习']) for(const language of ['zh','en']) assert.equal(await page.locator(`.textbook-stage[data-stage="${stage}"] .recommendation-language[data-language="${language}"] .textbook-row`).count(),1);
     assert.equal(await page.locator('[data-book="7"]').textContent(),'开始学习');
     assert.equal(await page.locator('input[type=file],#upload-form').count(),0);
+    await page.setViewportSize({width:1366,height:768});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight));
     await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
@@ -284,6 +286,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.waitForFunction(()=>!!document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
 
+    await page.locator('.pdf-page[data-page="1"] .textLayer span').first().waitFor({state:'attached'});
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor();
     await page.locator('#reader-ask-ai').click();
@@ -312,6 +315,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===2); assert.equal(chatCalls.at(-1).source,'custom'); assert.equal(chatCalls.at(-1).context,null);
     await page.screenshot({path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
     await page.locator('#ai-source').selectOption('default'); await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
+    await page.locator('.pdf-page[data-page="1"] .textLayer span').first().waitFor({state:'attached'});
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="yellow"]').click();
     await page.locator('.annotation-item').waitFor(); assert.ok(await page.locator('.pdf-highlight').count()>0);
@@ -324,6 +328,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     const newQuote=await page.evaluate(() => {const spans=document.querySelectorAll('.pdf-page[data-page="1"] .textLayer span'),span=spans[spans.length-1];const range=document.createRange();range.selectNodeContents(span);const selected=window.getSelection();selected.removeAllRanges();selected.addRange(range);return span.textContent;});
     await page.locator('#selection-tools').waitFor(); assert.equal(await page.locator('#selection-quote').textContent(),newQuote); assert.equal(await page.locator('.annotation-note').isVisible(),false);
     await page.locator('#reader-ask-ai').click(); assert.equal(await page.locator('#ai-context-quote').textContent(),newQuote);
+    await page.locator('.pdf-page[data-page="1"] .textLayer span').first().waitFor({state:'attached'});
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selected=window.getSelection();selected.removeAllRanges();selected.addRange(range);});
     await page.waitForFunction(()=>document.getElementById('selection-quote').textContent==='Mathematics 1'); assert.equal(await page.locator('#ai-context-quote').textContent(),'Mathematics 1');
     await page.locator('[data-highlight="blue"]').click();
@@ -368,6 +373,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.ok(await page.locator('.pdf-highlight').count()>0);
     await page.screenshot({path:path.join(shots,'reader-desktop.png'),fullPage:true});
     assert.equal(await page.locator('#reader-notes-close').count(),0);
+    await page.locator('.pdf-page[data-page="1"] .textLayer span').first().waitFor({state:'attached'});
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor();await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     assert.equal(await page.locator('#reader-notes').isVisible(),true);assert.ok(await page.locator('#selection-quote').textContent());

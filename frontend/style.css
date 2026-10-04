@@ -380,3 +380,35 @@ body.reading-page { overflow:hidden; }
  #direction-detail>.direction-heading .back-link { padding-right:12px; }
  #direction-detail>.direction-heading h2 { font-size:24px; }
 }
+
+/* Keep the direction overview and its three textbook stages in a compact sheet. */
+main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px; }
+#direction-detail>.direction-heading { margin-bottom:10px; }
+#direction-detail .direction-intro-section { padding:10px 16px;margin-bottom:14px; }
+#direction-detail .introduction-item { padding:4px 0; }
+#direction-detail .introduction-item dd { line-height:1.5; }
+#direction-detail .section-heading { margin-bottom:10px; }
+#direction-detail .textbook-list { gap:10px; }
+#direction-detail .textbook-stage { margin:0; }
+#direction-detail .stage-heading { gap:8px;margin-bottom:8px; }
+#direction-detail .stage-heading h3 { font-size:17px; }
+#direction-detail .stage-number { width:24px;height:24px;flex-shrink:0; }
+#direction-detail .recommendation-columns { gap:12px; }
+#direction-detail .recommendation-language { padding:10px 12px; }
+#direction-detail .recommendation-language h4 { margin:0 0 4px;line-height:1.4; }
+#direction-detail .recommendation-language .textbook-row { padding:0;margin:0;border:0;gap:6px; }
+#direction-detail .textbook-info h3 { font-size:16px;line-height:1.4;margin:0; }
+#direction-detail .textbook-info p { margin:2px 0 0;line-height:1.4; }
+#direction-detail .book-prerequisites { display:none; }
+#direction-detail .textbook-actions { gap:6px; }
+#direction-detail .textbook-actions .button,#direction-detail .book-unavailable { min-height:32px;padding:4px 9px; }
+@media(min-width:900px) {
+ #direction-detail .textbook-stage { display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:start; }
+ #direction-detail .stage-heading { margin:10px 0 0; }
+ #direction-detail .analysis-flow { padding:0;gap:30px; }
+ #direction-detail .analysis-flow>.introduction-item { padding:10px;gap:5px; }
+ #direction-detail .analysis-flow dt { font-size:14px; }
+ #direction-detail .analysis-flow-topics { gap:2px 12px; }
+ #direction-detail .analysis-flow>.introduction-item:not(:last-child)::before { right:-23px;width:16px; }
+ #direction-detail .analysis-flow>.introduction-item:not(:last-child)::after { right:-23px; }
+}
