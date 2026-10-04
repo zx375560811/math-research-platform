@@ -189,6 +189,17 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/learning/books/106/progress',position,'PUT')[0] == 200
             assert request('/api/library/documents/' + str(chinese[1]['id']))[1]['progress'] == position
             assert write('/api/auth/login', {'username':'invited_reader','password':credentials['password']})[0] == 200
+            archive=request('/api/library/collections')[1]
+            root_folder=next(c for c in archive['collections'] if c['name']=='Original')
+            analysis_folder=next(c for c in archive['collections'] if c['name']=='分析')
+            complex_folder=next(c for c in archive['collections'] if c['name']=='复分析')
+            assert root_folder['count']==2 and analysis_folder['count']==2 and complex_folder['parent_id']==analysis_folder['id']
+            for folder in [root_folder,analysis_folder,complex_folder]:
+                found=request('/api/library/documents?collection='+str(folder['id']))[1]['documents']
+                assert {d['id'] for d in found}=={document,native_id}
+            assert request('/api/library/documents?collection=-1')[0]==400
+            assert request('/api/library/documents?collection=999999')[0]==404
+            assert not {d['id'] for d in request('/api/library/documents?collection=unfiled')[1]['documents']} & {document,native_id}
             assert request('/api/learning/books/106')[1]['selected_document_id'] is None
             assert request(library_path)[1]['progress'] is None
             assert request(library_path + '/annotations')[1]['annotations'] == []
@@ -225,6 +236,11 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/auth/me')[1]['user']['role'] == 'USER'
             assert request('/api/admin/books') == (403, {'error': 'admin_required'})
             assert write('/api/admin/invitations', {'days': 7})[0] == 403
+            # Legacy source paths recover on restart, without copying or reimporting files.
+            with sqlite3.connect(database) as db:
+                db.execute('CREATE TABLE zotero_import_sources(document_id INTEGER,source TEXT,attachment TEXT,collections_json TEXT,imported_at TEXT)')
+                db.executemany('INSERT INTO zotero_import_sources VALUES(?,?,?,?,?)',[(document,'Original.rdf','one',json.dumps(['分析 / 复分析','代数']),'2026'),(document,'Original.rdf','duplicate',json.dumps(['分析 / 复分析']),'2026'),(native_id,'Original.rdf','native',json.dumps(['分析 / 复分析']),'2026')])
+                db.commit()
             process.terminate(); process.wait(timeout=10)
             process = subprocess.Popen(['java','-jar',str(backend / 'target/math-server.jar')],cwd=root,
                 env={**os.environ,'MATH_PORT':str(port),'MATH_WEB_DIR':str(backend.parent / 'frontend')},stdout=log,stderr=log)
@@ -234,6 +250,17 @@ with tempfile.TemporaryDirectory() as directory:
                 except OSError: time.sleep(.1)
             else: raise AssertionError('Restart failed')
             assert write('/api/auth/login',credentials)[0] == 200
+            archive=request('/api/library/collections')[1]
+            root_folder=next(c for c in archive['collections'] if c['name']=='Original')
+            analysis_folder=next(c for c in archive['collections'] if c['name']=='分析')
+            complex_folder=next(c for c in archive['collections'] if c['name']=='复分析')
+            assert root_folder['count']==2 and analysis_folder['count']==2 and complex_folder['parent_id']==analysis_folder['id']
+            for folder in [root_folder,analysis_folder,complex_folder]:
+                found=request('/api/library/documents?collection='+str(folder['id']))[1]['documents']
+                assert {d['id'] for d in found}=={document,native_id}
+            assert request('/api/library/documents?collection=-1')[0]==400
+            assert request('/api/library/documents?collection=999999')[0]==404
+            assert not {d['id'] for d in request('/api/library/documents?collection=unfiled')[1]['documents']} & {document,native_id}
             assert request('/api/learning/books/106')[1]['selected_document_id'] == chinese[1]['id']
             assert request('/api/learning/books/106')[1]['progress'] == position
             assert write(selection,{'document_id':None},'PUT')[1]['title'] == '高等代数'

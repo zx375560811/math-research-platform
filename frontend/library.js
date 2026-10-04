@@ -1,42 +1,34 @@
+import { mountIcons } from './icons.js';
 const $ = id => document.getElementById(id);
-const languages = { zh: '中文', en: '英文', und: '语种未标注' };
-function el(tag, text, className) { const node = document.createElement(tag); if (text != null) node.textContent = text; if (className) node.className = className; return node; }
-export function createLibrary({ api, write }) {
-  let categories = [], generation = 0, stopReader = null, offset = 0, current = '', ownsReader = false;
-  function close() { ++generation; $('library-view').setAttribute('aria-busy', 'false'); if (stopReader) stopReader(); stopReader = null; $('library-view').hidden = true; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
-  function filterUrl() { return new URLSearchParams({ module: $('library-module').value, direction: $('library-direction').value, language: $('library-language').value, q: $('library-query').value.trim() }); }
-  function directionOptions(selected = '') {
-    const module = categories.find(module => module.slug === $('library-module').value); $('library-direction').replaceChildren();
-    for (const direction of [{ slug: '', name: '所有方向' }, ...(module?.directions || categories.flatMap(module => module.directions)), { slug: 'unclassified', name: '尚未分类' }]) { const option = el('option', direction.name); option.value = direction.slug; $('library-direction').append(option); }
-    $('library-direction').value = selected;
+const languages = { zh:'中文', en:'英文', und:'未标注' };
+function el(tag,text,className) { const n=document.createElement(tag);if(text!=null)n.textContent=text;if(className)n.className=className;return n; }
+function glyph(name) { const n=el('span');n.dataset.icon=name;n.setAttribute('aria-hidden','true');return n; }
+export function createLibrary({api,write}) {
+  let categories=[],folders=[],totals={},generation=0,requestId=0,stopReader=null,offset=0,ownsReader=false,selected='';const expanded=new Set(), knownRoots=new Set();
+  function close() { ++generation;++requestId;$('library-view').setAttribute('aria-busy','false');stopReader?.();stopReader=null;$('library-view').hidden=true;if(ownsReader){$('reader-view').hidden=true;document.body.classList.remove('reading-page');}ownsReader=false; }
+  function filterUrl() {const p=new URLSearchParams();for(const [key,value] of Object.entries({module:$('library-module').value,direction:$('library-direction').value,language:$('library-language').value,q:$('library-query').value.trim(),collection:selected,page:offset?String(offset/20+1):''}))if(value)p.set(key,value);return p;}
+  function change() {const hash='#/library?'+filterUrl();if(location.hash===hash)load();else location.hash=hash;}
+  function choose(value) {selected=value;offset=0;$('library-folders').classList.remove('open');$('library-folders-toggle').setAttribute('aria-expanded','false');change();}
+  function directionOptions(value='') {const module=categories.find(m=>m.slug===$('library-module').value);$('library-direction').replaceChildren();for(const d of [{slug:'',name:'所有方向'},...(module?.directions||categories.flatMap(m=>m.directions)),{slug:'unclassified',name:'尚未分类'}]){const option=el('option',d.name);option.value=d.slug;$('library-direction').append(option);}$('library-direction').value=value;}
+  function tree() {
+    const nav=$('library-tree');nav.replaceChildren();
+    function choice(value,name,count){const b=el('button',null,'library-folder-select');b.type='button';b.dataset.collection=value;b.setAttribute('aria-current',selected===value?'page':'false');b.title=name;b.append(glyph('book'),el('span',name,'library-folder-name'),el('span',String(count),'library-folder-count'));b.addEventListener('click',()=>choose(value));return b;}
+    nav.append(choice('','全部文献',totals.total||0));const byId=new Map(folders.map(f=>[String(f.id),f]));let ancestor=byId.get(selected),seen=new Set();
+    while(ancestor&&!seen.has(ancestor.id)){seen.add(ancestor.id);if(ancestor.parent_id!=null)expanded.add(String(ancestor.parent_id));ancestor=byId.get(String(ancestor.parent_id));}
+    const children=new Map();for(const f of folders){const key=f.parent_id==null?'':String(f.parent_id);if(!children.has(key))children.set(key,[]);children.get(key).push(f);}
+    function branch(parent,depth=0){const list=el('ul',null,'library-folder-list');if(depth>30)return list;for(const f of children.get(parent)||[]){const key=String(f.id),item=el('li'),row=el('div',null,'library-folder-row');if(f.parent_id==null&&!knownRoots.has(key)){expanded.add(key);knownRoots.add(key);}const nested=children.has(key),toggle=el('button',null,'library-folder-expand');toggle.type='button';toggle.append(glyph('forward'));toggle.disabled=!nested;toggle.setAttribute('aria-label',`展开或收起 ${f.name}`);toggle.setAttribute('aria-expanded',String(expanded.has(key)));row.append(toggle,choice(key,f.name,f.count));item.append(row);if(nested){const group=branch(key,depth+1);group.id='library-folder-'+key;group.hidden=!expanded.has(key);toggle.setAttribute('aria-controls',group.id);toggle.addEventListener('click',()=>{group.hidden=!group.hidden;toggle.setAttribute('aria-expanded',String(!group.hidden));if(group.hidden)expanded.delete(key);else expanded.add(key);});item.append(group);}list.append(item);}return list;}
+    nav.append(branch(''));if(totals.unfiled)nav.append(choice('unfiled','未归入目录',totals.unfiled));
+    const crumbs=$('library-breadcrumbs');crumbs.replaceChildren();const path=[];let f=byId.get(selected);seen=new Set();while(f&&!seen.has(f.id)){seen.add(f.id);path.unshift(f);f=byId.get(String(f.parent_id));}const all=el('button','全部文献');all.type='button';all.addEventListener('click',()=>choose(''));crumbs.append(all);if(selected==='unfiled')path.push({name:'未归入目录',id:'unfiled'});for(const [i,f] of path.entries()){crumbs.append(el('span','/'));const n=el(i===path.length-1?'strong':'button',f.name);if(n.tagName==='BUTTON'){n.type='button';n.addEventListener('click',()=>choose(String(f.id)));}crumbs.append(n);}mountIcons();
   }
-  async function load(version = generation) {
-    $('library-view').setAttribute('aria-busy', 'true'); $('library-status').textContent = '正在加载文献…'; const params = filterUrl(); params.set('offset', offset);
-    try {
-      const body = await api('/api/library/documents?' + params); if (version !== generation) return;
-      const list = $('library-documents'); list.replaceChildren(); const names = new Map(categories.flatMap(module => module.directions).map(direction => [direction.slug, direction.name]));
-      for (const doc of body.documents) {
-        const row = el('article', null, 'library-document'), info = el('div', null, 'library-document-info'); info.append(el('span', languages[doc.language] || '语种未标注', 'document-language'), el('h2', doc.title), el('p', doc.authors || '作者未填写'), el('p', (doc.directions || []).map(slug => names.get(slug) || slug).join('、') || '尚未分类', 'document-directions'));
-        const link = el('a', doc.progress ? `继续阅读 · 第 ${doc.progress.page} 页` : '开始阅读', 'button primary'); link.href = `#/library/read/${doc.id}?${filterUrl()}`; link.dataset.document = doc.id; row.append(info, link); list.append(row);
-      }
-      $('library-status').textContent = body.documents.length ? '' : '暂无文献';
-      $('library-prev').disabled = offset === 0; $('library-next').disabled = body.documents.length < 20; $('library-page').textContent = `第 ${offset / 20 + 1} 页`;
-    } catch (error) { if (version === generation) $('library-status').textContent = error instanceof TypeError ? '连接失败，请重试。' : error.message; }
-    finally { if (version === generation) $('library-view').setAttribute('aria-busy', 'false'); }
+  async function load(version=generation){const request=++requestId;$('library-view').setAttribute('aria-busy','true');$('library-status').textContent='正在加载文献…';const p=filterUrl();p.delete('page');p.set('offset',offset);
+    try{const body=await api('/api/library/documents?'+p);if(version!==generation||request!==requestId)return;const list=$('library-documents');list.replaceChildren();for(const doc of body.documents){const row=el('tr',null,'library-document'),title=el('td'),name=el('a',doc.title,'library-document-title'),href=`#/library/read/${doc.id}?${filterUrl()}`;name.href=href;name.dataset.document=doc.id;name.title=doc.title;title.append(name);const author=el('td',doc.authors||'—','library-author-column');author.title=doc.authors||'';const format=el('td',(doc.format||'pdf').toUpperCase(),'library-file-format'),language=el('td',languages[doc.language]||'未标注','library-language-column'),action=el('td'),link=el('a',doc.progress?`继续 · 第 ${doc.progress.page} 页`:'阅读','button compact library-read');link.href=href;link.prepend(glyph('book'));action.append(link);row.append(title,author,format,language,action);list.append(row);}$('library-status').textContent=body.documents.length?'':($('library-query').value?'当前目录没有匹配的文献。':'此目录暂无文献。');$('library-prev').disabled=offset===0;$('library-next').disabled=body.documents.length<20;$('library-page').textContent=`第 ${offset/20+1} 页`;mountIcons();}
+    catch(error){if(version===generation&&request===requestId)$('library-status').textContent=error instanceof TypeError?'连接失败，请点击刷新重试。':error.message;}
+    finally{if(version===generation&&request===requestId)$('library-view').setAttribute('aria-busy','false');}
   }
-  async function navigate(hash) {
-    close(); current = hash; const version = generation, [path, query = ''] = hash.split('?'), params = new URLSearchParams(query), reading = path.match(/^#\/library\/read\/(\d+)$/);
-    ownsReader = !!reading;
-    $('library-view').hidden = !!reading; $('reader-view').hidden = !reading;
-    try {
-      if (reading) { document.body.classList.add('reading-page'); const reader = await import('./reader.js'); if (version !== generation) return; const controller = reader.openReader(Number(reading[1]), { api, write, basePath: '/api/library/documents', backHref: '#/library?' + params, backLabel: '← 返回文档库' }); stopReader = controller.close; await controller.ready; return; }
-      if (!categories.length) { categories = (await api('/api/library/categories')).modules; if (version !== generation) return; $('library-module').replaceChildren(); const all = el('option', '所有模块'); all.value = ''; $('library-module').append(all); for (const module of categories) { const option = el('option', module.name); option.value = module.slug; $('library-module').append(option); } }
-      $('library-module').value = params.get('module') || ''; directionOptions(params.get('direction') || ''); $('library-language').value = params.get('language') || ''; $('library-query').value = params.get('q') || ''; offset = 0; await load(version);
-    } catch (error) { if (version === generation) $(reading ? 'reader-status' : 'library-status').textContent = error.message; }
+  async function navigate(hash){close();const version=generation,[path,query='']=hash.split('?'),p=new URLSearchParams(query),reading=path.match(/^#\/library\/read\/(\d+)$/);ownsReader=!!reading;$('library-view').hidden=!!reading;$('reader-view').hidden=!reading;
+    try{if(reading){document.body.classList.add('reading-page');const reader=await import('./reader.js');if(version!==generation)return;const c=reader.openReader(Number(reading[1]),{api,write,basePath:'/api/library/documents',backHref:'#/library?'+p,backLabel:'← 返回文档库'});stopReader=c.close;await c.ready;return;}
+      const [catalog,archive]=await Promise.all([categories.length?Promise.resolve({modules:categories}):api('/api/library/categories'),api('/api/library/collections')]);if(version!==generation)return;categories=catalog.modules;folders=archive.collections;totals=archive;$('library-module').replaceChildren();for(const m of [{slug:'',name:'所有模块'},...categories]){const option=el('option',m.name);option.value=m.slug;$('library-module').append(option);}$('library-module').value=p.get('module')||'';directionOptions(p.get('direction')||'');$('library-language').value=p.get('language')||'';$('library-query').value=p.get('q')||'';selected=p.get('collection')||'';offset=Math.max(0,Math.min(100000,Number(p.get('page')||1)-1))*20;if(!Number.isInteger(offset))offset=0;$('library-tree-status').textContent='';tree();await load(version);
+    }catch(error){if(version===generation)$(reading?'reader-status':'library-status').textContent=error.message;}
   }
-  $('library-filter').addEventListener('submit', event => { event.preventDefault(); offset = 0; location.hash = '#/library?' + filterUrl(); if (location.hash === current) load(); });
-  $('library-module').addEventListener('change', () => { directionOptions(); offset = 0; location.hash = '#/library?' + filterUrl(); });
-  for (const id of ['library-direction', 'library-language']) $(id).addEventListener('change', () => { offset = 0; location.hash = '#/library?' + filterUrl(); });
-  $('library-prev').addEventListener('click', () => { offset = Math.max(0, offset - 20); load(); }); $('library-next').addEventListener('click', () => { offset += 20; load(); }); $('library-retry').addEventListener('click', () => load());
-  return { navigate, close };
+  $('library-filter').addEventListener('submit',e=>{e.preventDefault();offset=0;change();});$('library-module').addEventListener('change',()=>{directionOptions();offset=0;change();});for(const id of ['library-direction','library-language'])$(id).addEventListener('change',()=>{offset=0;change();});$('library-prev').addEventListener('click',()=>{offset=Math.max(0,offset-20);change();});$('library-next').addEventListener('click',()=>{offset+=20;change();});$('library-retry').addEventListener('click',()=>navigate(location.hash));$('library-folders-toggle').addEventListener('click',()=>{const open=$('library-folders').classList.toggle('open');$('library-folders-toggle').setAttribute('aria-expanded',String(open));});return {navigate,close};
 }

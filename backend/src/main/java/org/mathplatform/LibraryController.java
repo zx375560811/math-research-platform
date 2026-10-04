@@ -10,9 +10,11 @@ import org.springframework.web.bind.annotation.*;
 public class LibraryController {
     private final CatalogRepository catalog;
     private final DocumentReadingRepository reading;
-    LibraryController(CatalogRepository catalog, DocumentReadingRepository reading) { this.catalog = catalog; this.reading = reading; }
+    private final CollectionRepository collections;
+    LibraryController(CatalogRepository catalog, DocumentReadingRepository reading, CollectionRepository collections) { this.collections=collections; this.catalog = catalog; this.reading = reading; }
+    @GetMapping("/collections") public Map<String,Object> collections() throws SQLException { return collections.collections(); }
     @GetMapping("/categories") public Map<String,Object> categories() throws SQLException { return catalog.categories(); }
-    @GetMapping("/documents") public Map<String,Object> documents(@RequestParam(defaultValue="") String module, @RequestParam(defaultValue="") String direction, @RequestParam(defaultValue="") String language, @RequestParam(defaultValue="") String q, @RequestParam(defaultValue="0") int offset, Authentication user) throws SQLException { return catalog.documents(module, direction, language, q, offset, user.getName()); }
+    @GetMapping("/documents") public Map<String,Object> documents(@RequestParam(defaultValue="") String module, @RequestParam(defaultValue="") String direction, @RequestParam(defaultValue="") String language, @RequestParam(defaultValue="") String q, @RequestParam(defaultValue="0") int offset, @RequestParam(defaultValue="") String collection, Authentication user) throws SQLException { return catalog.documents(module, direction, language, q, offset, user.getName(), collection); }
     @GetMapping("/documents/{id}") public Map<String,Object> document(@PathVariable long id, Authentication user) throws SQLException { return reading.reading(id, user.getName()); }
     @PutMapping("/documents/{id}/progress") public Map<String,String> progress(@PathVariable long id, @RequestBody LearningRepository.Progress value, Authentication user) throws SQLException { reading.progress(id, user.getName(), value); return Map.of("status","ok"); }
     @GetMapping("/documents/{id}/annotations") public Map<String,Object> marks(@PathVariable long id, Authentication user) throws SQLException { return Map.of("annotations",reading.marks(id,user.getName())); }

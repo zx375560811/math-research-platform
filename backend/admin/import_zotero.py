@@ -12,6 +12,7 @@ import tempfile
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from document_format import detect, remember
+from zotero_collections import folders, link as link_collection
 from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 
@@ -109,7 +110,7 @@ def preview(rdf, mapping=None):
     items = [node for node in root if node.findtext('z:itemType', namespaces=NS) not in (None, 'attachment', 'note')]
     collections, memberships, parents = {}, defaultdict(set), defaultdict(list)
     for node in root.findall('z:Collection', NS):
-        collections[node.get(ABOUT)] = (compact(node.findtext('dc:title', namespaces=NS)),
+        collections[node.get(ABOUT)] = (compact(node.findtext('dc:title', namespaces=NS)) or '未命名文件夹',
                                        [part.get(RESOURCE) for part in node.findall('dcterms:hasPart', NS)])
     def walk(key, names, seen):
         if key in seen:
@@ -123,6 +124,19 @@ def preview(rdf, mapping=None):
                 memberships[child].add(tuple(chain))
     for key in collections:
         walk(key, [], set())
+    nested = {child for name, children in collections.values() for child in children if child in collections}
+    tree = []
+    def collect_tree(key, path):
+        name, children = collections[key]
+        path = path + [name or '未命名文件夹']
+        if path not in tree:
+            tree.append(path)
+        for child in children:
+            if child in collections:
+                collect_tree(child, path)
+    for key in collections:
+        if key not in nested:
+            collect_tree(key, [])
     for item in items:
         for link in item.findall('link:link', NS):
             key = link.get(RESOURCE)
@@ -156,7 +170,7 @@ def preview(rdf, mapping=None):
         original_language = source.findtext('z:language', default='', namespaces=NS)
         row = {'attachment': key, 'path': raw_path, 'title': field(title or Path(raw_path).stem or '未命名文献', warnings, '标题'),
                'authors': field(authors, warnings, '作者'), 'language': language(original_language, title or raw_path),
-               'directions': directions, 'collections': [' / '.join(chain) for chain in paths],
+               'directions': directions, 'collection_paths': [list(chain) for chain in paths], 'collections': [' / '.join(chain) for chain in paths],
                'warnings': warnings, 'status': 'ready', 'size': 0,
                'metadata': {'original_title': title, 'original_authors': authors, 'original_language': original_language,
                             'items': [ET.tostring(item, encoding='unicode') for item in sources]}}
@@ -176,7 +190,7 @@ def preview(rdf, mapping=None):
             row['status'] = 'failed'; row['reason'] = str(error)
         rows.append(row)
     return {'rdf': str(rdf), 'collection_count': len(collections), 'item_count': len(items),
-            'mapping': mapping, 'documents': rows}
+            'mapping': mapping, 'collection_tree': tree, 'documents': rows}
 
 
 def digest(path):
@@ -227,6 +241,8 @@ def apply(value, database, destination):
                 imported_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
                 PRIMARY KEY(document_id,source,attachment));
         ''')
+        collection_ids = folders(db, value)
+        db.commit()
         known = dict(db.execute('SELECT sha256,document_id FROM zotero_import_hashes'))
         indexed = set(known.values())
         for doc_id, stored in db.execute('SELECT id,file_path FROM documents').fetchall():
@@ -280,7 +296,8 @@ def apply(value, database, destination):
                     db.executemany('INSERT INTO document_directions VALUES(?,?)', [(doc_id, slug) for slug in row['directions']])
                     db.execute('INSERT INTO zotero_import_hashes VALUES(?,?)', (sha, doc_id))
                     row['status'] = 'imported'
-                provenance = {key: row[key] for key in ('title', 'authors', 'language', 'directions', 'metadata', 'path')}
+                link_collection(db, collection_ids, row, doc_id)
+                provenance = {key: row[key] for key in ('title', 'authors', 'language', 'directions', 'metadata', 'path', 'collection_paths')}
                 db.execute('INSERT OR IGNORE INTO zotero_import_sources(document_id,source,attachment,sha256,metadata_json,collections_json) VALUES(?,?,?,?,?,?)',
                            (doc_id, Path(value['rdf']).name, row['attachment'], sha, json.dumps(provenance, ensure_ascii=False), json.dumps(row['collections'], ensure_ascii=False)))
                 db.commit(); committed = True
@@ -296,9 +313,26 @@ def apply(value, database, destination):
     return value
 
 
+def sync_collections(value, database):
+    if not Path(database).is_file():
+        raise ValueError('数据库不存在，请先启动平台初始化数据库')
+    with closing(sqlite3.connect(str(database), timeout=30)) as db:
+        db.execute('PRAGMA foreign_keys=ON')
+        ids = folders(db, value)
+        source = Path(value['rdf']).name
+        existing = dict(db.execute('SELECT attachment,document_id FROM zotero_import_sources WHERE source=?', (source,)))
+        count = 0
+        for row in value['documents']:
+            if row['attachment'] in existing:
+                link_collection(db, ids, row, existing[row['attachment']]); count += 1
+        db.commit()
+        return count
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('rdf', help='Exported RDF path; keep its files directory alongside it')
+    parser.add_argument('--collections-only', action='store_true', help='Restore collection structure and links without copying or importing files')
     parser.add_argument('--apply', action='store_true', help='Import; without this flag only write a preview')
     parser.add_argument('--database', default=os.getenv('MATH_DB_PATH') or 'data/math.db')
     parser.add_argument('--mapping', help='Optional JSON object: collection names to direction slug lists')
@@ -309,7 +343,9 @@ def main():
         mapping = json.loads(Path(args.mapping).read_text(encoding='utf-8')) if args.mapping else None
         value = preview(args.rdf, mapping)
         report(value, args.report)
-        if args.apply:
+        if args.collections_only:
+            print(json.dumps({'linked_attachments': sync_collections(value, args.database), 'folders': len(value['collection_tree'])}, ensure_ascii=False))
+        elif args.apply:
             apply(value, args.database, args.report)
         print(json.dumps({'summary': value['summary'], 'pdf_GiB': round(value['pdf_bytes'] / 1024**3, 2), 'document_GiB': round(value['document_bytes'] / 1024**3, 2), 'formats': value['formats'],
                           'report': str(Path(args.report).resolve())}, ensure_ascii=False))

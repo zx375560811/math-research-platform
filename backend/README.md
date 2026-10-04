@@ -274,3 +274,23 @@ DjVu.js 0.5.4 及 Worker 本地托管，浏览器直接解码单文件和 bundle
 源码、发布版及 GPL-2.0-or-later 许可见 `frontend/vendor/djvu/README.md`、`LICENSE`、`NOTICE.md`。
 
 更新服务器后重新构建 Java 后端并重启，再运行原 Zotero 命令；已导入 PDF 会复用 ID，新增 DJVU 会正常入库。
+
+### 按 Zotero 原目录浏览文档库
+
+文档库左侧按导出的目录层级显示文件夹，右侧显示标题、作者、格式、语种和阅读入口。
+点击父目录包含其子目录文献，并按文献 ID 去重；搜索在当前目录内进行。
+阅读器返回保留目录、筛选和页码；手机用“目录”按钮展开文件夹。
+应用的研究方向分类及教材自选约束保持独立，不以 Zotero 文件夹替代。
+
+升级后启动服务会从已保存的 `zotero_import_sources.collections_json` 自动恢复旧目录和关联。
+若要补齐原导出中的空目录和原始排序，可只同步目录，不复制或重复导入文件：
+
+```bash
+cd /opt/math-platform/backend
+sudo -u math-platform python3 admin/import_zotero.py "/opt/math-platform/imports/大学数学基础/大学数学基础.rdf" --collections-only
+```
+
+目录结构存于 `library_collections`，多重归类存于 `document_collections`；未归类的服务器/网页上传文献显示在“未归入目录”。
+`GET /api/library/collections` 返回目录、包含子目录的文献数量和未归目录数量；
+`GET /api/library/documents?collection=ID` 支持目录筛选，`collection=unfiled` 查看未归目录文献。
+以上接口仍要求登录，不公开服务器路径或导入原始 XML。新的 Zotero 批量导入自动保存完整目录。

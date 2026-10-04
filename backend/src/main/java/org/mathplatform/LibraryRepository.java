@@ -68,6 +68,7 @@ public class LibraryRepository {
                 }
                 statement.execute("COMMIT");
             } catch (SQLException | IOException failure) { statement.execute("ROLLBACK"); throw failure; }
+            CollectionRepository.backfill(connection);
         }
     }
 

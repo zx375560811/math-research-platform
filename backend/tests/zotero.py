@@ -72,6 +72,8 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
         except ValueError: pass
         else: raise AssertionError('Invalid DJVU accepted')
         assert rows[0]['title'] == '测试书目' and rows[0]['authors'] == '甲 作者'
+        assert value['collection_tree'] == [['分析'],['分析','复分析'],['代数']]
+        assert rows[0]['collection_paths'] == [['分析','复分析']]
         assert rows[0]['collections'] == ['分析 / 复分析'] and rows[0]['directions'] == ['analysis']
         assert rows[1]['title'] == '中文讲义' and rows[1]['language'] == 'zh' and rows[1]['size'] > 20 * 1024**2
         assert zotero.language('fr-FR','中文标题') == 'und'
@@ -96,6 +98,13 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
         with closing(sqlite3.connect('data/math.db')) as db:
             assert db.execute("SELECT COUNT(*) FROM document_formats WHERE format='djvu'").fetchone()[0] == 1
         before = set(Path('data/files').iterdir())
+        assert zotero.sync_collections(zotero.preview(rdf),'data/math.db') == 4
+        assert set(Path('data/files').iterdir()) == before
+        with closing(sqlite3.connect('data/math.db')) as db:
+            assert db.execute('SELECT COUNT(*) FROM library_collections').fetchone()[0] == 4
+            assert db.execute('SELECT count(*) FROM document_collections').fetchone()[0] == 4
+            assert db.execute('SELECT c.name FROM library_collections c JOIN document_collections x ON x.collection_id=c.id WHERE x.document_id=1 ORDER BY c.id').fetchall() == [('collection',),('复分析',)]
+
         rerun = zotero.apply(zotero.preview(rdf), 'data/math.db', 'rerun.json')
         assert rerun['summary']['duplicate'] == 4 and set(Path('data/files').iterdir()) == before
         assert json.loads(Path('rerun.json').read_text(encoding='utf-8'))['summary']['failed'] == 3
@@ -106,6 +115,18 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
             db.commit()
         failed = zotero.apply(zotero.preview(rdf), 'data/math.db', 'failure.json')
         assert failed['documents'][1]['status'] == 'failed' and set(Path('data/files').iterdir()) == before
+        # Empty folders and a folder name containing a slash retain their exact identity.
+        extended = rdf.read_text(encoding='utf-8').replace('</rdf:RDF>', '<z:Collection rdf:about="empty"><dc:title>空目录</dc:title></z:Collection><z:Collection rdf:about="slash"><dc:title>A / B</dc:title></z:Collection></rdf:RDF>')
+        rdf.write_text(extended,encoding='utf-8')
+        assert zotero.sync_collections(zotero.preview(rdf),'data/math.db') == 4
+        with closing(sqlite3.connect('data/math.db')) as db:
+            assert db.execute('SELECT COUNT(*) FROM library_collections').fetchone()[0] == 6
+            assert db.execute("SELECT path_key FROM library_collections WHERE name='A / B'").fetchone()[0] == '["A / B"]'
+        rdf.write_text(extended.replace('<z:Collection rdf:about="empty"><dc:title>空目录</dc:title></z:Collection>', ''),encoding='utf-8')
+        zotero.sync_collections(zotero.preview(rdf),'data/math.db')
+        with closing(sqlite3.connect('data/math.db')) as db:
+            assert db.execute('SELECT COUNT(*) FROM library_collections').fetchone()[0] == 5
+            assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 3
         malicious = export / 'malicious.rdf'
         malicious.write_text('<!DOCTYPE rdf [<!ENTITY x "boom">]><rdf/>', encoding='utf-8')
         try: zotero.preview(malicious)

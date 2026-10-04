@@ -17,18 +17,30 @@ public class CatalogRepository {
         return Map.of("modules", List.of(Map.of("slug", "mathematics", "name", "数学与应用数学", "directions", learning.directions())));
     }
     public Map<String, Object> documents(String module, String direction, String language, String q, int offset, String user) throws SQLException {
+        return documents(module,direction,language,q,offset,user,"");
+    }
+    public Map<String,Object> documents(String module,String direction,String language,String q,int offset,String user,String collection) throws SQLException {
+        long collectionId=0;
+        if(!collection.isEmpty() && !collection.equals("unfiled")) {
+            try { if(!collection.matches("[1-9][0-9]*"))throw new NumberFormatException();collectionId=Long.parseLong(collection); }
+            catch(NumberFormatException failure){throw new ApiProblem(400,"invalid_query");}
+            try(var db=library.connect(true);var query=db.prepareStatement("SELECT 1 FROM library_collections WHERE id=?")){query.setLong(1,collectionId);try(var row=query.executeQuery()){if(!row.next())throw new ApiProblem(404,"not_found");}}
+        }
         if (!module.isEmpty() && !module.equals("mathematics") || !Set.of("", "zh", "en", "und").contains(language) || offset < 0 || q.length() > 200) throw new ApiProblem(400, "invalid_query");
         if (!direction.isEmpty() && !direction.equals("unclassified")) {
             try (var db = library.connect(true); var query = db.prepareStatement("SELECT 1 FROM learning_directions WHERE slug=?")) { query.setString(1, direction); try (var row = query.executeQuery()) { if (!row.next()) throw new ApiProblem(400, "invalid_query"); } }
         }
         List<Map<String, Object>> values = new ArrayList<>();
-        String sql = "SELECT d.id,p.page,p.total_pages,p.position,p.zoom FROM documents d LEFT JOIN document_catalog c ON c.document_id=d.id LEFT JOIN document_progress p ON p.document_id=d.id AND p.username=? "
+        String prefix=collectionId>0?"WITH RECURSIVE folders(id) AS (SELECT id FROM library_collections WHERE id=? UNION SELECT c.id FROM library_collections c JOIN folders f ON c.parent_id=f.id) ":"";
+        String folderFilter=collectionId>0?" AND EXISTS(SELECT 1 FROM document_collections x JOIN folders f ON f.id=x.collection_id WHERE x.document_id=d.id) ":collection.equals("unfiled")?" AND NOT EXISTS(SELECT 1 FROM document_collections x WHERE x.document_id=d.id) ":"";
+        String sql = prefix + "SELECT d.id,p.page,p.total_pages,p.position,p.zoom FROM documents d LEFT JOIN document_catalog c ON c.document_id=d.id LEFT JOIN document_progress p ON p.document_id=d.id AND p.username=? "
             + "WHERE (?='' OR coalesce(c.module,'mathematics')=?) AND (?='' OR coalesce(c.language,'und')=?) "
             + "AND (?='' OR (?='unclassified' AND NOT EXISTS(SELECT 1 FROM document_directions x WHERE x.document_id=d.id)) OR EXISTS(SELECT 1 FROM document_directions x WHERE x.document_id=d.id AND x.direction=?)) "
-            + "AND (instr(lower(d.title),lower(?))>0 OR instr(lower(d.authors),lower(?))>0) ORDER BY d.id DESC LIMIT 20 OFFSET ?";
+            + "AND (instr(lower(d.title),lower(?))>0 OR instr(lower(d.authors),lower(?))>0)" + folderFilter + " ORDER BY d.id DESC LIMIT 20 OFFSET ?";
         try (var db = library.connect(true); var query = db.prepareStatement(sql)) {
-            query.setString(1, user); query.setString(2, module); query.setString(3, module); query.setString(4, language); query.setString(5, language);
-            query.setString(6, direction); query.setString(7, direction); query.setString(8, direction); query.setString(9, q); query.setString(10, q); query.setInt(11, offset);
+            int bind=1;if(collectionId>0)query.setLong(bind++,collectionId);
+            query.setString(bind++, user); query.setString(bind++, module); query.setString(bind++, module); query.setString(bind++, language); query.setString(bind++, language);
+            query.setString(bind++, direction); query.setString(bind++, direction); query.setString(bind++, direction); query.setString(bind++, q); query.setString(bind++, q); query.setInt(bind, offset);
             try (var rows = query.executeQuery()) { while (rows.next()) {
                 var value = library.document(rows.getLong("id"));
                 value.put("progress", rows.getInt("page") == 0 ? null : Map.of("page", rows.getInt("page"), "total_pages", rows.getInt("total_pages"), "position", rows.getDouble("position"), "zoom", rows.getDouble("zoom")));

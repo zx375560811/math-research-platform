@@ -66,8 +66,9 @@ async function main() {
           if (!session?.user) return json({error:'login_required'},401);
           const user=session.user.username, docPath=url.pathname.match(/^\/api\/library\/documents\/(\d+)(?:\/(progress|annotations)(?:\/(\d+))?)?$/);
           if (url.pathname==='/api/library/documents/22' && !documents.some(d=>d.id===22)) documents.push(nativeDocument);
+          if(url.pathname==='/api/library/collections')return json({collections:[{id:100,parent_id:null,name:'大学数学基础',count:21},{id:101,parent_id:100,name:'分析',count:1},{id:102,parent_id:101,name:'复分析',count:1},{id:103,parent_id:100,name:'代数',count:21},{id:104,parent_id:100,name:'读书笔记',count:0}],total:documents.length,unfiled:documents.filter(d=>d.id>21).length});
           if (url.pathname==='/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions}]});
-          if (url.pathname==='/api/library/documents') {const q=url.searchParams.get('q')||'', direction=url.searchParams.get('direction')||'', language=url.searchParams.get('language')||'', offset=Number(url.searchParams.get('offset')||0);return json({documents:documents.filter(d=>(!q||d.title.includes(q)||d.authors.includes(q))&&(!direction||d.directions.includes(direction))&&(!language||d.language===language)).slice().reverse().slice(offset,offset+20).map(d=>({...d,progress:progress.get(user+':doc:'+d.id)||null})),limit:20,offset});}
+          if (url.pathname==='/api/library/documents') {const collection=url.searchParams.get('collection')||'', q=url.searchParams.get('q')||'', direction=url.searchParams.get('direction')||'', language=url.searchParams.get('language')||'', offset=Number(url.searchParams.get('offset')||0);return json({documents:documents.filter(d=>(!collection||collection==='100'&&d.id<=21||collection==='103'&&d.id<=21||['101','102'].includes(collection)&&d.id===1||collection==='unfiled'&&d.id>21)&&(!q||d.title.includes(q)||d.authors.includes(q))&&(!direction||d.directions.includes(direction))&&(!language||d.language===language)).slice().reverse().slice(offset,offset+20).map(d=>({...d,progress:progress.get(user+':doc:'+d.id)||null})),limit:20,offset});}
           if(docPath){const doc=documents.find(d=>d.id===Number(docPath[1]));if(!doc)return json({error:'not_found'},404);const key=user+':doc:'+doc.id;
             if(req.method==='GET'&&!docPath[2])return json({...doc,available:true,progress:progress.get(key)||null});
             if(req.method==='GET'&&docPath[2]==='annotations')return json({annotations:annotations.get(key)||[]});
@@ -139,6 +140,7 @@ async function main() {
       const issued = spawnSync('python3', [path.join(repo, 'backend/admin/create_invitation.py')], { cwd: temp, encoding: 'utf8' }); assert.equal(issued.status, 0, issued.stderr); invitation = issued.stdout.trim();
       fs.writeFileSync(path.join(temp, 'source.pdf'), pdf);
       const imported = spawnSync('python3', [path.join(repo, 'backend/admin/import_document.py'), 'source.pdf', '--title', 'Test textbook', '--authors', 'Test author', '--subject-id', '1'], { cwd: temp, encoding: 'utf8' }); assert.equal(imported.status,0,imported.stderr);
+      const collections=spawnSync('python3',['-c',`import sqlite3,json;db=sqlite3.connect('data/math.db');rows=[(100,None,'大学数学基础'),(101,100,'分析'),(102,101,'复分析'),(103,100,'代数'),(104,100,'读书笔记')];db.executemany('INSERT INTO library_collections(id,parent_id,name,source,path_key,sort_order) VALUES(?,?,?,?,?,?)',[(i,parent,name,'browser.rdf',str(i),i) for i,parent,name in rows]);db.executemany('INSERT INTO document_collections VALUES(?,?)',[(1,102),(1,103)]);db.commit();db.close()`],{cwd:temp,encoding:'utf8'});assert.equal(collections.status,0,collections.stderr);
       const linked = spawnSync('python3', [path.join(repo, 'backend/admin/link_textbook.py'),'7',String(JSON.parse(imported.stdout).id)],{cwd:temp,encoding:'utf8'});assert.equal(linked.status,0,linked.stderr);
     }
     assert.equal((await fetch(base + '/api/documents', { method: 'POST', body: pdf })).status, 405);
@@ -452,16 +454,23 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
+    await page.screenshot({path:path.join(shots,'library-collections-desktop.png'),fullPage:true});
+    await page.locator('[aria-controls="library-folder-101"]').click();await page.locator('[data-collection="102"]').click();await page.locator('[data-document="1"]').waitFor();
+    assert.equal(await page.locator('.library-document').count(),1);assert.match(await page.locator('#library-breadcrumbs').textContent(),/大学数学基础.*分析.*复分析/);assert.equal(await page.locator('[data-collection="102"]').getAttribute('aria-current'),'page');
+    await page.locator('[data-collection="104"]').click();await page.waitForFunction(()=>document.getElementById('library-status').textContent.includes('暂无文献'));assert.equal(await page.locator('.library-document').count(),0);
+    await page.locator('[data-collection="101"]').click();await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('.library-document').count(),1);
+    await page.locator('[data-collection="102"]').click();await page.locator('[data-document="1"]').waitFor();
+
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
     await page.screenshot({path:path.join(shots,'library-desktop.png'),fullPage:true});
-    await page.setViewportSize({width:390,height:844}); await page.screenshot({path:path.join(shots,'library-mobile.png'),fullPage:true}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
+    await page.setViewportSize({width:390,height:844}); await page.screenshot({path:path.join(shots,'library-mobile.png'),fullPage:true});await page.locator('#library-folders-toggle').click();assert.equal(await page.locator('#library-folders').isVisible(),true);await page.screenshot({path:path.join(shots,'library-collections-mobile.png'),fullPage:true});await page.locator('[data-collection="102"]').click();await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('#library-folders').isVisible(),false); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
     await page.locator('[data-document="1"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')); assert.match(await page.locator('#reader-back').textContent(),/文档库/);
     await scrollToPage(page,3); await page.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='3');
     await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="3"] .textLayer span')?.textContent==='Mathematics 3');
     let libraryProgress;
     for(let attempt=0;attempt<100;attempt++){libraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;if(libraryProgress?.page===3)break;await page.waitForTimeout(100);}
     assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
-    await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
+    await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor();assert.match(page.url(),/collection=102/);await page.locator('[data-collection="102"]').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
     const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
     for(let i=1;i<=31;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
     await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===31);
