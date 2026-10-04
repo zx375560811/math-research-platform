@@ -107,9 +107,10 @@ public class AdminLibraryController {
     @DeleteMapping("/collections/{id}")
     public Map<String,String> removeFolder(Authentication user,@PathVariable long id) throws SQLException {
         authorize(user);
-        try(var db=library.connect(false);var q=db.prepareStatement("DELETE FROM library_collections WHERE id=? AND NOT EXISTS(SELECT 1 FROM library_collections WHERE parent_id=?) AND NOT EXISTS(SELECT 1 FROM document_collections WHERE collection_id=?)")) {
-            q.setLong(1,id);q.setLong(2,id);q.setLong(3,id);
-            if(q.executeUpdate()==0){folder(db,id);throw new ApiProblem(409,"collection_not_empty");}
+        // Foreign-key cascades remove descendant folders and membership links, never documents.
+        try(var db=library.connect(false);var q=db.prepareStatement("DELETE FROM library_collections WHERE id=?")) {
+            q.setLong(1,id);
+            if(q.executeUpdate()==0)throw new ApiProblem(404,"not_found");
         }
         return Map.of("status","ok");
     }

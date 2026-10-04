@@ -16,11 +16,11 @@ export function createAdminLibrary({api,write,editDocument,message,onChoose,refr
     task=kind;operation={doc,ids:ids||[doc?.id].filter(Boolean),folder:folders.find(f=>String(f.id)===selected)};
     $('operation-error').textContent='';$('operation-form').reset();$('operation-name-label').hidden=!['rename-document','rename-folder','create-folder'].includes(kind);$('operation-destination-label').hidden=!['move-documents','move-folder','create-folder'].includes(kind);
     $('operation-detach-label').hidden=kind!=='delete-documents';$('operation-description').hidden=!kind.startsWith('delete')&&kind!=='move-documents';
-    const titles={'rename-document':'文献改名','rename-folder':'目录改名','create-folder':'新建目录','move-documents':'移动文献','move-folder':'移动目录','delete-documents':'删除文献','delete-folder':'删除空目录'};
+    const titles={'rename-document':'文献改名','rename-folder':'目录改名','create-folder':'新建目录','move-documents':'移动文献','move-folder':'移动目录','delete-documents':'删除文献','delete-folder':'删除目录'};
     $('operation-title').textContent=titles[kind];$('operation-submit').textContent=kind.startsWith('delete')?'确认删除':'保存';$('operation-submit').classList.toggle('danger',kind.startsWith('delete'));
     $('operation-name').required=['rename-document','rename-folder','create-folder'].includes(kind);$('operation-name').value=doc?.title||operation.folder?.name||'';if(kind==='create-folder')$('operation-name').value='';
     destinations(kind==='move-folder'?operation.folder?.id:null);$('operation-destination').value=kind==='move-folder'?String(operation.folder?.parent_id||''):kind==='create-folder'?selected==='unfiled'?'':selected:'';
-    $('operation-description').textContent=kind==='delete-documents'?`将永久删除 ${operation.ids.length} 篇文献及其文件、阅读进度和高亮笔记。此操作无法撤销。`:kind==='delete-folder'?`删除「${operation.folder?.name}」？仅可删除没有子目录和文献的空目录。`:'移动后仅保留目标目录归属，阅读进度和笔记保持不变。';
+    $('operation-description').textContent=kind==='delete-documents'?`将永久删除 ${operation.ids.length} 篇文献及其文件、阅读进度和高亮笔记。此操作无法撤销。`:kind==='delete-folder'?`删除「${operation.folder?.name}」？将移除该目录及其子目录。文献、文件、笔记和阅读进度保留，可从“全部文献”查看。`:'移动后仅保留目标目录归属，阅读进度和笔记保持不变。';
     dialog.showModal();mountIcons();
   }
   $('operation-cancel').addEventListener('click',()=>{if(dialog.getAttribute('aria-busy')!=='true')dialog.close();});

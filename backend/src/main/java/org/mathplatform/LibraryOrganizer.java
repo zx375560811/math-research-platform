@@ -110,7 +110,7 @@ public class LibraryOrganizer {
     }
     private void restore(Connection db,String table,String column,long document,String snapshot) throws SQLException {
         try(var q=db.prepareStatement("DELETE FROM "+table+" WHERE document_id=?")){q.setLong(1,document);q.executeUpdate();}
-        for(var value:json.readTree(snapshot))try(var q=db.prepareStatement("INSERT INTO "+table+"(document_id,"+column+") VALUES(?,?)")){q.setLong(1,document);if(column.equals("direction"))q.setString(2,value.asString());else q.setLong(2,value.asLong());q.executeUpdate();}
+        for(var value:json.readTree(snapshot))try(var q=db.prepareStatement(column.equals("collection_id")?"INSERT INTO document_collections SELECT ?,id FROM library_collections WHERE id=?":"INSERT INTO "+table+"(document_id,"+column+") VALUES(?,?)")){q.setLong(1,document);if(column.equals("direction"))q.setString(2,value.asString());else q.setLong(2,value.asLong());q.executeUpdate();}
     }
     private void undo(Connection db,String id) throws SQLException {
         try(var q=db.prepareStatement("SELECT * FROM ai_library_items WHERE job_id=? AND state IN('applied','review')")){q.setString(1,id);try(var r=q.executeQuery()){while(r.next()){
