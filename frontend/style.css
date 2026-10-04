@@ -191,7 +191,7 @@ body.reading-page { overflow:hidden; }
 .reader-notes { grid-template-rows:minmax(0,var(--reader-note-height,35%)) 10px minmax(0,1fr); }
 .reader-ai-pane { border-top:0; }.reader-ai-resize { position:relative;cursor:row-resize;touch-action:none;background:transparent;outline-offset:-2px; }
 /* A quiet grip stays visible; the divider grows from its center on interaction. */
-.reader-ai-resize::before { content:'';position:absolute;top:50%;left:50%;width:min(120px,60%);height:1px;background:#ccd5e4;transform:translateX(-50%) scaleX(0);transform-origin:center;opacity:0;transition:transform .22s ease,opacity .16s ease;pointer-events:none; }
+.reader-ai-resize::before { content:'';position:absolute;top:50%;left:50%;width:min(200px,70%);height:1px;background:#ccd5e4;transform:translateX(-50%) scaleX(0);transform-origin:center;opacity:0;transition:transform .22s ease,opacity .16s ease;pointer-events:none; }
 .reader-ai-resize::after { content:'';position:absolute;top:50%;left:50%;width:30px;height:3px;transform:translate(-50%,-50%);background:#a9b6cb;border-radius:3px;box-shadow:0 0 0 5px white;pointer-events:none; }
 .reader-ai-resize:hover::before,.reader-ai-resize:focus-visible::before,.reader-ai-resize.active::before { transform:translateX(-50%) scaleX(1);opacity:1; }
 @media (prefers-reduced-motion:reduce) { .reader-ai-resize::before { transition:none; } }
