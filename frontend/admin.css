@@ -43,3 +43,21 @@
   .admin-rail { padding:20px 18px 14px; }.admin-main { padding:0 20px 32px; }.admin-top { height:58px; }.admin-heading { padding:28px 0 24px; }.admin-heading h1 { font-size:28px; }
   .admin-rail nav a { padding:8px 10px;font-size:14px; }.admin-rail .return-app { top:22px;right:16px; }.admin-editor { padding:22px; }.admin-record h3 { font-size:17px; }
 }
+
+/* Catalog first, editor second: the administrator's working set leads. */
+.admin-rail { background:var(--rail);border-right:0; }
+.admin-rail .brand-wordmark,.admin-rail .brand small { color:var(--rail-ink); }
+.admin-rail nav a,.admin-rail p { color:var(--rail-muted); }
+.admin-rail nav a[aria-current] { color:white;background:#45485e; }
+.admin-rail nav a:hover { color:white;background:#343848; }
+.admin-rail .return-app { color:#c1c6ff; }
+.admin-columns,.admin-page .admin-columns:has(#book-form) { grid-template-columns:minmax(0,1fr) 360px;gap:36px; }
+.admin-columns>.admin-editor { grid-column:2;grid-row:1; }
+.admin-columns>.admin-records { grid-column:1;grid-row:1; }
+.admin-editor { padding:24px; }
+.admin-record h3 { font-size:19px; }.admin-record { padding:22px 8px; }
+@media(max-width:1100px) { .admin-columns,.admin-page .admin-columns:has(#book-form) { grid-template-columns:minmax(0,1fr) 300px;gap:24px; } }
+@media(max-width:800px) {
+ .admin-columns,.admin-page .admin-columns:has(#book-form) { grid-template-columns:minmax(0,1fr); }
+ .admin-columns>.admin-editor,.admin-columns>.admin-records { grid-column:1;grid-row:auto; }
+}

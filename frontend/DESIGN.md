@@ -10,21 +10,24 @@ colors:
   soft-blue: "#eeeffb"
   line: "#e7e8ed"
   control-border: "#d9dbe4"
-  rail: "#f7f8fa"
+  rail: "#242733"
+  rail-ink: "#eef0f6"
+  rail-muted: "#bec4d5"
+  panel: "#f7f8fa"
   primary-hover: "#4045b2"
   control-hover: "#f4f5f9"
-  nav-active: "#e9eaf4"
-  nav-active-ink: "#34398f"
-  nav-hover: "#edeef3"
+  nav-active: "#45485e"
+  nav-active-ink: "#ffffff"
+  nav-hover: "#343848"
   field-placeholder: "#6b6f7c"
   surface-subtle: "#fafbfc"
   composer-focus: "#888ed6"
 typography:
   display:
     fontFamily: "system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif"
-    fontSize: "clamp(30px, 3vw, 42px)"
+    fontSize: "36px"
     fontWeight: 650
-    lineHeight: 1.35
+    lineHeight: 1.4
     letterSpacing: "-0.03em"
   headline:
     fontFamily: "system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif"
@@ -55,7 +58,7 @@ rounded:
   badge: "5px"
   reader-control: "6px"
   container: "12px"
-  auth: "16px"
+  flat: "0px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -96,9 +99,9 @@ components:
     rounded: "{rounded.control}"
     padding: "10px 12px"
   filter-container:
-    backgroundColor: "{colors.rail}"
-    rounded: "{rounded.container}"
-    padding: "22px"
+    backgroundColor: "transparent"
+    rounded: "{rounded.flat}"
+    padding: "0 0 24px"
   composer:
     backgroundColor: "{colors.surface-subtle}"
     rounded: "{rounded.container}"
@@ -111,7 +114,7 @@ components:
 
 **Creative North Star: “数学研究工作台”**
 
-用户确认的 canon 方向结合内容排版的清晰、控件的精确和文献组织的秩序。白色正文、冷灰导航、炭黑文字与克制的靛蓝操作色形成安静、可信、适合长时间阅读的工作空间。参考 [Notion](https://www.notion.com/)、[Linear](https://linear.app/) 与 [Zotero](https://www.zotero.org/) 的方向由用户确认；这里使用自己的品牌与现有组件，不复制其资产。
+用户确认的 canon 方向结合内容排版的清晰、控件的精确和文献组织的秩序。白色正文、炭灰导航、炭黑文字与克制的靛蓝操作色形成安静、可信、适合长时间阅读的工作空间。参考 [Notion](https://www.notion.com/)、[Linear](https://linear.app/) 与 [Zotero](https://www.zotero.org/) 的方向由用户确认；这里使用自己的品牌与现有组件，不复制其资产。
 
 内容通过标题、段落留白、列表和细分隔线组织，操作通过适度圆角、清晰状态和可见焦点表达。沿用用户确认的连笔 Axiom 字标及“公理”副标题；品牌是 SVG，数学插图是现有代码图形，本轮没有新增栅格素材。Morphicons 沿用既有互动实现。
 
@@ -136,7 +139,8 @@ components:
 - **纸白**：正文画布、PDF 区、笔记和 AI 面板。
 - **炭黑**：正文及品牌字标。
 - **冷灰文字**：说明、导航和元数据。
-- **冷灰侧栏**：导航、筛选和管理编辑容器。
+- **炭灰导航 / 浅色文字**：用户与管理侧栏共用深色底，品牌与辅助文字分别使用 rail-ink 与 rail-muted。
+- **冷灰面板**：管理编辑容器；文献筛选为透明底。
 - **分隔灰与控件灰**：前者分隔内容，后者勾勒可操作输入。
 - **近白表面**：轻量悬停、AI 上下文与设置。
 
@@ -149,7 +153,7 @@ components:
 字体层次来自字号、字重与段落节奏，而不是装饰字体或大写标签。
 
 ### Hierarchy
-- **Display**：首页主标题使用流动字号、较紧字距；窄屏落到可读的固定标题尺寸。
+- **Display**：工作台标题采用固定桌面字号与较紧字距，手机为（29px）；方向详情桌面（36px），手机（29px）。
 - **Headline**：模块主标题；管理标题采用自己的已实现尺寸，仍使用同一字体与字重。
 - **Title**：段落和阶段标题；书名、文献名保留各自内容层次。
 - **Body**：应用正文采用 frontmatter 的正文值；介绍段落常用较宽行高（1.8），行长上限（65ch），详细介绍上限（75ch）。
@@ -159,9 +163,11 @@ components:
 
 ## Layout
 
-桌面应用使用固定左侧导航（216px）、顶部栏（64px）和居中内容区（最大 1280px）。正文四周采用 desktop 间距；内容分区比导航更宽松。首页应用为横向条目，方向为三列图形入口，推荐教材为中英文两列，文献为筛选区加列表。管理区保留编辑与记录两列，正文上限（1700px），侧栏同宽。
+桌面应用使用固定左侧导航（216px）、顶部栏（60px）和居中内容区（最大 1280px）。首页应用与真实方向入口组成双列工作台（1.2fr / 0.8fr），间距（44px），方向入口位于浅底面板。方向概览为横向索引，图形、名称、介绍、入口依次排列。方向详情采用左侧介绍（240px）与右侧阶段教材，介绍桌面粘附顶部（24px），中英文教材按阶段组织。
 
-响应式行为遵循现有断点：小于等于（1100px）收窄内容留白；应用导航在（900px）改为顶部横向导航；文献与教材在（850px）转单列；管理区在（800px）转单列；主要手机布局在（650px）采用左右留白（20px），方向单列、首页图形隐藏，条目操作移到正文下方。品牌另有（380px）的窄屏适配。断点是当前实现边界，不是新增屏幕功能。
+文档库搜索与按钮为主行，模块、方向、语种为次行；真实书目按文件类型、书名与作者、方向、语种、阅读操作五列对齐（42px / minmax(0,1fr) / 130px / 62px / 150px），间距（18px）。管理区正文上限（1700px），目录在左，编辑器在右（360px），两区间距（36px）。认证页仅呈现居中品牌与登录 / 注册模块，模块上限（430px），白底无阴影，当前标签用下划线。
+
+在（1100px）内容留白及列距收窄，介绍列为（210px），教材语言列转单列，文档库五列为（36px / minmax(0,1fr) / 90px / 52px / 140px），后台编辑列为（300px）。在（900px）应用导航转顶部横向导航，首页与方向详情转单列，介绍取消粘附。管理区在（800px）转单列并恢复编辑区、目录区的文档顺序。手机（650px）左右留白（20px），方向图形仍在条目左侧；文档库表头隐藏，方向、语种及操作堆在书名下，分类次行为两列加一整行。品牌另有（380px）的窄屏适配。断点描述当前实现边界。
 
 **The Continuous Paper Rule.** 阅读器独立于普通内容容器，占满可用高度，PDF 直达底部。目录默认关闭；标题行只保留目录、适合宽度、全屏操作。右侧笔记与 AI 同层延伸全高，桌面列为 PDF、拖动热区（6px）、右侧面板；桌面宽度及上下拖动几何沿用现有实现，笔记初始比例（35%）。手机右侧笔记优先初始宽度（184px），仍受可用空间与已保存尺寸约束。手机 AI 标题允许换行，来源控件收窄，操作行占满下一行。
 
@@ -169,13 +175,13 @@ components:
 
 ## Elevation & Depth
 
-常规内容依靠留白、轻微底色与细分隔线表达深度；应用条目、方向介绍和文献记录不增加外层浮起卡片。阅读器 PDF 页无阴影，静止拖动边界透明，悬停、聚焦或拖动时才显现。认证面板保留低强度环境阴影；选中高亮编号保留内描边。具体阴影在 sidecar 中记录，不加入 frontmatter 的组件 schema。
+常规内容依靠留白、轻微底色与细分隔线表达深度；应用条目、方向介绍和文献记录不增加外层浮起卡片。阅读器 PDF 页无阴影，静止拖动边界透明，悬停、聚焦或拖动时才显现。认证面板与标签无阴影；选中高亮编号保留内描边。具体阴影在 sidecar 中记录，不加入 frontmatter 的组件 schema。
 
-**The Flat Workspace Rule.** 平坦内容是默认状态，阴影仅沿用认证与现有状态提示，不成为每个区域的装饰。
+**The Flat Workspace Rule.** 平坦内容是默认状态，阴影仅沿用现有状态提示，不成为每个区域的装饰。
 
 ## Shapes
 
-控件使用 control 圆角，标签采用 badge 圆角，阅读器小控件采用 reader-control 圆角；筛选、编辑与输入组合用 container 圆角，认证面板用 auth 圆角。内容条目通常直边无外框，局部圆角表面用于组织或输入。细线用于分区，避免重复嵌套边框。品牌字标不加底色胶囊或新的图形徽章。
+控件使用 control 圆角，标签采用 badge 圆角，阅读器小控件采用 reader-control 圆角；编辑、方向辅助面板与输入组合用 container 圆角，筛选与认证模块直边无外框。内容条目通常直边无外框，局部圆角表面用于组织或输入。细线用于分区，避免重复嵌套边框。品牌字标不加底色胶囊或新的图形徽章。
 
 ## Components
 
@@ -187,7 +193,7 @@ components:
 
 ### Cards / Containers
 
-文献、应用和管理记录以内容行及下分隔线组织；方向图形与正文分开。筛选栏、管理编辑区用冷灰底，认证面板白底并保留轻阴影。AI 助手回答为平坦正文，不再套一层回答卡片；用户消息可用轻底色表达说话者。
+文献、应用和管理记录以内容行及下分隔线组织；方向图形与正文作为相邻条目列。首页方向面板、方向介绍与管理编辑区用浅冷灰底，文献筛选透明，认证模块白底无阴影。AI 助手回答为平坦正文，不再套一层回答卡片；用户消息可用轻底色表达说话者。
 
 ### Inputs / Fields
 
@@ -195,7 +201,7 @@ components:
 
 ### Navigation
 
-冷灰侧栏，当前项轻靛灰底与深靛蓝文字，悬停轻灰反馈。手机上导航保留自身横向滚动，不缩小导航字。管理员同用品牌、文字和控件色，布局仍服务于已有管理任务。
+炭灰侧栏，当前项白字与较亮炭灰底，悬停白字与中间炭灰底。手机上导航保留自身横向滚动，不缩小导航字。管理员同用品牌、文字和控件色，布局仍服务于已有管理任务。
 
 ### Reading workspace
 

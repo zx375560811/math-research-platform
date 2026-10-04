@@ -1,66 +1,196 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-04T10:17:08.4740358+08:00",
+  "generatedAt": "2026-10-04T02:46:25.177Z",
   "title": "Design System: Axiom 数学研究平台",
   "extensions": {
     "sources": [
-      {"path": "../style.css", "purpose": "Effective cascade, approved product override and mobile reader fix."},
-      {"path": "../admin.css", "purpose": "Effective administrator workspace overrides."},
-      {"path": "../PRODUCT.md", "purpose": "Approved product constraints and identity commitment."},
-      {"path": "surface-brief.md", "purpose": "Approved canon direction and implementation surface brief."},
-      {"url": "https://www.notion.com/", "purpose": "User-approved content typography reference."},
-      {"url": "https://linear.app/", "purpose": "User-approved control finish reference."},
-      {"url": "https://www.zotero.org/", "purpose": "User-approved library and reader organization reference."}
+      {
+        "path": "../style.css",
+        "purpose": "Effective cascade, approved product override and mobile reader fix."
+      },
+      {
+        "path": "../admin.css",
+        "purpose": "Effective administrator workspace overrides."
+      },
+      {
+        "path": "../PRODUCT.md",
+        "purpose": "Approved product constraints and identity commitment."
+      },
+      {
+        "path": "surface-brief.md",
+        "purpose": "Approved canon direction and implementation surface brief."
+      },
+      {
+        "url": "https://www.notion.com/",
+        "purpose": "User-approved content typography reference."
+      },
+      {
+        "url": "https://linear.app/",
+        "purpose": "User-approved control finish reference."
+      },
+      {
+        "url": "https://www.zotero.org/",
+        "purpose": "User-approved library and reader organization reference."
+      }
     ],
     "colorMeta": {
-      "blue": {"role": "primary", "displayName": "操作靛蓝"},
-      "soft-blue": {"role": "primary", "displayName": "浅靛蓝"},
-      "canvas": {"role": "neutral", "displayName": "纸白画布"},
-      "ink": {"role": "neutral", "displayName": "炭黑正文"},
-      "muted": {"role": "neutral", "displayName": "冷灰辅助文字"},
-      "rail": {"role": "neutral", "displayName": "冷灰导航表面"}
+      "blue": {
+        "role": "primary",
+        "displayName": "操作靛蓝"
+      },
+      "soft-blue": {
+        "role": "primary",
+        "displayName": "浅靛蓝"
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "纸白画布"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "炭黑正文"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "冷灰辅助文字"
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "炭灰导航表面"
+      },
+      "rail-ink": {
+        "role": "neutral",
+        "displayName": "浅色导航品牌"
+      },
+      "rail-muted": {
+        "role": "neutral",
+        "displayName": "浅灰导航辅助文字"
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "冷灰辅助面板"
+      }
     },
     "typographyMeta": {
-      "display": {"displayName": "首页主标题", "purpose": "Fluid home heading; effective mobile override is 30px/1.4."},
-      "headline": {"displayName": "模块主标题", "purpose": "Module heading; mobile override is 28px. Administrator heading is 32px/1.4, mobile 28px."},
-      "title": {"displayName": "内容标题", "purpose": "Section and stage titles; book and document titles retain their content-specific sizes."},
-      "body": {"displayName": "正文", "purpose": "16px baseline; long introductions often use 1.8 line-height and 65ch/75ch limits."},
-      "label": {"displayName": "辅助与操作", "purpose": "14px baseline, preserving readable controls and metadata."},
-      "math": {"displayName": "数学符号", "purpose": "Mathematical notation only; PDF retains source document typography."}
+      "display": {
+        "displayName": "首页主标题",
+        "purpose": "Workbench heading 36px/1.4, mobile 29px; direction detail 36px, mobile 29px."
+      },
+      "headline": {
+        "displayName": "模块主标题",
+        "purpose": "Module heading; mobile override is 28px. Administrator heading is 32px/1.4, mobile 28px."
+      },
+      "title": {
+        "displayName": "内容标题",
+        "purpose": "Section and stage titles; book and document titles retain their content-specific sizes."
+      },
+      "body": {
+        "displayName": "正文",
+        "purpose": "16px baseline; long introductions often use 1.8 line-height and 65ch/75ch limits."
+      },
+      "label": {
+        "displayName": "辅助与操作",
+        "purpose": "14px baseline, preserving readable controls and metadata."
+      },
+      "math": {
+        "displayName": "数学符号",
+        "purpose": "Mathematical notation only; PDF retains source document typography."
+      }
     },
     "shadows": [
-      {"name": "auth-ambient", "value": "0 12px 48px #2528310a", "purpose": "Authentication panel only."},
-      {"name": "auth-active-tab", "value": "0 2px 6px #25283108", "purpose": "Active authentication tab."},
-      {"name": "annotation-selected", "value": "inset 0 0 0 1px #3458d4", "purpose": "Existing expanded annotation marker state."},
-      {"name": "reader-paper", "value": "none", "purpose": "Continuous white PDF surface."}
+      {
+        "name": "annotation-selected",
+        "value": "inset 0 0 0 1px #3458d4",
+        "purpose": "Existing expanded annotation marker state."
+      },
+      {
+        "name": "reader-paper",
+        "value": "none",
+        "purpose": "Continuous white PDF surface."
+      },
+      {
+        "name": "auth-flat",
+        "value": "none",
+        "purpose": "Authentication panel and active tab have no shadow."
+      }
     ],
     "focus": [
-      {"name": "global", "value": "outline:2px solid var(--blue);outline-offset:3px", "purpose": "Global keyboard focus."},
-      {"name": "brand", "value": "outline:2px solid var(--blue);outline-offset:5px", "purpose": "Brand keyboard focus."},
-      {"name": "composer", "value": "border-color:#888ed6", "purpose": "Focus-within on integrated AI input; textarea outline is delegated to the surrounding frame."},
-      {"name": "annotation", "value": "outline:2px solid #7292c7;outline-offset:2px", "purpose": "Existing annotation marker keyboard focus."},
-      {"name": "reader-drag", "value": "background:#edf2ff; indicator:#7292c7", "purpose": "Visible drag handle only on hover, focus or active dragging."}
+      {
+        "name": "global",
+        "value": "outline:2px solid var(--blue);outline-offset:3px",
+        "purpose": "Global keyboard focus."
+      },
+      {
+        "name": "brand",
+        "value": "outline:2px solid var(--blue);outline-offset:5px",
+        "purpose": "Brand keyboard focus."
+      },
+      {
+        "name": "composer",
+        "value": "border-color:#888ed6",
+        "purpose": "Focus-within on integrated AI input; textarea outline is delegated to the surrounding frame."
+      },
+      {
+        "name": "annotation",
+        "value": "outline:2px solid #7292c7;outline-offset:2px",
+        "purpose": "Existing annotation marker keyboard focus."
+      },
+      {
+        "name": "reader-drag",
+        "value": "background:#edf2ff; indicator:#7292c7",
+        "purpose": "Visible drag handle only on hover, focus or active dragging."
+      }
     ],
     "motion": [
-      {"name": "document-scroll", "value": "scroll-behavior:smooth", "purpose": "Existing page scrolling; reduced-motion changes it to auto."},
-      {"name": "morphicons", "value": "existing icons.js implementation unchanged", "purpose": "Preserve incumbent hover/focus morph interaction and its reduced-motion behavior; no new timing system."},
-      {"name": "reduced-motion", "value": "@media (prefers-reduced-motion:reduce)", "purpose": "Respect existing reduction preferences for scrolling and Morphicons."}
+      {
+        "name": "document-scroll",
+        "value": "scroll-behavior:smooth",
+        "purpose": "Existing page scrolling; reduced-motion changes it to auto."
+      },
+      {
+        "name": "morphicons",
+        "value": "existing icons.js implementation unchanged",
+        "purpose": "Preserve incumbent hover/focus morph interaction and its reduced-motion behavior; no new timing system."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion:reduce)",
+        "purpose": "Respect existing reduction preferences for scrolling and Morphicons."
+      }
     ],
     "breakpoints": [
-      {"name": "content-tight", "value": "1100px"},
-      {"name": "application-nav-horizontal", "value": "900px"},
-      {"name": "library-and-recommendations-stack", "value": "850px"},
-      {"name": "administrator-stack", "value": "800px"},
-      {"name": "mobile", "value": "650px"},
-      {"name": "narrow-auth-brand", "value": "380px"}
+      {
+        "name": "content-and-language-stack",
+        "value": "1100px"
+      },
+      {
+        "name": "application-nav-horizontal",
+        "value": "900px"
+      },
+      {
+        "name": "administrator-stack",
+        "value": "800px"
+      },
+      {
+        "name": "mobile",
+        "value": "650px"
+      },
+      {
+        "name": "narrow-auth-brand",
+        "value": "380px"
+      }
     ],
     "responsive": {
-      "application": "216px fixed desktop navigation, 64px topbar and max-width 1280px content; horizontal navigation at 900px; mobile content gutters 20px at 650px.",
-      "administrator": "216px desktop rail; max-width 1700px content; edit/list columns become one at 800px.",
+      "application": "216px fixed charcoal navigation, 60px topbar, max-width 1280px content; horizontal navigation and stacked home/detail at 900px; 20px mobile gutters at 650px.",
+      "administrator": "216px charcoal rail; max-width 1700px content; records left, 360px editor right; 300px editor at 1100px; single column in DOM order at 800px.",
       "reader": "Desktop grid minmax(0,1fr) 6px var(--reader-notes-width,380px); desktop drag geometry unchanged. Mobile preferred initial notes width 184px, bounded by available width and persisted preferences. Default closed outline. Right panel spans full height, notes default 35% with existing vertical drag.",
       "aiHeader": "At 650px wrap header, move actions to a full-width row and make provider select 92px; no control removal.",
       "composer": "Two actions remain a vertical column at right. Below 200px container width, action column is 48px and gap 4px.",
-      "markers": "30 columns of 28px with 4px gap, more control in column 31; overflow confined to marker strip."
+      "markers": "30 columns of 28px with 4px gap, more control in column 31; overflow confined to marker strip.",
+      "home": "1.2fr / 0.8fr application and direction areas; 44px gap, 28px at 1100px; one column at 900px.",
+      "direction": "Horizontal index rows. Detail: 240px sticky intro and stage textbooks, 210px intro and single language column at 1100px; one column with static intro at 900px; index illustration retained at left on mobile.",
+      "library": "Search/button main row; three category fields second row. Catalog five columns: 42px minmax(0,1fr) 130px 62px 150px, 18px gap; narrower columns at 1100px. At 650px headings hidden, metadata and action stacked in column 2; category fields two columns plus full-width last field.",
+      "authentication": "Centered logo and login/register module only; white surface, 430px maximum, no panel/tab shadow, underlined active tab."
     }
   },
   "components": [
@@ -84,9 +214,9 @@
       "name": "Active Navigation",
       "kind": "nav",
       "refersTo": "navigation-active",
-      "description": "Current application location, using restrained fill and visible keyboard focus.",
+      "description": "Charcoal navigation with white current-location text and visible keyboard focus.",
       "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#library\" aria-current=\"page\">文档库</a></nav>",
-      "css": ".ds-nav{padding:12px;background:var(--rail,#f7f8fa)}.ds-nav-link{display:flex;align-items:center;min-height:42px;padding:10px 12px;border-radius:7px;background:#e9eaf4;color:#34398f;text-decoration:none;font:600 14px/1.7 system-ui,'Microsoft YaHei','PingFang SC',sans-serif}.ds-nav-link:hover{background:#edeef3;color:#34398f}.ds-nav-link:focus-visible{outline:2px solid var(--blue,#4e54c8);outline-offset:3px}"
+      "css": ".ds-nav{padding:12px;background:var(--rail,#242733)}.ds-nav-link{display:flex;align-items:center;min-height:42px;padding:10px 12px;border-radius:7px;background:#45485e;color:#fff;text-decoration:none;font:600 14px/1.7 system-ui,'Microsoft YaHei','PingFang SC',sans-serif}.ds-nav-link:hover{background:#343848;color:#fff}.ds-nav-link:focus-visible{outline:2px solid var(--blue,#4e54c8);outline-offset:3px}"
     },
     {
       "name": "Integrated AI Composer",
@@ -99,14 +229,47 @@
   ],
   "narrative": {
     "northStar": "数学研究工作台",
-    "overview": "用户确认的 canon 方向结合清晰内容排版、精确控件和文献组织秩序。白色正文、冷灰导航、炭黑文字与克制靛蓝适合持续阅读。内容以标题、留白、列表和细线组织，沿用 Axiom SVG 与 Morphicons，不新增栅格素材或功能。",
-    "keyCharacteristics": ["正文优先", "平坦内容与精确控件", "用户与管理同一视觉语言", "连续白色阅读表面"],
-    "rules": [
-      {"name": "The Content First Rule", "body": "颜色区分操作、状态与正文层次，阅读器静止边界不形成色带。", "section": "colors"},
-      {"name": "The Readable Text Rule", "body": "不通过缩小正文和辅助文字换取密度。", "section": "typography"},
-      {"name": "The Flat Workspace Rule", "body": "平坦内容默认，阴影限于已有认证与状态表达。", "section": "elevation"}
+    "overview": "用户确认的 canon 方向结合内容排版的清晰、控件的精确和文献组织的秩序。白色正文、炭灰导航、炭黑文字与克制的靛蓝操作色形成安静、可信、适合长时间阅读的工作空间。参考 [Notion](https://www.notion.com/)、[Linear](https://linear.app/) 与 [Zotero](https://www.zotero.org/) 的方向由用户确认；这里使用自己的品牌与现有组件，不复制其资产。\n\n内容通过标题、段落留白、列表和细分隔线组织，操作通过适度圆角、清晰状态和可见焦点表达。沿用用户确认的连笔 Axiom 字标及“公理”副标题；品牌是 SVG，数学插图是现有代码图形，本轮没有新增栅格素材。Morphicons 沿用既有互动实现。",
+    "keyCharacteristics": [
+      "正文优先",
+      "平坦内容与精确控件",
+      "用户与管理同一视觉语言",
+      "连续白色阅读表面"
     ],
-    "dos": ["Do maintain effective CSS tokens and regenerate the sidecar.", "Do preserve readable body and helper text.", "Do preserve continuous white reading, keyboard focus and reduced motion.", "Do reuse Axiom SVG and existing Morphicons."],
-    "donts": ["Don't restore obsolete serif display typography or dark blue canvas.", "Don't add paper shadows or permanent reader separator bands.", "Don't change desktop drag geometry, default closed outline, 30-marker rows or the two right-side vertical actions.", "Don't invent statistics, uploads, new applications or raster assets."]
+    "rules": [
+      {
+        "name": "The Content First Rule",
+        "body": "颜色区分操作、状态与正文层次；阅读器静止分界不能成为占据空间的色带。高亮黄、蓝、粉沿用各自标注语义，方向图形的局部色彩不升级为全站操作色。",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Text Rule",
+        "body": "不通过缩小正文或辅助文字换取密度；PDF 和数学公式按原文排版与缩放处理。",
+        "section": "typography"
+      },
+      {
+        "name": "The Continuous Paper Rule",
+        "body": "阅读器独立于普通内容容器，占满可用高度，PDF 直达底部。目录默认关闭；标题行只保留目录、适合宽度、全屏操作。右侧笔记与 AI 同层延伸全高，桌面列为 PDF、拖动热区（6px）、右侧面板；桌面宽度及上下拖动几何沿用现有实现，笔记初始比例（35%）。手机右侧笔记优先初始宽度（184px），仍受可用空间与已保存尺寸约束。手机 AI 标题允许换行，来源控件收窄，操作行占满下一行。",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Workspace Rule",
+        "body": "平坦内容是默认状态，阴影仅沿用现有状态提示，不成为每个区域的装饰。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do 从最终有效 CSS 提取与维护规范 token，更新文档时同步 sidecar。",
+      "Do 保持正文和辅助文字的可读基准，使用留白与层次组织密度。",
+      "Do 保留连续白色阅读表面、可见键盘焦点及减少动画偏好。",
+      "Do 使用现有 Axiom SVG 品牌、数学图形和 Morphicons 互动。",
+      "Do 根据已有内容与操作构建组件，让真实文献信息承担页面层次。"
+    ],
+    "donts": [
+      "Don't 恢复旧宋体展示标题、深蓝画布或多层浮起卡片体系。",
+      "Don't 在 PDF 与侧栏之间添加静止色带、页阴影或底部占高的状态栏。",
+      "Don't 改变 30 标记一行、默认关闭目录、右侧双竖排操作或桌面拖动几何。",
+      "Don't 为视觉填充新增统计、上传入口、未实现应用或栅格素材。"
+    ]
   }
 }

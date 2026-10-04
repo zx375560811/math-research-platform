@@ -393,6 +393,11 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
+    const catalogColumns=await page.locator('.library-list-heading>span').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().left));
+    const catalogRow=page.locator('.library-document').first();
+    for (const [selector,index] of [['.document-directions',2],['.document-language',3],['.button',4]]) {
+      const box=await catalogRow.locator(selector).boundingBox();assert.ok(Math.abs(box.x-catalogColumns[index])<20,'Catalog values align with column labels');const info=await catalogRow.locator('.library-document-info').boundingBox();assert.ok(box.y>=info.y-10 && box.y+box.height<=info.y+info.height+10,'Catalog metadata remains in one row');
+    }
     await capture(page,{path:path.join(shots,'library-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844}); await capture(page,{path:path.join(shots,'library-mobile.png'),fullPage:true}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
     await page.locator('[data-document="1"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')); assert.match(await page.locator('#reader-back').textContent(),/文档库/);
