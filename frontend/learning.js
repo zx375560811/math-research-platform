@@ -61,8 +61,18 @@ export function createLearning({ api, write }) {
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
         $('direction-title').textContent = direction.name; $('direction-description').textContent = direction.description;
         $('direction-symbol').textContent = symbols[direction.slug] || 'ℳ';
-        for (const [field,label] of [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']]) {
-          const item = el('div','introduction-item'); item.append(el('dt','',label),el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。')); $('direction-introduction').append(item);
+        const analysisFlow = direction.slug === 'analysis';
+        $('direction-introduction').classList.toggle('analysis-flow', analysisFlow);
+        const introductionFields = analysisFlow
+          ? [['prerequisites','需要基础'],['research_object','研究对象'],['core_content','核心内容']]
+          : [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']];
+        for (const [field,label] of introductionFields) {
+          const item = el('div','introduction-item'), content = el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。');
+          if (analysisFlow && field === 'core_content' && direction.introduction?.[field]) {
+            content.className = 'analysis-flow-topics';
+            content.replaceChildren(...direction.introduction[field].split('、').filter(Boolean).map(text=>el('span','',text.replace(/[。\s]+$/u,''))));
+          }
+          item.append(el('dt','',label),content); $('direction-introduction').append(item);
         }
         function renderBook(target, book, i, previous = null) {
           const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id; const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
