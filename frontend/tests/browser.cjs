@@ -14,6 +14,11 @@ const directions = [['analysis','分析',true],['geometry-topology','几何与�
 const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:false,file_url:null}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
 for (const [i, stage] of ['基础入门','核心理论','进阶学习'].entries()) mockBooks.push({id:106+i,direction:'algebra',title:['高等代数','近世代数基础','交换代数基础'][i],authors:'中文推荐作者',stage,language:'zh',prerequisites:'前一阶段基础',source_url:'https://2d.hep.com.cn/585562293/3',available:false,file_url:null});
 const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'number-theory', name: '数论' }, { id: 3, slug: 'analysis', name: '分析' }, { id: 4, slug: 'geometry-topology', name: '几何与拓扑' }, { id: 5, slug: 'other', name: '其他数学方向' }];
+async function readerControl(page, id) {
+  if (!await page.locator('#' + id).isVisible()) await page.locator('#reader-tools-toggle').click();
+  await page.locator('#' + id).click();
+  if (id !== 'reader-back' && await page.locator('#reader-heading').isVisible()) await page.locator('#reader-tools-toggle').click();
+}
 async function scrollToPage(page, number) {
   await page.locator('#reader-scroll').evaluate((node,n)=>{const frame=document.querySelector(`.pdf-page[data-page="${n}"]`);node.scrollTop=document.getElementById('pdf-pages').offsetTop+frame.offsetTop;node.dispatchEvent(new Event('scroll'));},number);
   await page.waitForFunction(n=>document.getElementById('reader-scroll').dataset.page===String(n)&&document.querySelector(`.pdf-page[data-page="${n}"][data-loaded]`),number);
@@ -226,7 +231,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.match(page.url(),/directions\/algebra$/); assert.equal(await choiceRow.locator('[data-book="8"]').textContent(),'开始学习');
     await page.reload(); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
     await choiceRow.locator('[data-book="8"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
-    await page.locator('#reader-back').click(); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('h3').filter({hasText:'Abstract Algebra'}).waitFor();
+    await readerControl(page, 'reader-back'); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('h3').filter({hasText:'Abstract Algebra'}).waitFor();
     assert.equal(await choiceRow.locator('.book-unavailable').textContent(),'PDF 待接入');
     await page.locator('[data-book="7"]').click();
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
@@ -234,6 +239,12 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.pdf-page').count(),12);
     assert.equal(await page.locator('#reader-notes').isVisible(),true); assert.equal(await page.locator('#reader-outline').isVisible(),false); assert.equal(await page.locator('#reader-outline-toggle').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('.topbar').isVisible(),false);
+    assert.equal(await page.locator('#reader-heading').isVisible(),false);
+    const pdfTop=await page.locator('#reader-scroll').boundingBox();assert.equal(pdfTop.y,0);
+    await page.locator('#reader-tools-toggle').click();assert.equal(await page.locator('#reader-heading').isVisible(),true);
+    assert.equal((await page.locator('#reader-scroll').boundingBox()).height,pdfTop.height);
+    await page.locator('#reader-back').focus();await page.keyboard.press('Escape');assert.equal(await page.locator('#reader-heading').isVisible(),false);
+
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),stack=document.getElementById('pdf-pages'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=stack.offsetTop+next.offsetTop+120;});
     await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='2' && document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
     assert.equal(await page.locator('.reader-toolbar,#reader-page,#reader-zoom,#reader-notes-toggle').count(),0); assert.deepEqual(await page.locator('.reader-heading-actions button').allTextContents(),['目录','适合宽度','全屏']); await scrollToPage(page,1); await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='1');
@@ -248,9 +259,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await scrollToPage(page,1);
     await page.waitForFunction(() => document.getElementById('reader-scroll').scrollTop<30);
     assert.ok(await page.locator('#reader-scroll').evaluate(node=>node.clientHeight/innerHeight)>.8);
-    await page.locator('#reader-fullscreen').click(); await page.waitForFunction(()=>!!document.fullscreenElement);
+    await readerControl(page, 'reader-fullscreen'); await page.waitForFunction(()=>!!document.fullscreenElement);
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
-    await page.locator('#reader-fullscreen').click(); await page.waitForFunction(()=>!document.fullscreenElement);
+    await readerControl(page, 'reader-fullscreen'); await page.waitForFunction(()=>!document.fullscreenElement);
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.waitForFunction(()=>!!document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
 
@@ -305,7 +316,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-summary').nth(1).click(); assert.equal(await page.locator('.annotation-note').nth(1).inputValue(),'Unsaved second note');
     await page.screenshot({path:path.join(shots,'reader-numbered-notes.png'),fullPage:true});
     await page.locator('.annotation-delete').nth(1).click(); await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===1);
-    await page.locator('#reader-outline-toggle').click(); await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
+    await readerControl(page, 'reader-outline-toggle'); await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     const dimensions=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect();return {outline:rect('reader-outline').width,notes:rect('reader-notes').width,pdf:rect('reader-scroll').width};});
     const handle=await page.locator('#reader-outline-resize').boundingBox();
     await page.mouse.move(handle.x+handle.width/2,handle.y+100);await page.mouse.down();await page.mouse.move(handle.x+handle.width/2+70,handle.y+100,{steps:6});
@@ -330,7 +341,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     const scaledFraction=await page.locator('.pdf-page[data-page="1"]').evaluate((node,p)=>{const r=node.getBoundingClientRect();return {x:(p.x-r.left)/r.width,y:(p.y-r.top)/r.height};},point);
     assert.ok(Math.abs(fraction.x-scaledFraction.x)<.02 && Math.abs(fraction.y-scaledFraction.y)<.02,JSON.stringify({fraction,scaledFraction}));
     for (const percent of [400,25]) {await zoomTo(page,percent);await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');}
-    await page.locator('#reader-fit-width').click();assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'100');
+    await readerControl(page, 'reader-fit-width');assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'100');
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await zoomTo(page,137);
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
@@ -373,7 +384,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await second.setViewportSize({width:320,height:568});assert.equal(await second.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await second.locator('.annotation-delete').click();await second.waitForFunction(()=>!document.querySelector('.annotation-item'));
     await secondContext.close();
-    await page.locator('#reader-back').click();await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
+    await readerControl(page, 'reader-back');await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
@@ -386,7 +397,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     let libraryProgress;
     for(let attempt=0;attempt<100;attempt++){libraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;if(libraryProgress?.page===3)break;await page.waitForTimeout(100);}
     assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
-    await page.locator('#reader-back').click(); await page.locator('#library-view').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
+    await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
     const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
     for(let i=1;i<=31;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
     await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===31);
@@ -397,7 +408,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-summary').nth(30).click();assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),true);
     await page.screenshot({path:path.join(shots,'reader-folded-markers.png'),fullPage:true});
     await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),30);assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),false);
-    await page.locator('#reader-back').click(); await page.locator('[data-book="7"]').waitFor();
+    await readerControl(page, 'reader-back'); await page.locator('[data-book="7"]').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);

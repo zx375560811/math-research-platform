@@ -66,7 +66,8 @@
         <p id="learning-status" class="list-status" role="status"></p><button id="retry-learning" class="button" hidden>重新加载</button>
       </section>
       <section id="reader-view" hidden aria-labelledby="reader-title">
-        <div class="reader-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics" aria-label="返回教材">← 返回教材</a><h1 id="reader-title">教材阅读</h1><div class="reader-heading-actions"><button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button><button id="reader-fit-width" class="button compact">适合宽度</button><button id="reader-fullscreen" class="button compact">全屏</button></div></div>
+        <button id="reader-tools-toggle" class="button compact" type="button" aria-expanded="false" aria-controls="reader-heading" aria-label="展开阅读工具">工具</button>
+        <div id="reader-heading" class="reader-heading" hidden><a id="reader-back" class="back-link" href="#/apps/mathematics" aria-label="返回教材">← 返回教材</a><h1 id="reader-title">教材阅读</h1><div class="reader-heading-actions"><button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button><button id="reader-fit-width" class="button compact">适合宽度</button><button id="reader-fullscreen" class="button compact">全屏</button></div></div>
         <div class="reader-layout">
           <aside id="reader-outline" class="reader-outline" aria-label="教材目录"></aside>
           <div id="reader-outline-resize" class="reader-resize" role="separator" aria-orientation="vertical" aria-label="调整目录宽度" aria-controls="reader-outline" tabindex="0" title="拖拽调整目录宽度，也可用左右方向键"></div>
