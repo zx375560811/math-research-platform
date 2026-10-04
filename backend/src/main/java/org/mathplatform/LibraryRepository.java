@@ -60,8 +60,14 @@ public class LibraryRepository {
                     statement.execute("INSERT INTO document_marks(id,username,document_id,page,quote,note,color,created_at) SELECT m.id,m.username,b.document_id,m.page,m.quote,m.note,m.color,m.created_at FROM learning_marks m JOIN learning_books b ON b.id=m.book_id WHERE b.document_id IS NOT NULL");
                     statement.execute("INSERT INTO document_mark_rects SELECT r.* FROM learning_mark_rects r JOIN document_marks m ON m.id=r.mark_id");
                 }
+                if (statement.executeUpdate("INSERT OR IGNORE INTO account_migrations(name) VALUES('analysis_courses_v1')") == 1) {
+                    try (var courses = getClass().getResourceAsStream("/learning-courses.sql")) {
+                        if (courses == null) throw new IOException("Missing learning-courses.sql");
+                        for (String sql : new String(courses.readAllBytes(), StandardCharsets.UTF_8).split(";")) if (!sql.isBlank()) statement.execute(sql);
+                    }
+                }
                 statement.execute("COMMIT");
-            } catch (SQLException failure) { statement.execute("ROLLBACK"); throw failure; }
+            } catch (SQLException | IOException failure) { statement.execute("ROLLBACK"); throw failure; }
         }
     }
 

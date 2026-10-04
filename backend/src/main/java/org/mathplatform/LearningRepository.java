@@ -45,7 +45,7 @@ public class LearningRepository {
             try (var q = c.prepareStatement(bookQuery() + " WHERE b.direction=? ORDER BY b.sort_order,b.id")) {
                 q.setString(1, user); q.setString(2, user); q.setString(3, slug); try (var rows = q.executeQuery()) { while (rows.next()) books.add(bookValue(rows)); }
             }
-            value.put("books", books);
+            value.put("books", books); value.put("courses", LearningCourses.forDirection(slug));
         }
         return value;
     }

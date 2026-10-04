@@ -51,15 +51,23 @@ async function loadBookDocuments(selected = '') {
   $('book-doc-prev').disabled = !state.bookDocOffset; $('book-doc-next').disabled = body.documents.length < 20; $('book-doc-page').textContent = `第 ${(state.bookDocOffset || 0) / 20 + 1} 页`;
   if (!docs.length) { $('book-binding-hint').hidden = false; $('book-binding-hint').textContent = '暂无匹配文献。'; }
 }
+function updateBookStages(selected) {
+  const analysis=$('book-direction').value==='analysis';
+  const values=analysis ? state.analysisCourses || ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'] : ['基础入门','核心理论','进阶学习'];
+  $('book-stage-label').textContent=analysis ? '对应课程' : '学习阶段';
+  $('book-stage').replaceChildren(...values.map(value=>{const option=element('option',value);option.value=value;return option;}));
+  if (selected && !values.includes(selected)) {const option=element('option','待归类 · '+selected);option.value='';option.disabled=true;$('book-stage').prepend(option);$('book-stage').value='';}
+  else $('book-stage').value=selected || values[0];
+}
 async function selectBook(id) {
   state.newBook = false; $('book-select').disabled = false; $('book-editor-title').textContent = '配置推荐教材'; $('book-select').value = String(id);
   const book = state.books.find(book => book.id === Number(id)); if (!book) return;
   $('book-authors').textContent = `${book.direction_name} / ${book.language === 'zh' ? '中文推荐' : '英文推荐'}`; $('book-direction').value = book.direction; $('book-language').value = book.language || 'en'; $('book-title').value = book.title; $('book-author-input').value = book.authors; $('book-source').value = book.source_url || '';
-  $('book-stage').value = book.stage; $('book-prerequisites').value = book.prerequisites; $('book-order').value = book.sort_order; $('book-document-query').value = ''; state.bookDocOffset = 0;
+  updateBookStages(book.stage); $('book-prerequisites').value = book.prerequisites; $('book-order').value = book.sort_order; $('book-document-query').value = ''; state.bookDocOffset = 0;
   await loadBookDocuments(book.document_id || '');
 }
 async function loadBooks(selected = $('book-select').value) {
-  const body = await api('/api/admin/books'); state.books = body.books; $('book-select').replaceChildren(); $('book-list').replaceChildren();
+  const body = await api('/api/admin/books'); state.books = body.books; state.analysisCourses = body.analysis_courses; $('book-select').replaceChildren(); $('book-list').replaceChildren();
   for (const book of body.books) { const language = book.language === 'zh' ? '中文' : '英文'; const option = element('option', `${book.direction_name} / ${book.stage} / ${language} / ${book.title}`); option.value = book.id; $('book-select').append(option); const { row, detail, controls } = record(book.title, [`${book.direction_name} / ${book.stage} / ${language}推荐 / 排序 ${book.sort_order}`, book.document_id ? `已关联文献 #${book.document_id}` : 'PDF 尚未接入']); detail.append(element('span', book.document_id ? '可以学习' : '待关联', `badge${book.document_id ? '' : ' pending'}`)); controls.append(button('配置', async () => { await selectBook(book.id); $('book-select').focus(); message(''); })); $('book-list').append(row); }
   if (body.books.length) await selectBook(state.books.some(b => b.id === Number(selected)) ? selected : body.books[0].id);
   empty($('book-list'), '暂时没有教材，可从文献库中新增推荐。');
@@ -102,9 +110,9 @@ $('document-cancel').addEventListener('click', resetDocument);
 $('document-search').addEventListener('submit', event => { event.preventDefault(); state.docOffset = 0; state.query = $('document-query').value.trim(); action(event.currentTarget, async () => { await loadDocuments(); message(''); }); });
 $('book-select').addEventListener('change', () => selectBook($('book-select').value).catch(error => message(error.message, true)));
 $('new-book').addEventListener('click', () => action($('new-book').parentElement, async () => {
-  state.newBook = true; $('book-select').disabled = true; $('book-editor-title').textContent = '新增推荐教材'; $('book-authors').textContent = '从本方向文献中选择一本，加入中文或英文推荐。'; $('book-title').value = ''; $('book-author-input').value = ''; $('book-source').value = ''; $('book-prerequisites').value = ''; $('book-order').value = '10'; state.bookDocOffset = 0; $('book-document-query').value = ''; message(''); await loadBookDocuments();
+  state.newBook = true; updateBookStages(); $('book-select').disabled = true; $('book-editor-title').textContent = '新增推荐教材'; $('book-authors').textContent = '从本方向文献中选择一本，加入中文或英文推荐。'; $('book-title').value = ''; $('book-author-input').value = ''; $('book-source').value = ''; $('book-prerequisites').value = ''; $('book-order').value = '10'; state.bookDocOffset = 0; $('book-document-query').value = ''; message(''); await loadBookDocuments();
 }));
-for (const id of ['book-direction', 'book-language']) $(id).addEventListener('change', () => { state.bookDocOffset = 0; loadBookDocuments().catch(error => message(error.message, true)); });
+for (const id of ['book-direction', 'book-language']) $(id).addEventListener('change', () => { if(id==='book-direction') updateBookStages(); state.bookDocOffset = 0; loadBookDocuments().catch(error => message(error.message, true)); });
 $('book-document').addEventListener('change', () => { if (state.newBook) { const doc = state.bookDocuments.find(doc => doc.id === Number($('book-document').value)); if (doc) { $('book-title').value = doc.title; $('book-author-input').value = doc.authors; } } });
 $('book-doc-search').addEventListener('click', () => { state.bookDocOffset = 0; loadBookDocuments().catch(error => message(error.message, true)); });
 $('book-document-query').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); $('book-doc-search').click(); } });

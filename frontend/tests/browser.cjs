@@ -13,6 +13,8 @@ const pdf = fixturePdf(12);
 const directions = [['analysis','分析',true],['geometry-topology','几何与拓扑',true],['algebra','代数',true],['number-theory','数论',false],['probability-statistics','概率与统计',false],['computational','计算数学与数值方法',false],['optimization','优化与数学建模',false],['discrete-foundations','离散数学与数学基础',false]].map(([slug,name,featured]) => ({slug,name,featured,description:'研究结构与数学问题'}));
 const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:false,file_url:null}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
 for (const [i, stage] of ['基础入门','核心理论','进阶学习'].entries()) mockBooks.push({id:106+i,direction:'algebra',title:['高等代数','近世代数基础','交换代数基础'][i],authors:'中文推荐作者',stage,language:'zh',prerequisites:'前一阶段基础',source_url:'https://2d.hep.com.cn/585562293/3',available:false,file_url:null});
+const analysisCourses=['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
+for(const [i,course] of analysisCourses.entries()) for(const [j,language] of ['zh','en'].entries()) mockBooks.push({id:400+i*2+j,direction:'analysis',title:course+' · '+(language==='zh'?'中文教材':'English textbook'),authors:'Course author',stage:course,language,prerequisites:'',source_url:'',available:false,file_url:null});
 const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'number-theory', name: '数论' }, { id: 3, slug: 'analysis', name: '分析' }, { id: 4, slug: 'geometry-topology', name: '几何与拓扑' }, { id: 5, slug: 'other', name: '其他数学方向' }];
 async function readerControl(page, id) { await page.locator('#' + id).click(); }
 async function scrollToPage(page, number) {
@@ -229,6 +231,16 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('[data-direction="analysis"]').click();
     await page.locator('.analysis-roadmap svg').waitFor();
     assert.equal(await page.locator('.analysis-course').count(),7);
+    assert.equal(await page.locator('.textbook-stage:visible').count(),1);
+    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'数学分析');
+    assert.equal(await page.locator('.textbook-stage:visible .textbook-row').count(),2);
+    await page.locator('.analysis-course[data-course="复分析"]').click();
+    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'复分析');
+    assert.equal(await page.locator('.analysis-course[data-course="复分析"]').getAttribute('aria-pressed'),'true');
+    await page.locator('.analysis-course[data-course="泛函分析"]').focus();await page.keyboard.press('Enter');
+    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'泛函分析');
+    await page.locator('.analysis-course[data-course="数学分析"]').click();
+
     assert.equal(await page.locator('.analysis-roadmap path[stroke-dasharray]').count(),1);
     assert.match(await page.locator('.analysis-roadmap svg').getAttribute('aria-label'),/实分析与测度论.*泛函分析/);
     await page.screenshot({path:path.join(shots,'analysis-roadmap.png'),fullPage:true});

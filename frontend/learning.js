@@ -1,4 +1,5 @@
 const $ = id => document.getElementById(id);
+const analysisCourses = ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
 const symbols = { analysis: '∫', 'geometry-topology': '𝒮', algebra: '𝔾' };
 function el(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
 // Each illustration describes its subject: a function, a torus, and group symmetries.
@@ -25,7 +26,7 @@ function diagram(slug) {
   }
   const art = el('div', 'direction-art'); art.append(svg); return art;
 }
-function analysisRoadmap() {
+function analysisRoadmap(onChoose) {
   const ns = 'http://www.w3.org/2000/svg';
   const make = (tag, attrs, text) => {
     const node = document.createElementNS(ns, tag);
@@ -33,7 +34,7 @@ function analysisRoadmap() {
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  const svg = make('svg', {viewBox:'0 0 940 170',role:'img','aria-label':'分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':'分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
   const defs=make('defs', {});
   const gradient=(id, colors) => {
     const value=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
@@ -57,16 +58,19 @@ function analysisRoadmap() {
     ['数学分析','∫',28,64,180,'foundation'],['复分析','ℂ',270,1,215,'complex'],['实分析与测度论','μ',270,64,215,'real'],
     ['常微分方程','y′',270,127,215,'ode'],['高等代数','ℝⁿ',550,1,160,'support'],['泛函分析','‖f‖',550,64,160,'functional'],['偏微分方程','∂',760,64,170,'pde']
   ]) {
-    const group=make('g',{'class':'analysis-course '+kind,'data-course':name});
+    const group=make('g',{'class':'analysis-course '+kind,'data-course':name,role:'button',tabindex:0,'aria-pressed':'false','aria-controls':'textbook-list'});
     group.append(make('title',{},name),make('rect',{class:'analysis-course-card',x,y,width,height:42,rx:11}),
       make('circle',{class:'analysis-course-icon',cx:x+28,cy:y+21,r:14}),
       make('text',{class:'analysis-course-symbol',x:x+28,y:y+21,'text-anchor':'middle','dominant-baseline':'central'},symbol),
-      make('text',{class:'analysis-course-title',x:x+53,y:y+21,'dominant-baseline':'central'},name));svg.append(group);
+      make('text',{class:'analysis-course-title',x:x+53,y:y+21,'dominant-baseline':'central'},name));
+    group.addEventListener('click',()=>onChoose(name));
+    group.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onChoose(name);}});
+    svg.append(group);
   }
   const box=el('div','analysis-roadmap');box.append(svg);return box;
 }
 export function createLearning({ api, write }) {
-  let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
+  let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false, selectedAnalysisCourse = '数学分析';
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function loadDirections() {
     directions = (await api('/api/learning/directions')).directions;
@@ -101,11 +105,12 @@ export function createLearning({ api, write }) {
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
+        let selectCourse = () => {};
         $('direction-introduction').classList.remove('analysis-flow');
         $('direction-introduction').classList.toggle('analysis-route', analysisFlow);
         if (analysisFlow) {
           const item=el('div','analysis-route-item'), content=el('dd','analysis-route-content');
-          content.append(analysisRoadmap());item.append(el('dt','sr-only','学习路线'),content);
+          content.append(analysisRoadmap(name=>selectCourse(name)));item.append(el('dt','sr-only','学习路线'),content);
           $('direction-introduction').append(item);
         }
         else for (const [field,label] of [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']]) {
@@ -154,19 +159,39 @@ export function createLearning({ api, write }) {
           const source = el('a', 'book-source', '教材信息 ↗'); source.href = book.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer'; if (book.source_url) actions.append(source);
           row.append(spine, info, actions, picker); if (previous) { previous.replaceWith(row); choose.focus(); } else target.append(row);
         }
-        for (const [index, stage] of ['基础入门', '核心理论', '进阶学习'].entries()) {
+        const courses = direction.courses || (analysisFlow ? analysisCourses : ['基础入门','核心理论','进阶学习']);
+        const unclassified = analysisFlow && direction.books.some(book=>!courses.includes(book.stage));
+        const groups = unclassified ? [...courses,'待归类教材'] : courses;
+        for (const [index, stage] of groups.entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
-          const heading = el('div', 'stage-heading'); heading.append(el('span', 'stage-number', String(index + 1)), el('h3', '', stage)); section.append(heading);
+          const heading = el('div', 'stage-heading'); if (!analysisFlow) heading.append(el('span', 'stage-number', String(index + 1))); heading.append(el('h3', '', stage)); section.append(heading);
           const columns = el('div', 'recommendation-columns');
           for (const [language, label] of [['zh', '中文推荐'], ['en', '英文推荐']]) {
             const group = el('section', 'recommendation-language'); group.dataset.language = language; group.append(el('h4', '', label));
-            const books = direction.books.filter(book => book.stage === stage && (book.language || 'en') === language);
+            const books = direction.books.filter(book => (stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage) && (book.language || 'en') === language);
             books.forEach((book, i) => renderBook(group, book, i));
             if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐'));
             columns.append(group);
           }
           section.append(columns); $('textbook-list').append(section);
         }
+        if (analysisFlow) {
+          selectCourse = name => {
+            if (!groups.includes(name)) return;
+            selectedAnalysisCourse = name;
+            for (const section of $('textbook-list').children) section.hidden = section.dataset.stage !== name;
+            for (const node of $('direction-introduction').querySelectorAll('[data-course]')) {
+              const selected = node.dataset.course === name;
+              node.setAttribute('aria-pressed',String(selected)); node.classList.toggle('selected',selected);
+            }
+          };
+          if (unclassified) {
+            const pending=el('button','button compact unclassified-books','待归类教材');pending.type='button';
+            pending.addEventListener('click',()=>selectCourse('待归类教材'));$('direction-introduction').querySelector('.analysis-route-content').append(pending);
+          }
+          selectCourse(groups.includes(selectedAnalysisCourse) ? selectedAnalysisCourse : '数学分析');
+        }
+
       } else if (!directions.length) await loadDirections();
     } catch (error) {
       if (version !== generation) return;

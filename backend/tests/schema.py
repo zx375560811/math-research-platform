@@ -9,9 +9,15 @@ with sqlite3.connect(':memory:') as db:
     db.executescript(sql)
     db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))
     assert db.execute('SELECT COUNT(*) FROM learning_direction_introductions').fetchone()[0] == 8
-    assert db.execute('SELECT COUNT(*) FROM learning_books').fetchone()[0] == 48
+    db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning-courses.sql').read_text(encoding='utf-8'))
+    assert db.execute('SELECT COUNT(*) FROM learning_books').fetchone()[0] == 56
     coverage = db.execute("SELECT direction,stage,COALESCE(language,'en') FROM learning_books b LEFT JOIN learning_book_details d ON d.book_id=b.id").fetchall()
-    assert len(set(coverage)) == 8 * 3 * 2
+    assert len(set(coverage)) == 7 * 3 * 2 + 7 * 2
+    analysis = {(stage, language) for direction, stage, language in coverage if direction == 'analysis'}
+    assert analysis == {(course,language) for course in ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'] for language in ['zh','en']}
+    db.execute("UPDATE learning_books SET title='管理员自定义',stage='常微分方程' WHERE id=301")
+    db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning-courses.sql').read_text(encoding='utf-8'))
+    assert db.execute('SELECT title,stage FROM learning_books WHERE id=301').fetchone() == ('管理员自定义','常微分方程')
     db.execute("UPDATE learning_books SET title='管理员修改' WHERE id=7")
     db.commit()
     db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))

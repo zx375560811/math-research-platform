@@ -443,3 +443,11 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 .analysis-route-content { margin:0; }
 
 #direction-detail .direction-intro-section:has(.analysis-roadmap) { padding:10px 14px; }
+
+.analysis-course[role=button] { cursor:pointer;outline:none; }
+.analysis-course.selected .analysis-course-card,.analysis-course:focus-visible .analysis-course-card { stroke-opacity:1;stroke-width:2; }
+.analysis-course.foundation.selected .analysis-course-card,.analysis-course.foundation:focus-visible .analysis-course-card { stroke:#263ba9;stroke-opacity:1; }
+.analysis-course.selected .analysis-course-title { fill:var(--route-accent); }
+.analysis-course.foundation.selected .analysis-course-title { fill:white; }
+.analysis-course:focus-visible { filter:drop-shadow(0 0 3px #4261df55); }
+.unclassified-books { margin-top:8px; }

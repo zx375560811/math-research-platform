@@ -127,7 +127,7 @@ public class AdminController {
                 value.put("id", rows.getLong("id")); value.put("sort_order", rows.getInt("sort_order")); value.put("document_id", rows.getObject("document_id")); values.add(value);
             }
         }
-        return Map.of("books", values);
+        return Map.of("books", values, "analysis_courses", LearningCourses.ANALYSIS);
     }
     public record Book(String stage, String prerequisites, Integer sort_order, Long document_id, String direction, String language, String title, String authors, String source_url) {}
     @PutMapping("/books/{id}")
@@ -139,7 +139,7 @@ public class AdminController {
         authorize(user); return ResponseEntity.status(201).body(Map.of("id",saveBook(0,value,true)));
     }
     private long saveBook(long id, Book value, boolean create) throws SQLException {
-        if (value.stage == null || !Set.of("基础入门","核心理论","进阶学习").contains(value.stage) || value.sort_order == null || value.sort_order < 0 || value.sort_order > 10000) throw new ApiProblem(400,"invalid_book");
+        if (value.stage == null || value.sort_order == null || value.sort_order < 0 || value.sort_order > 10000) throw new ApiProblem(400,"invalid_book");
         String prerequisites = text(value.prerequisites,false);
         try (var db = library.connect(false); var transaction = db.createStatement()) {
             transaction.execute("BEGIN IMMEDIATE");
@@ -156,7 +156,7 @@ public class AdminController {
                         }
                     }
                 }
-                if (language == null || !Set.of("zh","en").contains(language) || direction == null) throw new ApiProblem(400,"invalid_book");
+                if (language == null || !Set.of("zh","en").contains(language) || direction == null || !LearningCourses.forDirection(direction).contains(value.stage)) throw new ApiProblem(400,"invalid_book");
                 title = text(title,true); authors = text(authors,false); source = source == null ? "" : text(source,false);
                 if (!source.isEmpty()) {
                     try { var uri = java.net.URI.create(source); if (uri.getScheme() == null || !Set.of("https","http").contains(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) throw new IllegalArgumentException(); }

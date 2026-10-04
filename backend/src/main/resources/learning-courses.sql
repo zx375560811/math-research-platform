@@ -1,0 +1,23 @@
+-- Classify known seed entries without overwriting administrator-created content.
+UPDATE learning_books SET stage='数学分析' WHERE id=1 AND direction='analysis' AND title='Understanding Analysis' AND stage IN ('基础入门','核心理论','进阶学习');
+UPDATE learning_books SET stage='数学分析' WHERE id=100 AND direction='analysis' AND title='数学分析（上、下册）' AND stage IN ('基础入门','核心理论','进阶学习');
+UPDATE learning_books SET stage='实分析与测度论' WHERE id=2 AND direction='analysis' AND title='Measure, Integration & Real Analysis' AND stage IN ('基础入门','核心理论','进阶学习');
+UPDATE learning_books SET stage='实分析与测度论' WHERE id=101 AND direction='analysis' AND title='实变函数与泛函分析基础' AND stage IN ('基础入门','核心理论','进阶学习');
+UPDATE learning_books SET stage='泛函分析' WHERE id=3 AND direction='analysis' AND title='Functional Analysis, Sobolev Spaces and Partial Differential Equations' AND stage IN ('基础入门','核心理论','进阶学习');
+UPDATE learning_books SET stage='泛函分析' WHERE id=102 AND direction='analysis' AND title='实分析与泛函分析（续论）' AND stage IN ('基础入门','核心理论','进阶学习');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(300,'analysis','复变函数论（第五版）','钟玉泉','复分析','',300,'https://abook.hep.com.cn/128187');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(300,'zh');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(301,'analysis','Complex Analysis','Elias M. Stein, Rami Shakarchi','复分析','',301,'https://press.princeton.edu/books/hardcover/9780691113852/complex-analysis');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(301,'en');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(302,'analysis','常微分方程（第四版）','王高雄、周之铭、朱思铭、王寿松','常微分方程','',302,'https://xuanshu.hep.com.cn/front/h5Mobile/bookDetails?bookId=5c757465f18f967ee7f37efa');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(302,'zh');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(303,'analysis','Ordinary Differential Equations and Dynamical Systems','Gerald Teschl','常微分方程','',303,'https://www.mat.univie.ac.at/~gerald/ftp/book-ode/index.html');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(303,'en');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(304,'analysis','高等代数（第五版）','王萼芳、石生明','高等代数','',304,'https://www.hep.com.cn/book/show/1d344499-774c-45e6-807c-f19c2496af4b');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(304,'zh');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(305,'analysis','Linear Algebra Done Right','Sheldon Axler','高等代数','',305,'https://linear.axler.net/');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(305,'en');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(306,'analysis','偏微分方程','孔德兴','偏微分方程','',306,'https://academic.hep.com.cn/engi/CN/book/978-7-04-030448-0');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(306,'zh');
+INSERT OR IGNORE INTO learning_books(id,direction,title,authors,stage,prerequisites,sort_order,source_url) VALUES(307,'analysis','Partial Differential Equations','Lawrence C. Evans','偏微分方程','',307,'https://bookstore.ams.org/gsm-19-r/');
+INSERT OR IGNORE INTO learning_book_details(book_id,language) VALUES(307,'en');

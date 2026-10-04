@@ -26,7 +26,7 @@ async function main() {
         const chunks = []; for await (const chunk of req) chunks.push(chunk); const bytes = Buffer.concat(chunks); const body = req.headers['content-type'] === 'application/json' ? JSON.parse(bytes.toString() || '{}') : {};
         if (p === '/api/auth/login') { session = { username: body.username, role: body.username === 'owner_one' ? 'ADMIN' : 'USER' }; return json({ user: session }); }
         if (p === '/api/auth/logout') { session = null; return json({ status: 'ok' }); }
-        if (p === '/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions:[{slug:'algebra',name:'代数'}]}]});
+        if (p === '/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions:[{slug:'algebra',name:'代数'},{slug:'analysis',name:'分析'}]}]});
         if (/^\/api\/documents\/\d+$/.test(p)) return json(docs.find(d=>d.id===Number(p.split('/').pop())));
         if (p === '/api/subjects') return json({ subjects: [{ id: 1, name: '代数', slug: 'algebra' }] });
         if (p.startsWith('/api/admin')) {
@@ -74,7 +74,7 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('教材配置已保存'));
     assert.equal(await page.locator('#book-document').isDisabled(), true); assert.equal((await (await page.request.get(base + '/api/learning/books/7')).json()).available, true);
     await page.route('**/api/admin/documents?**',async route=>{await new Promise(resolve=>setTimeout(resolve,150));await route.continue();});
-    await page.locator('#new-book').click(); await page.locator('#book-direction').selectOption('algebra'); await page.locator('#book-language').selectOption('zh'); await page.locator('#book-document').selectOption(String(doc.id)); await page.locator('#book-title').fill('中文推荐教材'); await page.locator('#book-stage').selectOption('核心理论'); await page.locator('#book-form button[type="submit"]').click();
+    await page.locator('#new-book').click(); await page.locator('#book-direction').selectOption('analysis'); assert.equal(await page.locator('#book-stage-label').textContent(),'对应课程'); assert.equal(await page.locator('#book-stage option').count(),7); await page.locator('#book-stage').selectOption('复分析'); await page.locator('#book-direction').selectOption('algebra'); await page.locator('#book-language').selectOption('zh'); await page.locator('#book-document').selectOption(String(doc.id)); await page.locator('#book-title').fill('中文推荐教材'); await page.locator('#book-stage').selectOption('核心理论'); await page.locator('#book-form button[type="submit"]').click();
     await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('教材配置已保存') && document.getElementById('book-list').textContent.includes('中文推荐教材'));
     const configured=(await(await page.request.get(base+'/api/admin/books')).json()).books.find(b=>b.title==='中文推荐教材'); assert.equal(configured.language,'zh'); assert.equal(configured.document_id,doc.id); assert.equal(configured.direction,'algebra');
     await page.screenshot({ path: path.join(shots, 'admin-books.png'), fullPage: true });

@@ -124,7 +124,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/documents/' + str(document), {**metadata, 'subject_ids': [999]}, 'PATCH')[0] == 400
             assert write('/api/admin/documents/' + str(document), metadata, 'PATCH')[0] == 200
             assert request('/api/documents/' + str(document))[1]['subject_ids'] == [1, 3]
-            books = request('/api/admin/books')[1]['books']; assert len(books) == 48
+            books = request('/api/admin/books')[1]['books']; assert len(books) == 56
             book = next(book for book in books if book['id'] == 7)
             config = {'stage': '基础入门', 'prerequisites': 'Proofs', 'sort_order': 20, 'document_id': document}
             assert write('/api/admin/books/7', {**config, 'document_id': 999}, 'PUT')[0] == 404
@@ -182,6 +182,14 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/auth/login', credentials)[0] == 200
             assert write(library_path + '/annotations/' + str(mark), {}, 'DELETE')[0] == 200
             assert request('/api/documents', 'POST', pdf)[0] == 405
+            analysis_courses = request('/api/admin/books')[1]['analysis_courses']
+            assert len(analysis_courses) == 7 and '复分析' in analysis_courses
+            analysis_config = next(book for book in request('/api/admin/books')[1]['books'] if book['id'] == 300)
+            assert analysis_config['stage'] == '复分析'
+            assert write('/api/admin/books/300', {**analysis_config,'stage':'常微分方程'}, 'PUT')[0] == 200
+            assert request('/api/learning/books/300')[1]['stage'] == '常微分方程'
+            assert write('/api/admin/books/300', {**analysis_config,'stage':'核心理论'}, 'PUT')[0] == 400
+            assert write('/api/admin/books/300', {**analysis_config,'direction':'algebra'}, 'PUT')[0] == 400
             roles.grant_admin('owner_one', database, revoke=True)
             assert request('/api/auth/me')[1]['user']['role'] == 'USER'
             assert request('/api/admin/books') == (403, {'error': 'admin_required'})
