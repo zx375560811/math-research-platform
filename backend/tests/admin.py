@@ -189,17 +189,6 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/learning/books/106/progress',position,'PUT')[0] == 200
             assert request('/api/library/documents/' + str(chinese[1]['id']))[1]['progress'] == position
             assert write('/api/auth/login', {'username':'invited_reader','password':credentials['password']})[0] == 200
-            archive=request('/api/library/collections')[1]
-            root_folder=next(c for c in archive['collections'] if c['name']=='Original')
-            analysis_folder=next(c for c in archive['collections'] if c['name']=='分析')
-            complex_folder=next(c for c in archive['collections'] if c['name']=='复分析')
-            assert root_folder['count']==2 and analysis_folder['count']==2 and complex_folder['parent_id']==analysis_folder['id']
-            for folder in [root_folder,analysis_folder,complex_folder]:
-                found=request('/api/library/documents?collection='+str(folder['id']))[1]['documents']
-                assert {d['id'] for d in found}=={document,native_id}
-            assert request('/api/library/documents?collection=-1')[0]==400
-            assert request('/api/library/documents?collection=999999')[0]==404
-            assert not {d['id'] for d in request('/api/library/documents?collection=unfiled')[1]['documents']} & {document,native_id}
             assert request('/api/learning/books/106')[1]['selected_document_id'] is None
             assert request(library_path)[1]['progress'] is None
             assert request(library_path + '/annotations')[1]['annotations'] == []

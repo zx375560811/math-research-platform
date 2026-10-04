@@ -127,6 +127,9 @@ with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
         with closing(sqlite3.connect('data/math.db')) as db:
             assert db.execute('SELECT COUNT(*) FROM library_collections').fetchone()[0] == 5
             assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 3
+        # Directory-only restoration does not require the original attachment files.
+        (export / 'files/book.pdf').unlink()
+        assert zotero.sync_collections(zotero.preview(rdf,verify_files=False),'data/math.db') == 4
         malicious = export / 'malicious.rdf'
         malicious.write_text('<!DOCTYPE rdf [<!ENTITY x "boom">]><rdf/>', encoding='utf-8')
         try: zotero.preview(malicious)

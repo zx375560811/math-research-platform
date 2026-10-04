@@ -91,7 +91,7 @@ def attachment_path(directory, value):
     raise ValueError('附件文件不存在')
 
 
-def preview(rdf, mapping=None):
+def preview(rdf, mapping=None, verify_files=True):
     rdf = Path(rdf).resolve()
     xml = rdf.read_bytes()
     if b'<!DOCTYPE' in xml.upper() or b'<!ENTITY' in xml.upper():
@@ -178,6 +178,9 @@ def preview(rdf, mapping=None):
             warnings.append('方向待分类')
         if row['language'] == 'und':
             warnings.append('语种待标注或为其他语种')
+        if not verify_files:
+            rows.append(row)
+            continue
         try:
             path = attachment_path(rdf.parent, raw_path)
             if path.suffix.lower() not in ('.pdf', '.djvu', '.djv'):
@@ -332,8 +335,9 @@ def sync_collections(value, database):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('rdf', help='Exported RDF path; keep its files directory alongside it')
-    parser.add_argument('--collections-only', action='store_true', help='Restore collection structure and links without copying or importing files')
-    parser.add_argument('--apply', action='store_true', help='Import; without this flag only write a preview')
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument('--collections-only', action='store_true', help='Restore collection structure and links without copying or importing files')
+    actions.add_argument('--apply', action='store_true', help='Import; without this flag only write a preview')
     parser.add_argument('--database', default=os.getenv('MATH_DB_PATH') or 'data/math.db')
     parser.add_argument('--mapping', help='Optional JSON object: collection names to direction slug lists')
     parser.add_argument('--report', help='JSON report path (defaults to data/zotero-preview.json or data/zotero-import.json)')
@@ -341,7 +345,7 @@ def main():
     args.report = args.report or ('data/zotero-import.json' if args.apply else 'data/zotero-preview.json')
     try:
         mapping = json.loads(Path(args.mapping).read_text(encoding='utf-8')) if args.mapping else None
-        value = preview(args.rdf, mapping)
+        value = preview(args.rdf, mapping, verify_files=not args.collections_only)
         report(value, args.report)
         if args.collections_only:
             print(json.dumps({'linked_attachments': sync_collections(value, args.database), 'folders': len(value['collection_tree'])}, ensure_ascii=False))
