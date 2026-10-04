@@ -166,13 +166,19 @@ with tempfile.TemporaryDirectory() as directory:
             assert request(imported['file_url']) == (200, pdf)
             assert request('/api/documents?subject_id=2')[1]['documents'] == []
             before = set((root / 'data/files').iterdir())
-            for title, subject, content in [('bad', 999, pdf), ('bad', 1, b'wrong'), (' ', 1, pdf), ('big', 1, b'%PDF-' + b'x' * (20 * 1024 * 1024))]:
+            for title, subject, content in [('bad', 999, pdf), ('bad', 1, b'wrong'), (' ', 1, pdf)]:
                 source.write_bytes(content)
                 try: admin.import_document(source, title, '', subject)
                 except ValueError: pass
                 else: raise AssertionError('Invalid import accepted')
                 assert set((root / 'data/files').iterdir()) == before
             assert len(request('/api/documents')[1]['documents']) == 2
+            # The local administrator importer accepts PDFs beyond the former 20 MiB ceiling.
+            large = b'%PDF-1.4\n' + b'x' * (21 * 1024 * 1024)
+            source.write_bytes(large)
+            big = admin.import_document(source, 'Large PDF', '', 1)
+            assert request('/api/documents/' + str(big['id']))[1]['file_size'] == len(large)
+            assert request(big['file_url']) == (200, large)
             assert request('/api/documents/41')[1]['authors'] == 'Original author'
             for path in ['/schema.h', '/data/math.db', '/admin/import_document.py', '/api/documents/999999/file']: assert request(path)[0] == 404
             # Tomcat rejects traversal before Spring routing; both rejection statuses protect the boundary.

@@ -8,7 +8,8 @@ const { spawn, spawnSync } = require('node:child_process');
 const { chromium } = require('playwright');
 const { fixturePdf } = require('./fixture.cjs');
 const frontend = path.resolve(__dirname, '..'), backend = path.resolve(frontend, '../backend');
-const pdf = fixturePdf(2);
+// A real PDF with trailing padding exercises the browser's former 20 MiB upload boundary.
+const pdf = Buffer.concat([fixturePdf(2), Buffer.alloc(21 * 1024 * 1024)]);
 async function main() {
   let server, browser, child, temp, logs = '';
   try {

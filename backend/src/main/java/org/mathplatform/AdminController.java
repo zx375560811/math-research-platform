@@ -58,31 +58,35 @@ public class AdminController {
             @RequestParam(defaultValue="mathematics") String module, @RequestParam(defaultValue="und") String language, @RequestParam(required=false) String direction, @RequestParam(required=false) List<String> directions) throws SQLException, IOException {
         authorize(user); title = text(title, true); authors = text(authors, false);
         if (!"application/pdf".equalsIgnoreCase(request.getContentType())) throw new ApiProblem(400, "invalid_pdf");
-        int limit = 20 * 1024 * 1024;
-        if (request.getContentLengthLong() > limit) throw new ApiProblem(413, "request_too_large");
-        byte[] bytes = request.getInputStream().readNBytes(limit + 1);
-        if (bytes.length > limit) throw new ApiProblem(413, "request_too_large");
-        if (bytes.length < 5 || !new String(bytes, 0, 5, StandardCharsets.US_ASCII).equals("%PDF-")) throw new ApiProblem(400, "invalid_pdf");
         Path saved = null; boolean committed = false;
-        try (var db = library.connect(false); var transaction = db.createStatement()) {
-            transaction.execute("BEGIN IMMEDIATE");
-            try {
-                subjects(db, List.of(subject_id));
-                try { saved = Files.createTempFile(Path.of("data/files"), "upload-", "", PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))); }
-                catch (UnsupportedOperationException failure) { saved = Files.createTempFile(Path.of("data/files"), "upload-", ""); }
-                try (var output = java.nio.channels.FileChannel.open(saved, java.nio.file.StandardOpenOption.WRITE)) {
-                    var buffer = java.nio.ByteBuffer.wrap(bytes); while (buffer.hasRemaining()) output.write(buffer); output.force(true);
-                }
-                try (var insert = db.prepareStatement("INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)")) {
-                    insert.setString(1, title); insert.setString(2, authors); insert.setString(3, "data/files/" + saved.getFileName()); insert.setInt(4, bytes.length); insert.executeUpdate();
-                }
-                long id;
-                try (var result = transaction.executeQuery("SELECT last_insert_rowid()")) { result.next(); id = result.getLong(1); }
-                links(db, id, List.of(subject_id));
-                CatalogRepository.classify(db, id, module, language, directions != null ? directions : direction == null ? directionsForSubjects(db, List.of(subject_id)) : List.of(direction));
-                transaction.execute("COMMIT"); committed = true;
-                return ResponseEntity.status(201).body(Map.of("id", id, "file_url", "/api/documents/" + id + "/file"));
-            } catch (SQLException | IOException | RuntimeException failure) { transaction.execute("ROLLBACK"); throw failure; }
+        try (var input = request.getInputStream()) {
+            byte[] header = input.readNBytes(5);
+            if (header.length < 5 || !new String(header, StandardCharsets.US_ASCII).equals("%PDF-")) throw new ApiProblem(400, "invalid_pdf");
+            try { saved = Files.createTempFile(Path.of("data/files"), "upload-", "", PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))); }
+            catch (UnsupportedOperationException failure) { saved = Files.createTempFile(Path.of("data/files"), "upload-", ""); }
+            long fileSize;
+            // Stream before opening the write transaction: bounded memory, no database lock during upload.
+            try (var output = java.nio.channels.FileChannel.open(saved, java.nio.file.StandardOpenOption.WRITE)) {
+                var stream = java.nio.channels.Channels.newOutputStream(output);
+                stream.write(header);
+                fileSize = header.length + input.transferTo(stream);
+                output.force(true);
+            }
+            try (var db = library.connect(false); var transaction = db.createStatement()) {
+                transaction.execute("BEGIN IMMEDIATE");
+                try {
+                    subjects(db, List.of(subject_id));
+                    try (var insert = db.prepareStatement("INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)")) {
+                        insert.setString(1, title); insert.setString(2, authors); insert.setString(3, "data/files/" + saved.getFileName()); insert.setLong(4, fileSize); insert.executeUpdate();
+                    }
+                    long id;
+                    try (var result = transaction.executeQuery("SELECT last_insert_rowid()")) { result.next(); id = result.getLong(1); }
+                    links(db, id, List.of(subject_id));
+                    CatalogRepository.classify(db, id, module, language, directions != null ? directions : direction == null ? directionsForSubjects(db, List.of(subject_id)) : List.of(direction));
+                    transaction.execute("COMMIT"); committed = true;
+                    return ResponseEntity.status(201).body(Map.of("id", id, "file_url", "/api/documents/" + id + "/file"));
+                } catch (SQLException | RuntimeException failure) { transaction.execute("ROLLBACK"); throw failure; }
+            }
         } finally { if (!committed && saved != null) Files.deleteIfExists(saved); }
     }
     private static List<String> directionsForSubjects(Connection db, List<Long> subjects) throws SQLException {

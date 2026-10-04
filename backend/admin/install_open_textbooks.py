@@ -28,14 +28,10 @@ def install(database):
             source = Path(directory) / 'book.pdf'
             request = urllib.request.Request(url, headers={'User-Agent': 'MathResearchPlatform/1.0'})
             with urllib.request.urlopen(request, timeout=60) as response, source.open('wb') as output:
-                size = 0
                 while True:
                     chunk = response.read(65536)
                     if not chunk:
                         break
-                    size += len(chunk)
-                    if size > 20 * 1024 * 1024:
-                        raise ValueError('Official PDF exceeds the 20 MB library limit')
                     output.write(chunk)
             result = import_document(source, title, 'Sheldon Axler', subject, database)
             link_textbook(book, result['id'], database)

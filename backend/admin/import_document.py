@@ -1,5 +1,6 @@
 """Server administrator only: import into the existing library without an HTTP write API."""
 import argparse
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -21,7 +22,7 @@ def import_document(source, title, authors, subject, database='data/math.db'):
         raise ValueError('Start math-server once to initialize the database')
     saved_path = None
     committed = False
-    with sqlite3.connect(str(db_path), timeout=3) as db:
+    with closing(sqlite3.connect(str(db_path), timeout=3)) as db:
         db.execute('PRAGMA foreign_keys=ON')
         if not db.execute('SELECT 1 FROM subjects WHERE id=?', (subject,)).fetchone():
             raise ValueError('Unknown subject')
@@ -38,8 +39,6 @@ def import_document(source, title, authors, subject, database='data/math.db'):
                         if not chunk:
                             break
                         size += len(chunk)
-                        if size > 20 * 1024 * 1024:
-                            raise ValueError('PDF exceeds 20 MB')
                         output.write(chunk)
                     output.flush()
                     os.fsync(output.fileno())

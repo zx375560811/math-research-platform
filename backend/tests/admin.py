@@ -106,16 +106,31 @@ with tempfile.TemporaryDirectory() as directory:
             for handler in client.handlers:
                 if isinstance(handler, urllib.request.HTTPCookieProcessor): handler.cookiejar.add_cookie_header(outgoing)
             headers = {'Content-Type': 'application/pdf', token['header']: token['token'], 'Cookie': outgoing.get_header('Cookie')}
-            # Header rejection happens before reading a body. Half-close the sending side
-            # so the HTTP server need not drain a fictitious oversized request.
-            with closing(http.client.HTTPConnection('127.0.0.1', port, timeout=15)) as connection:
-                connection.request('POST', query, body=b'', headers={**headers, 'Content-Length': str(20 * 1024 * 1024 + 1)})
-                connection.sock.shutdown(socket.SHUT_WR)
-                response = connection.getresponse(); assert response.status == 413; response.read()
-            with closing(http.client.HTTPConnection('127.0.0.1', port, timeout=15)) as connection:
-                connection.request('POST', query, body=iter([b'%PDF-' + b'0' * (1024 * 1024)] * 21), headers={**headers, 'Transfer-Encoding': 'chunked'}, encode_chunked=True)
-                response = connection.getresponse(); assert response.status == 413; response.read()
             assert not list((root / 'data/files').iterdir())
+            large = b'%PDF-1.4\n' + b'0' * (21 * 1024 * 1024)
+            big_ids = []
+            # Both fixed-length and chunked uploads must preserve the complete large PDF.
+            fixed = write(query, large, pdf=True); assert fixed[0] == 201; big_ids.append(fixed[1]['id'])
+            with closing(http.client.HTTPConnection('127.0.0.1', port, timeout=15)) as connection:
+                chunks = (large[start:start + 65536] for start in range(0, len(large), 65536))
+                connection.request('POST', query, body=chunks, headers={**headers, 'Transfer-Encoding': 'chunked'}, encode_chunked=True)
+                response = connection.getresponse(); assert response.status == 201
+                big_ids.append(json.loads(response.read())['id'])
+            for doc_id in big_ids:
+                assert request('/api/documents/' + str(doc_id))[1]['file_size'] == len(large)
+                downloaded = request('/api/documents/' + str(doc_id) + '/file')
+                assert downloaded[0] == 200 and hashlib.sha256(downloaded[1]).digest() == hashlib.sha256(large).digest()
+            # Invalid classification rolls back metadata and cleans its streamed temporary file.
+            before = set((root / 'data/files').iterdir())
+            assert write(query + '&direction=invalid', large, pdf=True)[0] == 400
+            assert set((root / 'data/files').iterdir()) == before
+            # Remove only these disposable fixtures so the original catalog count assertions remain valid.
+            with sqlite3.connect(database) as db:
+                db.execute('PRAGMA foreign_keys=ON')
+                for doc_id in big_ids:
+                    stored = db.execute('SELECT file_path FROM documents WHERE id=?', (doc_id,)).fetchone()[0]
+                    db.execute('DELETE FROM documents WHERE id=?', (doc_id,)); (root / stored).unlink()
+            del large, downloaded
             imported = write(query, pdf, pdf=True); assert imported[0] == 201
             document = imported[1]['id']
             assert request('/api/documents/' + str(document) + '/file') == (200, pdf)
