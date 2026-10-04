@@ -57,7 +57,7 @@ $('account-form').addEventListener('submit', async event => {
   event.preventDefault(); if (state.authBusy) return;
   const registering = location.hash === '#/register'; const username = $('account-username').value; const password = $('account-password').value;
   if (registering && password !== $('account-confirm').value) { authMessage('两次输入的密码不一致。', true); return; }
-  state.authBusy = true; for (const field of $('account-form').elements) field.disabled = true;
+  state.authBusy = true; $('account-form').setAttribute('aria-busy', 'true'); for (const field of $('account-form').elements) field.disabled = true;
   authMessage(registering ? '正在注册…' : '正在登录…');
   try {
     const body = await authPost(registering ? '/api/auth/register' : '/api/auth/login', { username, password, ...(registering ? { invitation: $('account-invitation').value.trim() } : {}) });
@@ -65,7 +65,7 @@ $('account-form').addEventListener('submit', async event => {
     if (registering) { $('account-invitation').value = ''; authMessage('注册成功，请登录。'); location.hash = '#/login'; }
     else { state.user = body.user; accountDisplay(); await loadDirections(); authMessage(''); location.hash = state.returnTo; }
   } catch (error) { authMessage(friendly(error), true); }
-  finally { state.authBusy = false; for (const field of $('account-form').elements) field.disabled = false; }
+  finally { state.authBusy = false; $('account-form').setAttribute('aria-busy', 'false'); for (const field of $('account-form').elements) field.disabled = false; }
 });
 $('logout-button').addEventListener('click', async () => {
   $('logout-button').disabled = true;

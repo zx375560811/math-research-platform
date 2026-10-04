@@ -10,3 +10,41 @@
 .admin-ai-editor { max-width:680px; }.admin-ai-switch { display:flex!important;align-items:center;gap:10px; }.admin-ai-switch input { width:auto!important; }.admin-ai-editor input[type=number] { max-width:180px; }
 
 .admin-heading h1 { margin-bottom:0; }
+
+/* Taste detail pass: practical catalog controls, using the public brand tokens. */
+.admin-rail nav a[aria-current] { box-shadow:inset 3px 0 0 var(--blue); }
+.admin-rail nav a:hover { background:#f1f4fa;color:var(--accent-ink); }
+.admin-rail .return-app { border-radius:8px; }
+.admin-rail .return-app:hover { background:var(--soft-blue); }
+.admin-editor { box-shadow:var(--shadow-soft);border-color:#dce3ef; }
+.admin-page h2 { font-size:18px; }
+.admin-page label,.admin-page legend { color:#41526b;font-weight:500; }
+.admin-page input,.admin-page select { font-size:16px;background:var(--field);border-color:var(--field-line);border-radius:8px; }
+.admin-page input:not([type=checkbox]),.admin-page select { min-height:44px; }
+.admin-page input:focus,.admin-page select:focus { background:white;border-color:var(--blue);outline:2px solid #4261df22;outline-offset:1px; }
+.admin-page input[type=checkbox] { accent-color:var(--blue); }
+.admin-page input[type=file] { font-size:14px;padding:8px; }
+.admin-page input[type=file]::file-selector-button { font:inherit;color:var(--accent-ink);background:#edf2ff;border:1px solid #cdd9f4;border-radius:5px;padding:6px 9px;margin-right:8px;cursor:pointer; }
+.admin-page input[type=file]::file-selector-button:hover { background:#e1e9ff; }
+#document-directions label { border:1px solid #e1e7f0;border-radius:6px;padding:3px 7px;background:#fafbfe; }
+#document-directions label:has(input:checked) { color:var(--accent-ink);background:var(--soft-blue);border-color:#c4d1f3; }
+.admin-record { padding:18px 14px;background:#ffffffb3;border-color:#e4e9f1; }
+.admin-record:hover,.admin-record:focus-within { background:#fff; }
+.admin-record:first-child { border-top:0;border-radius:10px 10px 0 0; }
+.admin-record:last-child { border-radius:0 0 10px 10px; }
+.admin-record:only-child { border-radius:10px; }
+.admin-record h3 { font-size:16px;line-height:1.5; }
+.admin-record .record-actions { gap:8px; }
+.admin-record .badge { border:1px solid #dce4f8;color:var(--accent-ink); }
+.admin-record .badge.pending { border-color:#e0e5ed;color:#5d6b80; }
+.admin-pagination>span { min-width:54px;text-align:center; }
+.admin-empty { background:#ffffffb3;border:1px dashed #d9e1ed;border-radius:10px;padding:24px 18px; }
+#admin-message { border:1px solid #cfe1d7;color:#326149; }
+#admin-message.error { border-color:#ecd2cc;color:#963e32; }
+#created-invitation { border:1px solid #dce5f5;background:#f7faff;border-radius:10px;padding:16px; }
+#invitation-code { font:16px/1.5 Consolas,monospace;letter-spacing:.02em; }
+.admin-page form[aria-busy=true] { cursor:progress; }
+@media(hover:hover) and (prefers-reduced-motion:no-preference) {
+ .admin-rail nav a,.admin-rail .return-app { transition:background-color .18s ease; }
+}
+@media(max-width:800px) { .admin-record { padding:16px 12px; }.admin-page input,.admin-page select { font-size:16px; } }

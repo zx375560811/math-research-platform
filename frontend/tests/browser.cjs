@@ -342,8 +342,17 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===2); assert.equal(chatCalls.at(-1).source,'custom'); assert.equal(chatCalls.at(-1).context,null);
     await page.screenshot({path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
     await page.locator('#ai-source').selectOption('default'); await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
-    await page.locator('.pdf-page[data-page="1"] .textLayer span').first().waitFor({state:'attached'});
-    await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
+    // API settings and pane changes can trigger PDF reflow after the first text span attaches.
+    // Select only in a ready layout, and retry if a later reflow clears the native selection.
+    await page.waitForFunction(() => {
+      if (!document.getElementById('selection-tools').hidden) return true;
+      if (document.getElementById('pdf-pages').dataset.layout !== 'ready') return false;
+      const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');
+      if (!span) return false;
+      const range=document.createRange();range.selectNodeContents(span);
+      const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+      return false;
+    });
     await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="yellow"]').click();
     await page.locator('.annotation-item').waitFor(); assert.ok(await page.locator('.pdf-highlight').count()>0);
     const noteText='My proof <img src=x onerror=alert(1)>';

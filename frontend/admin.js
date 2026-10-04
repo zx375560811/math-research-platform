@@ -12,9 +12,9 @@ async function write(path, body, method = 'POST', pdf = false) {
   return api(path, { method, headers: { 'Content-Type': pdf ? 'application/pdf' : 'application/json', [csrf.header]: csrf.token }, body: pdf ? body : JSON.stringify(body) });
 }
 async function action(form, work) {
-  const fields = [...form.querySelectorAll(form.tagName === 'FORM' ? 'button[type=submit],button:not([type])' : 'button')]; fields.forEach(field => field.disabled = true); message('正在处理…');
+  const fields = [...form.querySelectorAll(form.tagName === 'FORM' ? 'button[type=submit],button:not([type])' : 'button')]; form.setAttribute('aria-busy', 'true'); fields.forEach(field => field.disabled = true); message('正在处理…');
   try { await work(); } catch (error) { message(error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message, true); }
-  finally { fields.forEach(field => field.disabled = false); }
+  finally { form.setAttribute('aria-busy', 'false'); fields.forEach(field => field.disabled = false); }
 }
 function element(tag, text, className) { const node = document.createElement(tag); if (text != null) node.textContent = text; if (className) node.className = className; return node; }
 function button(text, callback) { const node = element('button', text, 'button compact'); node.type = 'button'; node.addEventListener('click', () => action(node.parentElement, callback)); return node; }

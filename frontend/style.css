@@ -476,3 +476,128 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 .analysis-route-layout .analysis-roadmap { min-width:0; }
 .analysis-route-help { margin:0;color:var(--muted);font-size:14px;line-height:1.8; }
 @media(max-width:1100px) { .analysis-route-layout { grid-template-columns:minmax(0,1fr);gap:8px; }.analysis-route-help { text-align:right; } }
+
+/* Taste detail pass: preserve the paper-and-blue brand and existing page geometry.
+   Radius scale: fields/buttons 8px, content 12–16px, entrance/hero 22px.
+   Motion acknowledges interaction only; reader edges remain continuous. */
+:root {
+ --field:#fbfcff; --field-line:#cbd5e5; --accent-ink:#3450c2;
+ --shadow-soft:0 3px 14px #182b4606; --shadow-raised:0 8px 24px #182b460c;
+ --ease-detail:cubic-bezier(.2,.8,.2,1);
+}
+body { font-variant-numeric:tabular-nums; }
+::selection { background:#cbd8ff;color:var(--ink); }
+input::placeholder,textarea::placeholder { color:var(--muted);opacity:1; }
+input,select,textarea { accent-color:var(--blue); }
+:where(input:not([type=checkbox]):not([type=radio]),select,textarea):disabled { color:var(--muted);background:#f0f3f8; }
+.button { white-space:nowrap;font-weight:500;box-shadow:inset 0 1px 0 #ffffff80; }
+.button.primary { box-shadow:inset 0 1px 0 #ffffff26,0 2px 5px #4261df12; }
+.button:disabled { opacity:1;background:#f1f4f8;color:#6b778a;border-color:#dce3ec;box-shadow:none; }
+.button.primary:disabled { background:#e5eafa;color:#53649b;border-color:#d5def4; }
+.button:focus-visible { outline:2px solid var(--blue);outline-offset:3px; }
+:where(.auth-panel form>input,.library-filter input,.library-filter select,.book-picker input,.book-picker select,.ai-settings input) {
+ background:var(--field);border-color:var(--field-line);border-radius:8px;font-size:16px;
+}
+:where(.auth-panel form>input,.library-filter input,.library-filter select,.book-picker input,.book-picker select,.ai-settings input):focus {
+ background:white;border-color:var(--blue);outline:2px solid #4261df22;outline-offset:1px;
+}
+.auth-panel input::placeholder { font-size:14px;color:var(--muted); }
+.auth-panel form>label,.library-filter label,.book-picker label { color:#41526b;font-weight:500; }
+.form-message.error,.notice.error { color:#963e32; }
+.form-message.error:not(:empty) { padding:9px 11px;border-radius:8px;background:#fff3ef; }
+
+/* Entrance: one panel, with a deliberate edge and comfortably sized fields. */
+.auth-view { border-color:#dce3f0;box-shadow:inset 0 2px 0 white,0 14px 44px #243d6b0a; }
+.auth-tabs { background:#f0f3f9;border:1px solid #e6ebf3; }
+.auth-tabs a { font-size:15px; }
+.auth-tabs a.active { color:var(--accent-ink);box-shadow:0 2px 6px #182b460c; }
+.auth-tabs a:not(.active):hover { color:var(--accent-ink);background:#ffffff80; }
+.auth-panel h2 { font-size:23px;letter-spacing:.02em; }
+.auth-panel form>input { min-height:48px; }
+#account-form .primary { font-size:16px; }
+
+/* Navigation and application entries: selection and destination are distinct. */
+.workspace-link.active,.subject-nav a.active { box-shadow:inset 3px 0 0 var(--blue); }
+.nav-heading { color:#65748b;font-weight:500; }
+.topbar { background:#fcfdff; }
+.hero { box-shadow:var(--shadow-soft);border-color:#dbe3f0; }
+.application-card { box-shadow:var(--shadow-soft); }
+.application-card.library-application { background:linear-gradient(115deg,#fff 45%,#f4f7ff); }
+.application-card:not(.library-application) { background:linear-gradient(115deg,#fff 45%,#f5f8fc); }
+.application-action { color:var(--accent-ink); }
+.application-notation { color:#e4eaf8; }
+.application-card:hover,.application-card:focus-visible { border-color:#a4b6e8;box-shadow:var(--shadow-raised); }
+.application-planned { border:1px dashed #d7dfeb;background:#f0f3f8; }
+.application-planned .pill { background:#ffffff80;color:#586982; }
+.direction-card { box-shadow:inset 0 1px 0 #ffffff80,var(--shadow-soft); }
+.direction-card:hover,.direction-card:focus-visible { box-shadow:inset 0 1px 0 #ffffff80,var(--shadow-raised); }
+.direction-small:hover,.direction-small:focus-visible { background:#f5f7ff; }
+.direction-enter { color:var(--accent-ink); }
+.back-link { border-radius:4px; }
+
+/* Catalog: a quiet sheet of actual documents, with row-local hover feedback. */
+.library-filter { box-shadow:var(--shadow-soft);border-radius:12px; }
+.library-filter input,.library-filter select { min-height:44px; }
+#library-documents:not(:empty) { background:white;border:1px solid var(--line);border-radius:12px;overflow:hidden; }
+.library-document { padding:20px 22px; }
+.library-document:last-child { border-bottom:0; }
+.library-document:hover,.library-document:focus-within { background:#f8faff; }
+.library-document h2 { line-height:1.5; }
+.library-document .document-directions { font-size:14px;color:#526580; }
+.document-language { color:var(--accent-ink);border:1px solid #dce4fa; }
+.library-pagination>span { min-width:54px;text-align:center; }
+#library-status:not(:empty) { color:var(--muted);padding:12px 0;margin:0; }
+#library-view[aria-busy=true] #library-documents { opacity:.55;pointer-events:none; }
+
+/* Course selection has an anchor; expanding a book keeps the compact overview. */
+.direction-intro-section { box-shadow:var(--shadow-soft); }
+#direction-detail .analysis-textbooks .textbook-stage:not(.course-collapsed) { box-shadow:inset 3px 0 0 var(--blue);background:#fcfdff; }
+.course-heading-button { border-radius:5px;line-height:1.5; }
+.course-heading-button:hover,.course-book-preview:hover { color:var(--accent-ink); }
+.course-heading-button[aria-expanded=true] { font-weight:600; }
+#direction-detail .recommendation-language { border-color:#dce4f0; }
+#direction-detail .recommendation-language h4 { color:var(--accent-ink);font-weight:600; }
+.book-unavailable { border:1px solid #e3e8f1;color:#596980; }
+.book-source:hover,.book-restore:hover { text-decoration:underline;text-underline-offset:3px; }
+.book-picker { background:#f5f8fe;border-radius:8px; }
+.book-library-choice[aria-expanded=true] { background:var(--soft-blue);border-color:#9daee0;color:var(--accent-ink); }
+
+/* Reader refinements are local: no new borders between PDF, notes and AI. */
+.reader-heading-actions .button[aria-expanded=true],.ai-heading-actions .button[aria-expanded=true] { color:var(--accent-ink);background:#e8eefc;border-color:#afc0e6; }
+.reader-outline .outline-entry { border-radius:6px;line-height:1.5; }
+.reader-outline .outline-entry:focus-visible { outline-offset:-2px; }
+.annotation-note { border-radius:8px;background:var(--field); }
+.annotation-note:focus { border-color:var(--blue);outline:2px solid #4261df22;outline-offset:1px; }
+.annotation-summary:hover { box-shadow:inset 0 0 0 1px #647bac; }
+.annotation-more:hover { color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px; }
+#selection-tools,.ai-context { background:#f8faff;border-color:#dce5f4;box-shadow:inset 0 1px 0 white; }
+.ai-context #ai-context-remove { border:0;box-shadow:none;background:transparent;color:var(--muted); }
+.ai-context #ai-context-remove:hover { background:#eaf0fa;color:var(--ink); }
+.ai-user { background:#eff3fb;border:0;border-radius:12px 12px 4px 12px; }
+.ai-speaker { color:#435d86; }
+.ai-provider select { border-radius:8px;color:#425777;border-color:#d6dfed; }
+.ai-chat-form { border-color:#cbd7eb;box-shadow:inset 0 1px 0 white; }
+.ai-chat-form:focus-within { border-color:#7d96d3;box-shadow:inset 0 0 0 1px #7d96d326; }
+.ai-compose-foot .button>span { display:inline; }
+.ai-rich-text hr { border:0;border-top:1px solid #e3e8f0;margin:1em 0; }
+.ai-rich-text th { background:#f1f5fc;font-weight:600; }
+.ai-rich-text pre { border:1px solid #dfe6f1;border-radius:8px; }
+.annotation-delete:hover { text-decoration:underline;text-underline-offset:3px; }
+
+@media(hover:hover) and (prefers-reduced-motion:no-preference) {
+ .button,.auth-tabs a,.workspace-link,.subject-nav a,.direction-small,.application-card,.direction-card {
+  transition:transform .18s var(--ease-detail),background-color .18s ease,border-color .18s ease,box-shadow .18s ease;
+ }
+ .application-card:hover,.direction-card:hover { transform:translateY(-3px); }
+ .application-card:hover .application-action { transform:translateX(3px); }
+ .application-action { transition:transform .18s var(--ease-detail); }
+ .button:active:not(:disabled),.direction-small:active { transform:translateY(1px); }
+}
+@media(max-width:650px) {
+ .library-document { padding:18px 16px; }
+ .library-filter { padding:16px;gap:12px; }
+ .auth-panel h2 { font-size:22px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .button,.auth-tabs a,.workspace-link,.subject-nav a,.direction-small,.application-card,.direction-card,.application-action { transition:none;transform:none; }
+}
