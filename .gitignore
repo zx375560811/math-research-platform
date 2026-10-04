@@ -1,5 +1,6 @@
 backend/build/
 backend/data/
+/imports/
 __pycache__/
 *.zip
 *.db

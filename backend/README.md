@@ -80,6 +80,29 @@ rm /tmp/math-import.pdf
 
 标题和作者各不超过 500 个 UTF-8 字节，不允许控制字符。必须为具有 `%PDF-` 头部的文件，不设应用层文件大小上限；该检查不代替完整 PDF 解析。网页上传以流式写入磁盘，完成后再提交文献记录，不将整份文件读入 Java 内存；服务器导入脚本同样支持大 PDF。专业 ID 必须存在，入库失败会清理新文件并回滚数据库。现有文献 ID、路径和关联保持兼容。入库成功后应用自动读取同一数据库，刷新即可。
 
+## Zotero 文件夹批量导入
+
+无需安装 Python 第三方依赖。保持 `.rdf` 与 `files/` 的相对结构，先将整个导出目录放在 `/opt/math-platform/imports/`。命令在 `backend` 中运行，使用服务账号以保证 PDF 权限正确。
+
+```bash
+cd /opt/math-platform/backend
+sudo -u math-platform python3 admin/import_zotero.py '/opt/math-platform/imports/大学数学基础/大学数学基础.rdf' --report data/zotero-preview.json
+```
+
+默认只检查文件、生成 JSON 预览，不修改数据库。预览逐项记录标题、作者、语种、原分类路径、网站方向、文件大小与待补充字段；缺失或无效 PDF 记录失败，DJVU/EPUB/网页/压缩包记录跳过。中文独立附件可按标题标为中文，没有明确依据的语种保留未标注；其他语言不误标为英文。
+
+确认预览后正式入库：
+
+```bash
+sudo -u math-platform python3 admin/import_zotero.py '/opt/math-platform/imports/大学数学基础/大学数学基础.rdf' --apply --report data/zotero-import.json
+```
+
+PDF 以流式复制到现有 `data/files/`，不设文件大小上限，每个文件单独提交数据库事务。首次运行会校验现有文献文件的 SHA-256；内容相同的附件复用原文献 ID，不覆盖原有标题、语种、分类、教材关联或个人进度。重复及失败文件的暂存副本会清理；失败不影响已成功条目，可以用同一命令重跑，已导入文件自动跳过。原书目 XML、原始标题/作者/语种与 Zotero 分类路径保存在 `zotero_import_sources`；内容校验值保存在 `zotero_import_hashes`。这些来源表只供服务器管理，不新增公开上传接口，也不自动配置推荐教材。
+
+可使用 `--mapping mapping.json` 调整映射，JSON 格式为 `{"分类名称":["analysis","geometry-topology"]}`；值必须为现有方向 slug。默认映射覆盖大学数学基础导出中的 29 个分类，未匹配的文献保留待分类。语种、标题等可在管理员文献页面继续修正。`--database` 或 `MATH_DB_PATH` 可指定数据库，但仍须在平台 `backend` 目录执行，以兼容现有文件路径。
+
+预览/导入遇到失败返回退出码 1，详情见报告，已成功导入记录保留。报告含本地路径及原书目，保存在 `data/`，不要放到公开静态目录。上传暂存目录与正式 PDF 都需要磁盘空间；导入完成前保留原导出文件夹。
+
 ## systemd 常驻运行
 
 使用 `deploy/math-platform.service`，服务账号 math-platform，工作目录 `/opt/math-platform/backend`。部署前创建账号并将 `backend/data/` 授权给该账号；源码与 JAR 文件只需可读。注册服务后：
