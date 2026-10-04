@@ -24,6 +24,10 @@ async function scrollToPage(page, number) {
   await page.locator('#reader-scroll').evaluate((node,n)=>{const frame=document.querySelector(`.pdf-page[data-page="${n}"]`);node.scrollTop=document.getElementById('pdf-pages').offsetTop+frame.offsetTop;node.dispatchEvent(new Event('scroll'));},number);
   await page.waitForFunction(n=>document.getElementById('reader-scroll').dataset.page===String(n)&&document.querySelector(`.pdf-page[data-page="${n}"][data-loaded]`),number);
 }
+async function chooseCollection(page,id) {
+  await page.locator(`[data-collection="${id}"]`).click();
+  await page.waitForFunction(id=>document.querySelector(`[data-collection="${id}"]`)?.getAttribute('aria-current')==='page' && document.getElementById('library-view').getAttribute('aria-busy')==='false',String(id));
+}
 async function zoomTo(page, percent) {
   for(let i=0;i<30;i++) {
     const current=Number(await page.locator('#reader-scroll').getAttribute('data-zoom')); if(current===percent)return;
@@ -455,15 +459,15 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
     await page.screenshot({path:path.join(shots,'library-collections-desktop.png'),fullPage:true});
-    await page.locator('[aria-controls="library-folder-101"]').click();await page.locator('[data-collection="102"]').click();await page.locator('[data-document="1"]').waitFor();
+    await page.locator('[aria-controls="library-folder-101"]').click();await chooseCollection(page,'102');await page.locator('[data-document="1"]').waitFor();
     assert.equal(await page.locator('.library-document').count(),1);assert.match(await page.locator('#library-breadcrumbs').textContent(),/大学数学基础.*分析.*复分析/);assert.equal(await page.locator('[data-collection="102"]').getAttribute('aria-current'),'page');
-    await page.locator('[data-collection="104"]').click();await page.waitForFunction(()=>document.getElementById('library-status').textContent.includes('暂无文献'));assert.equal(await page.locator('.library-document').count(),0);
-    await page.locator('[data-collection="101"]').click();await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('.library-document').count(),1);
-    await page.locator('[data-collection="102"]').click();await page.locator('[data-document="1"]').waitFor();
+    await chooseCollection(page,'104');await page.waitForFunction(()=>document.getElementById('library-status').textContent.includes('暂无文献'));assert.equal(await page.locator('.library-document').count(),0);
+    await chooseCollection(page,'101');await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('.library-document').count(),1);
+    await chooseCollection(page,'102');await page.locator('[data-document="1"]').waitFor();
 
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
     await page.screenshot({path:path.join(shots,'library-desktop.png'),fullPage:true});
-    await page.setViewportSize({width:390,height:844}); await page.screenshot({path:path.join(shots,'library-mobile.png'),fullPage:true});await page.locator('#library-folders-toggle').click();assert.equal(await page.locator('#library-folders').isVisible(),true);await page.screenshot({path:path.join(shots,'library-collections-mobile.png'),fullPage:true});await page.locator('[data-collection="102"]').click();await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('#library-folders').isVisible(),false);await page.setViewportSize({width:320,height:844});await page.locator('.library-extra-filters summary').click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.locator('.library-extra-filters summary').click(); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
+    await page.setViewportSize({width:390,height:844}); await page.screenshot({path:path.join(shots,'library-mobile.png'),fullPage:true});await page.locator('#library-folders-toggle').click();assert.equal(await page.locator('#library-folders').isVisible(),true);await page.screenshot({path:path.join(shots,'library-collections-mobile.png'),fullPage:true});await chooseCollection(page,'102');await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('#library-folders').isVisible(),false);await page.setViewportSize({width:320,height:844});await page.locator('.library-extra-filters summary').click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.locator('.library-extra-filters summary').click(); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
     await page.locator('[data-document="1"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')); assert.match(await page.locator('#reader-back').textContent(),/文档库/);
     await scrollToPage(page,3); await page.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='3');
     await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="3"] .textLayer span')?.textContent==='Mathematics 3');
