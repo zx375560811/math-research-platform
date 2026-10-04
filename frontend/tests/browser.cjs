@@ -240,6 +240,10 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.reader-note-pane h2').count(),0);
     const header=await page.locator('#reader-heading').boundingBox(), notes=await page.locator('#reader-notes').boundingBox(), pdfArea=await page.locator('#reader-scroll').boundingBox();
     assert.equal(header.y,0);assert.ok(Math.abs(header.x+header.width-notes.x-notes.width)<1);
+    const bottom=await page.locator('#reader-bottom-bar').boundingBox();
+    assert.equal(bottom.height,8);assert.ok(header.height<=42);
+    assert.ok(Math.abs(bottom.x-header.x)<1 && Math.abs(bottom.width-header.width)<1);
+
     assert.ok(Math.abs(pdfArea.y-header.height)<1 && Math.abs(notes.y-header.height)<1);
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),stack=document.getElementById('pdf-pages'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=stack.offsetTop+next.offsetTop+120;});
     await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='2' && document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
@@ -273,7 +277,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
     const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:Math.abs(a.getBoundingClientRect().left-b.getBoundingClientRect().left)<1 && b.getBoundingClientRect().top-a.getBoundingClientRect().bottom<=3};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
-    assert.ok(await page.locator('#reader-scroll').evaluate(node=>Math.abs(node.getBoundingClientRect().bottom-document.getElementById('reader-view').getBoundingClientRect().bottom)<1));
+    assert.ok(await page.locator('#reader-scroll').evaluate(node=>Math.abs(node.getBoundingClientRect().bottom-document.getElementById('reader-bottom-bar').getBoundingClientRect().top)<1));
     const readerChrome=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect(),ask=rect('reader-ask-ai'),input=rect('ai-question'),source=rect('ai-source'),title=document.querySelector('.reader-ai-pane h2').getBoundingClientRect();return {top:Math.abs(rect('reader-notes').top-rect('reader-heading').bottom),sameLine:Math.abs(source.top+source.height/2-title.top-title.height/2),gap:ask.left-input.right,askColor:getComputedStyle(document.getElementById('reader-ask-ai')).backgroundColor};});
     assert.ok(readerChrome.top<1 && readerChrome.sameLine<2 && readerChrome.gap>=0 && readerChrome.gap<=13); assert.notEqual(readerChrome.askColor,'rgb(52, 88, 212)');
     const beforeVertical=await page.locator('.reader-note-pane').evaluate(node=>node.clientHeight); const split=await page.locator('#reader-ai-resize').boundingBox();
@@ -344,9 +348,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
     assert.ok(await page.locator('.pdf-highlight').count()>0);
     await page.screenshot({path:path.join(shots,'reader-desktop.png'),fullPage:true});
-    const expandedPdfWidth=await page.locator('#reader-scroll').evaluate(node=>node.clientWidth);
-    await page.locator('#reader-notes-close').click();await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
-    assert.ok(await page.locator('#reader-scroll').evaluate(node=>node.clientWidth)>expandedPdfWidth+150);
+    assert.equal(await page.locator('#reader-notes-close').count(),0);
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor();await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     assert.equal(await page.locator('#reader-notes').isVisible(),true);assert.ok(await page.locator('#selection-quote').textContent());

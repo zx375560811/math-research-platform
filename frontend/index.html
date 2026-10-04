@@ -66,7 +66,7 @@
         <p id="learning-status" class="list-status" role="status"></p><button id="retry-learning" class="button" hidden>重新加载</button>
       </section>
       <section id="reader-view" hidden aria-labelledby="reader-title">
-        <div id="reader-heading" class="reader-heading"><div class="reader-document-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics" aria-label="返回教材">← 返回教材</a><h1 id="reader-title">教材阅读</h1><div class="reader-heading-actions"><button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button><button id="reader-fit-width" class="button compact">适合宽度</button><button id="reader-fullscreen" class="button compact">全屏</button></div></div><div class="reader-notes-heading"><h2>我的高亮笔记</h2><button id="reader-notes-close" class="button compact" aria-label="关闭笔记与 AI 侧栏">×</button></div></div>
+        <div id="reader-heading" class="reader-heading"><div class="reader-document-heading"><a id="reader-back" class="back-link" href="#/apps/mathematics" aria-label="返回教材">← 返回教材</a><h1 id="reader-title">教材阅读</h1><div class="reader-heading-actions"><button id="reader-outline-toggle" class="button compact" aria-expanded="true">目录</button><button id="reader-fit-width" class="button compact">适合宽度</button><button id="reader-fullscreen" class="button compact">全屏</button></div></div><div class="reader-notes-heading"><h2>我的高亮笔记</h2></div></div>
         <div class="reader-layout">
           <aside id="reader-outline" class="reader-outline" aria-label="教材目录"></aside>
           <div id="reader-outline-resize" class="reader-resize" role="separator" aria-orientation="vertical" aria-label="调整目录宽度" aria-controls="reader-outline" tabindex="0" title="拖拽调整目录宽度，也可用左右方向键"></div>
@@ -83,6 +83,7 @@
               <form id="ai-chat-form" class="ai-chat-form"><label class="sr-only" for="ai-question">向 AI 提问</label><textarea id="ai-question" rows="3" placeholder="输入问题，Ctrl + Enter 发送" required></textarea><div class="ai-compose-foot"><button id="reader-ask-ai" class="button compact" type="button" disabled title="先选中 PDF 中的文字">问 AI</button><button id="ai-send" class="button primary compact" type="submit" disabled>发送</button></div></form><p id="ai-status" class="ai-status" role="status"></p>
             </section>
           </aside>
+        <div id="reader-bottom-bar" class="reader-bottom-bar" aria-hidden="true"></div>
         <div class="reader-foot"><span id="reader-status" role="status">正在打开教材…</span><span id="reader-save-status" role="status"></span></div>
       </section>
     </main>

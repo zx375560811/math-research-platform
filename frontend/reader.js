@@ -279,7 +279,6 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     zoomTimer = setTimeout(() => setZoom(pendingZoom, point), 70);
   }, { passive: false });
   on($('reader-outline-toggle'), 'click', () => panel('outline', $('reader-outline').hidden));
-  on($('reader-notes-close'), 'click', () => panel('notes', false));
   on($('reader-fullscreen'), 'click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('reader-view').requestFullscreen(); } catch { $('reader-status').textContent = '当前浏览器不支持全屏阅读。'; } });
   on(document, 'fullscreenchange', () => { $('reader-fullscreen').textContent = document.fullscreenElement ? '退出全屏' : '全屏'; const anchor = pdf && pages.length ? snapshot() : null; applyPanelWidths(); if (anchor) layout(anchor); });
   for (const button of document.querySelectorAll('[data-highlight]')) {
