@@ -134,7 +134,9 @@ public class AdminController {
                 value.put("id", rows.getLong("id")); value.put("sort_order", rows.getInt("sort_order")); value.put("document_id", rows.getObject("document_id")); values.add(value);
             }
         }
-        return Map.of("books", values, "analysis_courses", LearningCourses.ANALYSIS);
+        Map<String,List<String>> courses = new LinkedHashMap<>();
+        for (var book : values) { String direction = (String)book.get("direction"); courses.put(direction,LearningCourses.forDirection(direction)); }
+        return Map.of("books", values, "analysis_courses", LearningCourses.ANALYSIS, "courses", courses);
     }
     public record Book(String stage, String prerequisites, Integer sort_order, Long document_id, String direction, String language, String title, String authors, String source_url) {}
     @PutMapping("/books/{id}")
@@ -156,15 +158,13 @@ public class AdminController {
                     try (var query = db.prepareStatement("SELECT b.*,coalesce(x.language,'en') AS language FROM learning_books b LEFT JOIN learning_book_details x ON x.book_id=b.id WHERE b.id=?")) {
                         query.setLong(1,id); try (var row = query.executeQuery()) {
                             if (!row.next()) throw new ApiProblem(404,"not_found");
-                            Long old = row.getObject("document_id") == null ? null : row.getLong("document_id");
-                            if (old != null && !old.equals(value.document_id)) throw new ApiProblem(409,"book_document_locked");
                             if (direction == null) direction = row.getString("direction"); if (language == null) language = row.getString("language");
                             if (title == null) title = row.getString("title"); if (authors == null) authors = row.getString("authors"); if (source == null) source = row.getString("source_url");
                         }
                     }
                 }
                 if (language == null || !Set.of("zh","en").contains(language) || direction == null || !LearningCourses.forDirection(direction).contains(value.stage)) throw new ApiProblem(400,"invalid_book");
-                title = text(title,true); authors = text(authors,false); source = source == null ? "" : text(source,false);
+                title = LibraryRepository.displayTitle(text(title,true)); authors = text(authors,false); source = source == null ? "" : text(source,false);
                 if (!source.isEmpty()) {
                     try { var uri = java.net.URI.create(source); if (uri.getScheme() == null || !Set.of("https","http").contains(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) throw new IllegalArgumentException(); }
                     catch (IllegalArgumentException failure) { throw new ApiProblem(400,"invalid_source"); }

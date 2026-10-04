@@ -1,8 +1,9 @@
+import { createAdminBooks } from './admin-books.js';
 import { createOrganizer } from './admin-organizer.js';
 import { createAdminLibrary } from './admin-library.js';
 const $ = id => document.getElementById(id);
 const state = { document: null, documents: [], subjects: [], books: [], docOffset: 0, inviteOffset: 0, query: '', ready: false };
-const errors = { invalid_documents: '请选择 1–100 篇有效文献。', document_in_use: '文献被推荐教材使用，请勾选解除推荐教材关联后再删除。', collection_name_exists: '该位置已有同名目录。', invalid_collection_parent: '不能移动到自身或子目录中，目录层级最多 30 层。', file_unavailable: '文献文件路径无效，请检查存储记录。', ai_invalid_url: '请输入公网 HTTPS API 地址。', ai_invalid_settings: '启用默认 API 时，请填写地址、模型和密钥；每日次数为 1–1000。', ai_key_unavailable: '服务器加密密钥不可用，请检查 data/ai-secret.key。', admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', invalid_document: '请选择有效的 PDF 或 DJVU 文件。', request_too_large: '请求被服务器拒绝，请检查服务配置。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查学习阶段与排序数字。', book_document_locked: '教材已关联文档，不能更换，以保护现有阅读进度和标注。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的文档。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
+const errors = { invalid_documents: '请选择 1–100 篇有效文献。', document_in_use: '文献被推荐教材使用，请勾选解除推荐教材关联后再删除。', collection_name_exists: '该位置已有同名目录。', invalid_collection_parent: '不能移动到自身或子目录中，目录层级最多 30 层。', file_unavailable: '文献文件路径无效，请检查存储记录。', ai_invalid_url: '请输入公网 HTTPS API 地址。', ai_invalid_settings: '启用默认 API 时，请填写地址、模型和密钥；每日次数为 1–1000。', ai_key_unavailable: '服务器加密密钥不可用，请检查 data/ai-secret.key。', admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', invalid_document: '请选择有效的 PDF 或 DJVU 文件。', request_too_large: '请求被服务器拒绝，请检查服务配置。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查学习阶段与排序数字。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的文档。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
 function message(text, error = false) { $('document-editor-status').textContent=$('document-editor').open && error ? text : '';  $('admin-message').textContent = text; $('admin-message').hidden = !text; $('admin-message').classList.toggle('error', error); }
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
@@ -31,49 +32,8 @@ async function loadDocuments() { state.documents=await adminLibrary.load({offset
 $('document-import').addEventListener('click',()=>{resetDocument();$('document-editor-status').textContent='';$('document-editor').showModal();$('document-title').focus();});
 $('document-editor-close').addEventListener('click',()=>{if($('document-form').getAttribute('aria-busy')!=='true')$('document-editor').close();});
 $('document-editor').addEventListener('cancel',event=>{if($('document-form').getAttribute('aria-busy')==='true')event.preventDefault();});
-let bookDocGeneration = 0;
-async function loadBookDocuments(selected = '') {
-  const generation = ++bookDocGeneration; const book = state.newBook ? null : state.books.find(book => book.id === Number($('book-select').value));
-  const locked = book?.document_id != null;
-  $('book-document').disabled = true; $('book-document-query').disabled = locked; $('book-doc-search').disabled = locked;
-  const pending = element('option','正在加载文献…'); pending.value = ''; $('book-document').replaceChildren(pending); state.bookDocuments = [];
-  $('book-doc-prev').disabled = $('book-doc-next').disabled = true;
-  $('book-binding-hint').hidden = !locked;
-  $('book-binding-hint').textContent = locked ? '已关联文档，不能更换。' : '';
-  if (locked) {
-    const doc = await api('/api/documents/' + book.document_id); if (generation !== bookDocGeneration) return;
-    const option = element('option', doc.title); option.value = doc.id; $('book-document').replaceChildren(option); $('book-doc-prev').disabled = $('book-doc-next').disabled = true; $('book-doc-page').textContent = '已关联'; return;
-  }
-  const body = await api('/api/admin/documents?' + new URLSearchParams({ module: 'mathematics', direction: $('book-direction').value, q: $('book-document-query').value.trim(), offset: state.bookDocOffset || 0 })); if (generation !== bookDocGeneration) return;
-  const docs = body.documents.filter(doc => !doc.language || doc.language === 'und' || doc.language === $('book-language').value); state.bookDocuments = docs;
-  const first = element('option', state.newBook ? '请选择文献' : '暂不关联文档'); first.value = ''; $('book-document').replaceChildren(first);
-  for (const doc of docs) { const option = element('option', `${doc.language === 'zh' ? '中文' : doc.language === 'en' ? '英文' : '未标语种'} / ${doc.title} / ${doc.authors || '作者未填写'}`); option.value = doc.id; $('book-document').append(option); }
-  if (docs.some(doc => doc.id === Number(selected))) $('book-document').value = selected;
-  $('book-document').disabled = false;
-  $('book-doc-prev').disabled = !state.bookDocOffset; $('book-doc-next').disabled = body.documents.length < 20; $('book-doc-page').textContent = `第 ${(state.bookDocOffset || 0) / 20 + 1} 页`;
-  if (!docs.length) { $('book-binding-hint').hidden = false; $('book-binding-hint').textContent = '暂无匹配文献。'; }
-}
-function updateBookStages(selected) {
-  const analysis=$('book-direction').value==='analysis';
-  const values=analysis ? state.analysisCourses || ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'] : ['基础入门','核心理论','进阶学习'];
-  $('book-stage-label').textContent=analysis ? '对应课程' : '学习阶段';
-  $('book-stage').replaceChildren(...values.map(value=>{const option=element('option',value);option.value=value;return option;}));
-  if (selected && !values.includes(selected)) {const option=element('option','待归类 · '+selected);option.value='';option.disabled=true;$('book-stage').prepend(option);$('book-stage').value='';}
-  else $('book-stage').value=selected || values[0];
-}
-async function selectBook(id) {
-  state.newBook = false; $('book-select').disabled = false; $('book-editor-title').textContent = '配置推荐教材'; $('book-select').value = String(id);
-  const book = state.books.find(book => book.id === Number(id)); if (!book) return;
-  $('book-authors').textContent = `${book.direction_name} / ${book.language === 'zh' ? '中文推荐' : '英文推荐'}`; $('book-direction').value = book.direction; $('book-language').value = book.language || 'en'; $('book-title').value = book.title; $('book-author-input').value = book.authors; $('book-source').value = book.source_url || '';
-  updateBookStages(book.stage); $('book-prerequisites').value = book.prerequisites; $('book-order').value = book.sort_order; $('book-document-query').value = ''; state.bookDocOffset = 0;
-  await loadBookDocuments(book.document_id || '');
-}
-async function loadBooks(selected = $('book-select').value) {
-  const body = await api('/api/admin/books'); state.books = body.books; state.analysisCourses = body.analysis_courses; $('book-select').replaceChildren(); $('book-list').replaceChildren();
-  for (const book of body.books) { const language = book.language === 'zh' ? '中文' : '英文'; const option = element('option', `${book.direction_name} / ${book.stage} / ${language} / ${book.title}`); option.value = book.id; $('book-select').append(option); const { row, detail, controls } = record(book.title, [`${book.direction_name} / ${book.stage} / ${language}推荐 / 排序 ${book.sort_order}`, book.document_id ? `已关联文献 #${book.document_id}` : '文档尚未接入']); detail.append(element('span', book.document_id ? '可以学习' : '待关联', `badge${book.document_id ? '' : ' pending'}`)); controls.append(button('配置', async () => { await selectBook(book.id); $('book-select').focus(); message(''); })); $('book-list').append(row); }
-  if (body.books.length) await selectBook(state.books.some(b => b.id === Number(selected)) ? selected : body.books[0].id);
-  empty($('book-list'), '暂时没有教材，可从文献库中新增推荐。');
-}
+const adminBooks=createAdminBooks({api,write,message,directions:()=>state.directions||[]});
+const loadBooks=()=>adminBooks.load();
 const date = value => value ? new Date(typeof value === 'number' ? value * 1000 : value).toLocaleString('zh-CN') : '未设置';
 async function loadInvitations() {
   const body = await api(`/api/admin/invitations?offset=${state.inviteOffset}`); const list = $('invitation-list'); list.replaceChildren();
@@ -110,19 +70,6 @@ $('document-form').addEventListener('submit', event => { event.preventDefault();
 }); });
 $('document-cancel').addEventListener('click', resetDocument);
 $('document-search').addEventListener('submit', event => { event.preventDefault(); state.docOffset = 0; state.query = $('document-query').value.trim(); action(event.currentTarget, async () => { await loadDocuments(); message(''); }); });
-$('book-select').addEventListener('change', () => selectBook($('book-select').value).catch(error => message(error.message, true)));
-$('new-book').addEventListener('click', () => action($('new-book').parentElement, async () => {
-  state.newBook = true; updateBookStages(); $('book-select').disabled = true; $('book-editor-title').textContent = '新增推荐教材'; $('book-authors').textContent = '从本方向文献中选择一本，加入中文或英文推荐。'; $('book-title').value = ''; $('book-author-input').value = ''; $('book-source').value = ''; $('book-prerequisites').value = ''; $('book-order').value = '10'; state.bookDocOffset = 0; $('book-document-query').value = ''; message(''); await loadBookDocuments();
-}));
-for (const id of ['book-direction', 'book-language']) $(id).addEventListener('change', () => { if(id==='book-direction') updateBookStages(); state.bookDocOffset = 0; loadBookDocuments().catch(error => message(error.message, true)); });
-$('book-document').addEventListener('change', () => { if (state.newBook) { const doc = state.bookDocuments.find(doc => doc.id === Number($('book-document').value)); if (doc) { $('book-title').value = doc.title; $('book-author-input').value = doc.authors; } } });
-$('book-doc-search').addEventListener('click', () => { state.bookDocOffset = 0; loadBookDocuments().catch(error => message(error.message, true)); });
-$('book-document-query').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); $('book-doc-search').click(); } });
-for (const [id, delta] of [['book-doc-prev', -20], ['book-doc-next', 20]]) $(id).addEventListener('click', () => { state.bookDocOffset = Math.max(0, (state.bookDocOffset || 0) + delta); loadBookDocuments().catch(error => message(error.message, true)); });
-$('book-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => {
-  const id = $('book-select').value, body = { stage: $('book-stage').value, prerequisites: $('book-prerequisites').value, sort_order: Number($('book-order').value), document_id: $('book-document').value ? Number($('book-document').value) : null, direction: $('book-direction').value, language: $('book-language').value, title: $('book-title').value.trim(), authors: $('book-author-input').value.trim(), source_url: $('book-source').value.trim() };
-  const result = await write(state.newBook ? '/api/admin/books' : `/api/admin/books/${id}`, body, state.newBook ? 'POST' : 'PUT'); await loadBooks(result.id || id); message('教材配置已保存，学习应用已同步更新。');
-}); });
 $('invitation-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => { const body = await write('/api/admin/invitations', { days: Number($('invitation-days').value) }); state.codeId = body.id; $('invitation-code').value = body.code; $('invitation-expiry').textContent = `到期：${date(body.expires_at)}`; $('created-invitation').hidden = false; state.inviteOffset = 0; await loadInvitations(); message('邀请码已生成。'); }); });
 $('select-invitation').addEventListener('click', () => { $('invitation-code').focus(); $('invitation-code').select(); });
 for (const [prefix, key, load] of [['documents', 'docOffset', loadDocuments], ['invitations', 'inviteOffset', loadInvitations]]) for (const [suffix, delta] of [['prev', -20], ['next', 20]]) $(prefix + '-' + suffix).addEventListener('click', () => { state[key] = Math.max(0, state[key] + delta); load().catch(error => message(error.message, true)); });

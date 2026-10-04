@@ -151,7 +151,10 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/books/7', config, 'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['available']
             assert write('/api/learning/books/7/progress', {'page': 1, 'total_pages': 2, 'position': .3, 'zoom': 1.2}, 'PUT')[0] == 200
-            assert write('/api/admin/books/7', {**config, 'document_id': None}, 'PUT')[0] == 409
+            assert write('/api/admin/books/7', {**config, 'document_id': None}, 'PUT')[0] == 200
+            assert request('/api/learning/books/7')[1]['available'] is False
+            assert request('/api/library/documents/' + str(document))[1]['progress']['position'] == .3
+            assert write('/api/admin/books/7', config, 'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['progress']['position'] == .3
             assert write('/api/admin/books/7', {**config, 'stage': '核心理论'}, 'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['stage'] == '核心理论'
@@ -170,6 +173,20 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['id'] == mark
             assert write('/api/learning/books/7/annotations/' + str(mark), {'note':'Updated'}, 'PATCH')[0] == 200
             assert request(library_path + '/annotations')[1]['annotations'][0]['note'] == 'Updated'
+            replacement = write('/api/admin/documents?' + urllib.parse.urlencode({'title':'Replacement textbook','authors':'Author','subject_id':1,'direction':'algebra','language':'en'}), pdf, pdf=True)[1]['id']
+            assert write('/api/learning/books/7/selection',{'document_id':document},'PUT')[0] == 200
+            assert write('/api/admin/books/7', {**config,'stage':'核心理论','document_id':replacement}, 'PUT')[0] == 200
+            assert request('/api/learning/books/7')[1]['selected_document_id'] == document
+            assert request('/api/learning/books/7')[1]['progress'] == position
+            assert write('/api/learning/books/7/selection',{'document_id':None},'PUT')[0] == 200
+            assert request('/api/learning/books/7')[1]['progress'] is None
+            assert request('/api/learning/books/7/annotations')[1]['annotations'] == []
+            assert request(library_path)[1]['progress'] == position
+            assert request(library_path + '/annotations')[1]['annotations'][0]['id'] == mark
+            assert write('/api/admin/books/7', {**config,'stage':'核心理论'}, 'PUT')[0] == 200
+            assert request('/api/learning/books/7')[1]['progress'] == position
+            assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['id'] == mark
+            assert write('/api/admin/documents/batch-delete',{'document_ids':[replacement],'detach_books':False})[0] == 200
             recommendation = {**config, 'title':'中文推荐','authors':'Author','direction':'algebra','language':'zh','source_url':''}
             assert write('/api/admin/books', {**recommendation,'direction':'discrete-foundations'})[0] == 400
             added = write('/api/admin/books', recommendation); assert added[0] == 201

@@ -195,7 +195,7 @@ runuser -u math-platform -- python3 admin/import_document.py /tmp/textbook.pdf -
 runuser -u math-platform -- python3 admin/link_textbook.py 教材ID 上一步返回的文献ID
 ```
 
-可在服务器用 sqlite3/Python 查询 `SELECT id,title,document_id FROM learning_books` 获取教材 ID。绑定后用户看到“开始学习”，无 PDF 时显示“PDF 待接入”。已有绑定禁止换成不同文献，避免旧进度和标注错位。
+可在服务器用 sqlite3/Python 查询 `SELECT id,title,document_id FROM learning_books` 获取教材 ID。绑定后用户看到“开始学习”，无 PDF 时显示“PDF 待接入”。管理员可以更换或解除推荐文献关联。阅读记录和标注始终按文献编号保存，不会移到另一份文件；用户的自选文献保持不变。
 
 ## 文档库与共用阅读记录
 
@@ -317,3 +317,9 @@ sudo -u math-platform python3 admin/import_zotero.py "/opt/math-platform/imports
 暂停后进行中的模型请求可能仍计费，但其返回结果不会继续写入。整理按已有 API 配额和每分钟频率规则运行，暂停与继续不会绕过这些限制。
 “撤销本次整理”恢复本次分类前的目录归属和研究方向；整理之后已手动改变分类的记录会跳过，以保留管理员调整。任务运行期间发生改名或移动的文献同样跳过。
 仅一个任务同时运行。个人 API 任务只能由原管理员继续，其他管理员可以暂停或撤销。新增后台 API：`GET/POST /api/admin/library-ai` 与 `POST /api/admin/library-ai/{id}/control`，控制动作是 `pause`、`resume`、`undo`。
+
+### 教材配置按课程管理
+
+管理员先选择研究方向，再选择课程，分别配置中文和英文推荐；分析方向七门课与学习流程图顺序一致，其他方向保留已确定的三个阶段。新增、编辑推荐在同一表单完成，可按文献库目录、标题或作者筛选当前方向和语种的 PDF / DJVU。选中文献自动填入标题和作者，可自定义展示信息。课程内排序控制同一课程的推荐顺序。旧推荐不删除，未归类的条目单独显示并可重新归类。
+
+`GET /api/admin/books` 额外返回 `courses`（研究方向到课程/阶段列表的映射）。更换或解除推荐文档只更新教材引用，不删除文献、用户自选记录或该文献的进度、高亮笔记。暂无文档时仍展示教材信息与用户自选入口。

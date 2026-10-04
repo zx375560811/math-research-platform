@@ -84,4 +84,29 @@
 #library-ai-form { margin-bottom:20px; }
 #library-ai-counts { font-size:15px;color:var(--muted); }
 #library-ai-close { margin-top:12px; }
+.book-page-heading { gap:24px; }
+.book-direction-control { display:flex;align-items:center;gap:12px; }
+.admin-page .book-direction-control label { margin:0;white-space:nowrap; }
+.admin-page .book-direction-control select { width:200px; }
+.book-workspace { display:grid;grid-template-columns:190px minmax(0,1fr);gap:28px;align-items:start; }
+.book-course-nav { display:grid;gap:8px; }
+.admin-page .book-course-nav .button { justify-content:flex-start;white-space:normal;text-align:left;background:transparent;border-color:transparent;min-height:44px;padding:10px 14px; }
+.admin-page .book-course-nav .button:hover { background:white;border-color:var(--line); }
+.admin-page .book-course-nav .button[aria-pressed=true] { background:var(--soft-blue);color:var(--blue);border-color:var(--field-line);font-weight:600; }
+.book-course-content { min-width:0; }
+.book-course-heading,.book-language-heading { display:flex;align-items:center;justify-content:space-between;gap:12px; }
+.book-course-heading { padding:0 0 20px;border-bottom:1px solid var(--line); }
+.book-course-heading h2,.book-language-heading h3 { margin:0; }
+.book-course-heading h2 { font-size:24px; }.book-language-heading h3 { font-size:17px; }
+.book-language-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px; }
+.book-language-column { min-width:0; }.book-language-heading { padding:20px 0 12px; }
+.book-recommendation { display:flex;gap:16px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line); }
+.book-recommendation-info { flex:1;min-width:0; }.book-recommendation h4 { font-size:17px;line-height:1.5;margin:0 0 6px;overflow-wrap:anywhere; }.book-recommendation p { font-size:15px;margin:0 0 10px;color:var(--muted);overflow-wrap:anywhere; }
+.book-editor-dialog { width:min(680px,calc(100vw - 32px)); }.book-editor-dialog h2 { margin:0; }.book-editor-dialog .book-context { margin:8px 0 20px;font-size:15px;color:var(--muted); }
+.book-form-context { display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:12px; }.book-form-metadata { display:grid;grid-template-columns:1fr 130px;gap:16px; }
+.admin-page .book-library-picker { margin:0 0 20px;padding:16px;background:var(--soft-blue);border:1px solid var(--line);border-radius:12px; }.book-library-picker legend { font-size:16px;font-weight:600;padding:0 6px; }
+.book-search-row { display:flex;align-items:center;gap:8px;margin-bottom:12px; }.book-search-row input { min-width:0;flex:1; }.book-library-picker .book-document-pager { justify-content:flex-end;margin:10px 0 0; }.book-library-picker small { color:var(--muted); }
+.book-more-fields { border-top:1px solid var(--line);padding:14px 0;margin:0 0 12px; }.book-more-fields summary { cursor:pointer;color:var(--muted);font-size:15px; }.book-more-fields[open] summary { margin-bottom:14px; }
+@media(max-width:1100px) { .book-workspace { grid-template-columns:160px minmax(0,1fr);gap:20px; }.book-language-grid { gap:20px; }.book-recommendation { flex-wrap:wrap; }.book-recommendation-info { flex-basis:100%; } }
+@media(max-width:800px) { .book-page-heading { flex-wrap:wrap;gap:16px; }.book-workspace { display:block; }.book-course-nav { display:flex;overflow-x:auto;gap:8px;padding-bottom:16px; }.admin-page .book-course-nav .button { flex-shrink:0;white-space:nowrap; }.book-language-grid { grid-template-columns:1fr;gap:4px; }.book-recommendation { flex-wrap:nowrap; }.book-recommendation-info { flex-basis:auto; }.book-form-context { grid-template-columns:1fr;gap:0; }.book-editor-dialog .book-form-metadata { grid-template-columns:1fr;gap:0; }.book-direction-control { flex:1; }.admin-page .book-direction-control select { width:100%; }.book-course-heading { padding-top:12px; }.book-course-heading h2 { font-size:21px; } }
 @media(max-width:800px) { .admin-library-heading { flex-wrap:wrap; }.admin-library-heading .admin-actions { flex-wrap:wrap; } }
