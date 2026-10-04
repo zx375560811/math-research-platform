@@ -260,7 +260,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     const header=await page.locator('#reader-heading').boundingBox(), notes=await page.locator('#reader-notes').boundingBox(), pdfArea=await page.locator('#reader-scroll').boundingBox();
     assert.equal(header.y,0);assert.ok(Math.abs(header.x+header.width-notes.x-notes.width)<1);
     const bottom=await page.locator('#reader-bottom-bar').boundingBox();
-    assert.equal(bottom.height,8);assert.ok(header.height<=42);
+    assert.equal(bottom.height,8);assert.ok(header.height>=54 && header.height<=60);
     assert.ok(Math.abs(bottom.x-header.x)<1 && Math.abs(bottom.width-header.width)<1);
 
     assert.ok(Math.abs(pdfArea.y-header.height)<1 && Math.abs(notes.y-header.height)<1);

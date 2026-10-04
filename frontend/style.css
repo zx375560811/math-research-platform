@@ -312,7 +312,7 @@ body.reading-page { overflow:hidden; }
 
 /* One continuous header shares the PDF and note column widths. */
 .reading-page #reader-view { grid-template-rows:auto minmax(0,1fr); }
-#reader-view>#reader-heading { grid-column:1 / -1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) 6px var(--reader-notes-width,380px);gap:0;padding:0;min-width:0;background:white;border-bottom:1px solid var(--line); }
+#reader-view>#reader-heading { grid-column:1 / -1;grid-row:1;display:grid;grid-template-columns:minmax(0,1fr) 6px var(--reader-notes-width,380px);gap:0;padding:0;min-width:0;background:linear-gradient(110deg,#ffffff 0%,#eef3ff 58%,#f7f9ff 100%);border-bottom:1px solid #d7e1f3;box-shadow:inset 0 1px 0 white,0 3px 12px #182b4608;position:relative;z-index:2; }
 .reader-document-heading { grid-column:1;display:flex;align-items:center;gap:10px;min-width:0;padding:8px 14px; }
 .reader-document-heading h1 { flex:1;min-width:24px;margin:0; }
 .reader-notes-heading { grid-column:3;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;padding:8px 16px; }
@@ -326,17 +326,21 @@ body.reading-page { overflow:hidden; }
   .reader-notes-heading h2 { font-size:14px; }
 }
 
-/* Compact header and a thinner, purely decorative bottom edge. */
+/* A softly illuminated header and a thinner decorative bottom edge. */
 .reading-page #reader-view { grid-template-rows:auto minmax(0,1fr) 8px; }
-.reader-document-heading { padding:4px 14px; }
-.reader-notes-heading { padding:4px 16px; }
-.reader-notes-heading h2 { font-size:16px; }
-.reader-heading-actions .button { min-height:28px;padding:3px 7px;line-height:1.3; }
+.reader-document-heading { padding:10px 16px;min-height:54px; }
+.reader-document-heading h1 { font-size:16px; }
+.reader-notes-heading { padding:10px 16px; }
+.reader-notes-heading h2 { font-size:16px;padding:5px 11px;border:1px solid #d6e1f8;border-radius:9px;background:#ffffffa6;color:#294a86;box-shadow:inset 0 1px 0 #fff; }
+.reader-heading-actions .button { min-height:34px;padding:6px 10px;line-height:1.3;border-color:#d8e2f4;background:#ffffffb8;box-shadow:0 1px 3px #182b4606;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.reader-heading-actions .button:hover { background:white;border-color:#aebfe7;box-shadow:0 2px 7px #4261df14; }
+@media (prefers-reduced-motion:reduce) { .reader-heading-actions .button { transition:none; } }
 #reader-view>.reader-notes,#reader-view>#reader-notes-resize { grid-row:2; }
 .reader-bottom-bar { grid-column:1 / -1;grid-row:3;background:var(--canvas);border-top:1px solid var(--line); }
 @media(max-width:650px) {
- .reader-document-heading,.reader-notes-heading { padding:4px 6px; }
- .reader-notes-heading h2 { font-size:14px; }
+ .reader-document-heading,.reader-notes-heading { padding:7px 6px;min-height:44px; }
+ .reader-notes-heading h2 { font-size:14px;padding:4px 6px; }
+ .reader-heading-actions .button { min-height:28px; }
 }
 
 /* The composer shares its bottom edge with the decorative reader bar. */
