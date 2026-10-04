@@ -29,7 +29,9 @@ def database(path):
 
 with tempfile.TemporaryDirectory(dir=original, prefix='zotero-test-') as folder:
     root = Path(folder).resolve()
-    assert root.is_relative_to(original)
+    assert zotero.within(root, original)
+    assert zotero.within(root, root)
+    assert not zotero.within(root.parent / (root.name + '-outside'), root)
     try:
         os.chdir(root)
         Path('data/files').mkdir(parents=True)

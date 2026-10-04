@@ -7,6 +7,15 @@ permissions:
   contents: read
 
 jobs:
+  zotero-compatibility:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - name: Check Zotero importer on older Python
+        run: python backend/tests/zotero.py
   backend:
     runs-on: ubuntu-22.04
     steps:

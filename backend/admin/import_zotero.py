@@ -43,6 +43,15 @@ def compact(text):
     return re.sub(r'\s+', ' ', text or '').strip()
 
 
+def within(path, directory):
+    """Path.is_relative_to equivalent for Alibaba Cloud Linux's older Python."""
+    try:
+        path.relative_to(directory)
+        return True
+    except ValueError:
+        return False
+
+
 def field(text, warnings, name):
     value = ''.join(c for c in compact(text) if ord(c) >= 32 and ord(c) != 127)
     if len(value.encode('utf-8')) > 500:
@@ -71,7 +80,7 @@ def attachment_path(directory, value):
         raise ValueError('附件路径必须是导出目录内的相对路径')
     for candidate in (value, unquote(value)):
         path = (directory / candidate).resolve()
-        if not path.is_relative_to(directory):
+        if not within(path, directory):
             raise ValueError('附件路径越过导出目录')
         if path.is_file():
             return path
@@ -220,7 +229,7 @@ def apply(value, database, destination):
             if doc_id in indexed:
                 continue
             path = Path(stored).resolve()
-            if not path.is_relative_to(storage) or not path.is_file():
+            if not within(path, storage) or not path.is_file():
                 continue
             sha = digest(path)
             db.execute('INSERT OR IGNORE INTO zotero_import_hashes VALUES(?,?)', (sha, doc_id))
@@ -253,7 +262,7 @@ def apply(value, database, destination):
                     doc_id = existing[0]
                     stored = db.execute('SELECT file_path FROM documents WHERE id=?', (doc_id,)).fetchone()[0]
                     existing_path = Path(stored).resolve()
-                    if not existing_path.is_relative_to(storage) or not existing_path.is_file():
+                    if not within(existing_path, storage) or not existing_path.is_file():
                         raise ValueError('现有重复文献的文件缺失，请先修复文献 #' + str(doc_id))
                     # Never overwrite existing classifications, textbook bindings or personal reading state.
                     row['status'] = 'duplicate'
