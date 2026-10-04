@@ -298,3 +298,10 @@ body.reading-page { overflow:hidden; }
   .analysis-flow>.introduction-item:not(:last-child)::before { right:auto;left:50%;top:auto;bottom:-27px;width:0;height:18px;border-top:0;border-left:1px solid var(--blue); }
   .analysis-flow>.introduction-item:not(:last-child)::after { right:auto;left:calc(50% - 3px);top:auto;bottom:-27px;transform:rotate(135deg); }
 }
+
+/* Short labels carry the interface; do not reserve space for removed explanations. */
+.sidebar>#admin-link { margin-top:auto; }
+.application-card,.application-planned { min-height:145px; }
+.application-card .application-action,.application-planned .pill { margin-top:16px; }
+.module-heading h1 { margin-bottom:0; }
+.ai-status:empty,.list-status:empty,#library-status:empty { display:none; }

@@ -74,10 +74,10 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     if (!document?.document_id) { status('这份 PDF 尚未关联文献库，无法附加选段。'); return; }
     context = { document_id: document.document_id, page: value.page, quote: value.quote };
     $('ai-context').hidden = false; $('ai-context-label').textContent = `第 ${value.page} 页选段`; $('ai-context-quote').textContent = value.quote;
-    status('选段已附加，发送问题时会一并提供给所选模型。'); if (focus) $('ai-question').focus();
+    status(''); if (focus) $('ai-question').focus();
   }
   on($('ai-context-remove'), 'click', () => { context = null; $('ai-context').hidden = true; });
-  on($('ai-clear'), 'click', () => { history = []; $('ai-messages').replaceChildren(node('p', '可以讨论概念、推导，或选中 PDF 文字后点击“问 AI”。', 'ai-empty')); controls(); });
+  on($('ai-clear'), 'click', () => { history = []; $('ai-messages').replaceChildren(); status(''); controls(); });
   on($('ai-chat-form'), 'submit', async event => {
     event.preventDefault(); const question = $('ai-question').value.trim();
     if (!question || !config || busy || saving || !config[config.source]?.available) return;
@@ -93,13 +93,13 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
       const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(result.reply)); list.append(assistant);
       const remembered = attached ? `PDF 第 ${attached.page} 页选段：\n${attached.quote}\n问题：${question}` : question;
       history.push({ role: 'user', content: remembered }, { role: 'assistant', content: result.reply });
-      $('ai-question').value = ''; status(result.warning || '回答仅基于当前对话和附带选段，请核对数学推导。'); list.scrollTop = list.scrollHeight;
+      $('ai-question').value = ''; status(result.warning || ''); list.scrollTop = list.scrollHeight;
     } catch (error) { if (!closed) { user.remove(); if (attached && !context) setContext(attached); if (!history.length) list.append(node('p', '提问未完成，输入内容已保留，可以重试。', 'ai-empty')); status(error.message); } }
     finally { busy = false; controls(); }
   });
   on($('ai-question'), 'keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); $('ai-chat-form').requestSubmit(); } });
-  $('ai-messages').replaceChildren(node('p', '可以讨论概念、推导，或选中 PDF 文字后点击“问 AI”。', 'ai-empty'));
+  $('ai-messages').replaceChildren();
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');
-  request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value.enabled ? '选择文字后可附加选段提问。' : '选择 API 来源，或点击“设置”接入个人 API。'); }).catch(error => status(error.message));
+  request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value.enabled ? '' : '请在设置中配置 API。'); }).catch(error => status(error.message));
   return { setContext, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }

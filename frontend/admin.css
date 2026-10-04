@@ -8,3 +8,5 @@
 @media(max-width:800px){.admin-page .admin-columns:has(#book-form){grid-template-columns:minmax(0,1fr)}}
 
 .admin-ai-editor { max-width:680px; }.admin-ai-switch { display:flex!important;align-items:center;gap:10px; }.admin-ai-switch input { width:auto!important; }.admin-ai-editor input[type=number] { max-width:180px; }
+
+.admin-heading h1 { margin-bottom:0; }

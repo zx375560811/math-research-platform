@@ -19,7 +19,7 @@ export function createLibrary({ api, write }) {
         const row = el('article', null, 'library-document'), info = el('div', null, 'library-document-info'); info.append(el('span', languages[doc.language] || '语种未标注', 'document-language'), el('h2', doc.title), el('p', doc.authors || '作者未填写'), el('p', (doc.directions || []).map(slug => names.get(slug) || slug).join('、') || '尚未分类', 'document-directions'));
         const link = el('a', doc.progress ? `继续阅读 · 第 ${doc.progress.page} 页` : '开始阅读', 'button primary'); link.href = `#/library/read/${doc.id}?${filterUrl()}`; link.dataset.document = doc.id; row.append(info, link); list.append(row);
       }
-      $('library-status').textContent = body.documents.length ? '' : '此分类暂无文献，可切换分类或搜索其他关键词。';
+      $('library-status').textContent = body.documents.length ? '' : '暂无文献';
       $('library-prev').disabled = offset === 0; $('library-next').disabled = body.documents.length < 20; $('library-page').textContent = `第 ${offset / 20 + 1} 页`;
     } catch (error) { if (version === generation) $('library-status').textContent = error instanceof TypeError ? '连接失败，请重试。' : error.message; }
   }

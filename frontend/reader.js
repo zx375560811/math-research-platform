@@ -110,7 +110,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   applyPanelWidths();
   function notes(openId = expandedMark) {
     const list = $('annotation-list'); list.replaceChildren();
-    if (!marks.length) { list.append(el('p', 'muted', '还没有标注。选中正文开始高亮。')); return; }
+    if (!marks.length) { list.append(el('p', 'muted', '暂无高亮')); return; }
     expandedMark = marks.some(mark => mark.id === openId) ? openId : null;
     const strip = el('div', 'annotation-marker-strip'), markers = el('div', 'annotation-markers'); markers.id = 'annotation-markers'; markers.style.setProperty('--marker-columns', String(Math.min(30, marks.length)));
     if (expandedMark !== null && marks.findIndex(mark => mark.id === expandedMark) >= 30) markersExpanded = true;
@@ -243,7 +243,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const items = await pdf.getOutline(); if (closed) return; $('reader-outline').replaceChildren();
     const heading = el('div', 'reader-panel-heading'), closeButton = el('button', 'button compact', '×');
     closeButton.setAttribute('aria-label', '关闭教材目录'); closeButton.addEventListener('click', () => panel('outline', false)); heading.append(el('h2', '', '教材目录'), closeButton); $('reader-outline').append(heading);
-    if (!items?.length) { $('reader-outline').append(el('p', 'muted', '这份 PDF 没有内置目录，可上下滚动阅读。')); return; }
+    if (!items?.length) { $('reader-outline').append(el('p', 'muted', '暂无目录')); return; }
     let count = 0;
     function append(items, depth = 0) {
       if (depth > 8) return;

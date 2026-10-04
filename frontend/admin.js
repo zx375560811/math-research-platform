@@ -36,7 +36,8 @@ async function loadBookDocuments(selected = '') {
   $('book-document').disabled = true; $('book-document-query').disabled = locked; $('book-doc-search').disabled = locked;
   const pending = element('option','正在加载文献…'); pending.value = ''; $('book-document').replaceChildren(pending); state.bookDocuments = [];
   $('book-doc-prev').disabled = $('book-doc-next').disabled = true;
-  $('book-binding-hint').textContent = locked ? '已关联 PDF，文件保持固定，以保护原有教材阅读记录。' : '仅列出此方向且语种匹配的文献；未标注语种的资料也可选择。';
+  $('book-binding-hint').hidden = !locked;
+  $('book-binding-hint').textContent = locked ? '已关联 PDF，不能更换。' : '';
   if (locked) {
     const doc = await api('/api/documents/' + book.document_id); if (generation !== bookDocGeneration) return;
     const option = element('option', doc.title); option.value = doc.id; $('book-document').replaceChildren(option); $('book-doc-prev').disabled = $('book-doc-next').disabled = true; $('book-doc-page').textContent = '已关联'; return;
@@ -48,7 +49,7 @@ async function loadBookDocuments(selected = '') {
   if (docs.some(doc => doc.id === Number(selected))) $('book-document').value = selected;
   $('book-document').disabled = false;
   $('book-doc-prev').disabled = !state.bookDocOffset; $('book-doc-next').disabled = body.documents.length < 20; $('book-doc-page').textContent = `第 ${(state.bookDocOffset || 0) / 20 + 1} 页`;
-  if (!docs.length) $('book-binding-hint').textContent = '此页暂无匹配资料，可翻页、搜索，或先到文献库导入并分类。';
+  if (!docs.length) { $('book-binding-hint').hidden = false; $('book-binding-hint').textContent = '暂无匹配文献。'; }
 }
 async function selectBook(id) {
   state.newBook = false; $('book-select').disabled = false; $('book-editor-title').textContent = '配置推荐教材'; $('book-select').value = String(id);

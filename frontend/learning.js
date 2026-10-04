@@ -123,7 +123,7 @@ export function createLearning({ api, write }) {
             const group = el('section', 'recommendation-language'); group.dataset.language = language; group.append(el('h4', '', label));
             const books = direction.books.filter(book => book.stage === stage && (book.language || 'en') === language);
             books.forEach((book, i) => renderBook(group, book, i));
-            if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐，管理员可从本方向文献库中添加。'));
+            if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐'));
             columns.append(group);
           }
           section.append(columns); $('textbook-list').append(section);
