@@ -345,6 +345,12 @@ body.reading-page { overflow:hidden; }
 .reader-heading-actions .icon,.ai-heading-actions .icon,.ai-compose-foot .icon { width:15px;height:15px; }
 .ai-compose-foot .button { font-size:14px; }
 .ai-compose-foot .button>span { color:inherit;font:inherit; }
+.reader-ai-pane .ai-rich-text,.reader-ai-pane .ai-message p { line-height:1.5; }
+.reader-ai-pane .ai-rich-text p { margin:.45em 0; }
+.reader-ai-pane .ai-rich-text h1,.reader-ai-pane .ai-rich-text h2,.reader-ai-pane .ai-rich-text h3,.reader-ai-pane .ai-rich-text h4 { margin:.7em 0 .3em;line-height:1.35; }
+.reader-ai-pane .ai-rich-text ul,.reader-ai-pane .ai-rich-text ol { margin:.4em 0;padding-left:1.4em; }
+.reader-ai-pane .ai-rich-text li { margin:.15em 0; }
+.reader-ai-pane .ai-rich-text .katex-display { margin:.6em 0;padding:3px 0; }
 .reader-ai-pane .ai-chat-form { grid-template-columns:minmax(0,1fr) 112px; }
 .reader-ai-pane .ai-compose-foot { width:112px; }
 .reader-ai-pane .ai-compose-foot .button { gap:6px;padding:5px 8px; }
