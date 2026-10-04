@@ -59,8 +59,7 @@ export function createLearning({ api, write }) {
       } else if (detail) {
         $('textbook-list').replaceChildren(); $('direction-introduction').replaceChildren(); $('direction-title').textContent = '正在加载…';
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
-        $('direction-title').textContent = direction.name; $('direction-description').textContent = direction.description;
-        $('direction-symbol').textContent = symbols[direction.slug] || 'ℳ';
+        $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
         $('direction-introduction').classList.toggle('analysis-flow', analysisFlow);
         const introductionFields = analysisFlow

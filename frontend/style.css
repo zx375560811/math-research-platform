@@ -368,3 +368,15 @@ body.reading-page { overflow:hidden; }
 }
 @container(max-width:250px) { .ai-compose-foot .icon { width:13px;height:13px; } }
 @media(max-width:650px) { .reader-heading-actions .button { gap:2px;padding:3px 4px; }.reader-heading-actions .icon { width:13px;height:13px; } }
+
+/* Direction details start with one compact navigation/title row. */
+#module-view:has(#direction-detail:not([hidden]))>.module-heading,
+#module-view:has(#direction-detail:not([hidden]))>.back-link { display:none; }
+#direction-detail>.direction-heading { justify-content:flex-start;gap:20px;margin:0 0 20px;min-height:38px; }
+#direction-detail>.direction-heading .back-link { flex-shrink:0;padding-right:20px;border-right:1px solid var(--line);white-space:nowrap; }
+#direction-detail>.direction-heading h2 { font-size:26px;line-height:1.4; }
+@media(max-width:650px) {
+ #direction-detail>.direction-heading { gap:12px;margin-bottom:16px; }
+ #direction-detail>.direction-heading .back-link { padding-right:12px; }
+ #direction-detail>.direction-heading h2 { font-size:24px; }
+}
