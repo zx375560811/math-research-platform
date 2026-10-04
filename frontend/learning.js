@@ -67,7 +67,10 @@ function analysisRoadmap(onChoose) {
     group.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onChoose(name);}});
     svg.append(group);
   }
-  const box=el('div','analysis-roadmap');box.append(svg);return box;
+  const box=el('div','analysis-roadmap');box.append(svg);
+  const help=el('p','analysis-route-help','点击课程节点，查看对应教材。也可点击下方课程名切换。');
+  help.id='analysis-route-help';svg.setAttribute('aria-describedby',help.id);
+  const layout=el('div','analysis-route-layout');layout.append(box,help);return layout;
 }
 export function createLearning({ api, write }) {
   let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false, selectedAnalysisCourse = '数学分析';
