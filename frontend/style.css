@@ -337,5 +337,5 @@ body.reading-page { overflow:hidden; }
 
 /* The composer shares its bottom edge with the decorative reader bar. */
 .reader-ai-pane { padding-bottom:0; }
-.reader-ai-pane .ai-chat-form { margin-bottom:0;border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0; }
+.reader-ai-pane .ai-chat-form { margin-bottom:0;border-bottom-color:var(--line);border-bottom-left-radius:8px;border-bottom-right-radius:8px; }
 .reader-ai-pane .ai-status { margin:4px 0; }
