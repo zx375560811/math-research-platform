@@ -48,9 +48,9 @@ public class AdminController {
     }
     @GetMapping("/documents")
     public Map<String, Object> documents(Authentication user, @RequestParam(defaultValue="0") int offset, @RequestParam(defaultValue="") String q,
-            @RequestParam(defaultValue="") String direction, @RequestParam(defaultValue="") String language, @RequestParam(defaultValue="") String module) throws SQLException {
+            @RequestParam(defaultValue="") String direction, @RequestParam(defaultValue="") String language, @RequestParam(defaultValue="") String module, @RequestParam(defaultValue="") String collection) throws SQLException {
         authorize(user);
-        return catalog.documents(module, direction, language, q, offset, user.getName());
+        return catalog.documents(module, direction, language, q, offset, user.getName(),collection);
     }
     @PostMapping("/documents")
     public ResponseEntity<Map<String, Object>> upload(Authentication user, HttpServletRequest request,

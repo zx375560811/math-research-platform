@@ -66,7 +66,7 @@ with tempfile.TemporaryDirectory() as directory:
             else:
                 log.seek(0)
                 raise AssertionError(log.read())
-            for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations', '/api/library/documents']:
+            for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations', '/api/admin/collections', '/api/library/documents']:
                 assert request(path)[0] == 401
             assert b'account-form' in request('/admin')[1]  # anonymous redirect to login shell
             credentials = {'username': 'owner_one', 'password': 'AdministratorPass123!', 'invitation': invitations.create_invitation(database)}
@@ -76,6 +76,9 @@ with tempfile.TemporaryDirectory() as directory:
                 assert request(path) == (403, {'error': 'admin_required'})
             assert write('/api/admin/documents?title=Test&subject_id=1', b'%PDF-1.4\n%%EOF', pdf=True)[0] == 403
             assert write('/api/admin/invitations', {'days': 7})[0] == 403
+            assert write('/api/admin/collections', {'name':'Forbidden','parent_id':None})[0] == 403
+            assert write('/api/admin/documents/move', {'document_ids':[1], 'collection_id':None})[0] == 403
+            assert write('/api/admin/documents/batch-delete', {'document_ids':[1]})[0] == 403
             roles.grant_admin('OWNER_ONE', database)
             assert write('/api/auth/login', credentials)[1]['user']['role'] == 'ADMIN'
             assert request('/api/auth/me')[1]['user']['role'] == 'ADMIN'
@@ -257,6 +260,50 @@ with tempfile.TemporaryDirectory() as directory:
             assert write(selection,{'document_id':None},'PUT')[1]['title'] == '高等代数'
             assert request('/api/learning/books/106')[1]['available'] is False
             assert request('/api/library/documents/' + str(chinese[1]['id']))[1]['progress'] == position
+            # Directory management, atomic batches and real attachment deletion.
+            assert write('/api/admin/collections', {'name':'No permission','parent_id':None})[0] == 403
+            roles.grant_admin('owner_one', database)
+            assert write('/api/auth/login',credentials)[0] == 200
+            assert request('/admin-library.js')[0] == 200
+            created_folder=write('/api/admin/collections',{'name':'管理目录','parent_id':None})[1]['id']
+            folder_a=write('/api/admin/collections',{'name':'第一层','parent_id':created_folder})[1]['id']
+            folder_b=write('/api/admin/collections',{'name':'第二层','parent_id':folder_a})[1]['id']
+            assert write('/api/admin/collections',{'name':'第一层','parent_id':created_folder})[0]==409
+            assert write('/api/admin/collections/'+str(created_folder)+'/parent',{'parent_id':folder_b},'PUT')[0]==400
+            assert write('/api/admin/collections/'+str(folder_b),{'name':'已改名'},'PATCH')[0]==200
+            assert write('/api/admin/collections/'+str(folder_b)+'/parent',{'parent_id':created_folder},'PUT')[0]==200
+            assert write('/api/admin/collections/'+str(folder_a),{},'DELETE')[0]==200
+            assert write('/api/admin/collections/'+str(created_folder),{},'DELETE')[0]==409
+            managed=chinese[1]['id']
+            assert write('/api/admin/documents/move',{'document_ids':[managed], 'collection_id':folder_b})[0]==200
+            assert request('/api/library/documents/'+str(managed))[1]['progress']==position
+            assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
+            assert {d['id'] for d in request('/api/admin/documents?collection='+str(created_folder))[1]['documents']}=={managed}
+            assert write('/api/admin/documents/move',{'document_ids':[managed,999999], 'collection_id':None})[0]==404
+            assert {d['id'] for d in request('/api/admin/documents?collection='+str(folder_b))[1]['documents']}=={managed}
+            assert write('/api/admin/documents/move',{'document_ids':[managed,managed], 'collection_id':None})[0]==400
+            assert write('/api/admin/documents/'+str(managed)+'/name',{'name':'改名文献 (Z-Library)'},'PATCH')[0]==200
+            assert request('/api/library/documents/'+str(managed))[1]['title']=='改名文献'
+            assert write('/api/admin/collections/'+str(folder_b),{},'DELETE')[0]==409
+            csrf=request('/api/auth/csrf')[1]
+            disposal=request('/api/admin/documents?title=Disposable&subject_id=1','POST',djvu,{'Content-Type':'image/vnd.djvu',csrf['header']:csrf['token']})[1]['id']
+            with sqlite3.connect(database) as db:
+                disposal_file=root / db.execute('SELECT file_path FROM documents WHERE id=?',(disposal,)).fetchone()[0]
+                bound_file=root / db.execute('SELECT file_path FROM documents WHERE id=?',(document,)).fetchone()[0]
+            assert write('/api/admin/documents/batch-delete',{'document_ids':[disposal,document]})[0]==409
+            assert disposal_file.exists() and bound_file.exists()
+            assert request('/api/documents/'+str(disposal))[0]==200
+            assert write('/api/admin/documents/batch-delete',{'document_ids':[disposal,document],'detach_books':True})[0]==200
+            assert not disposal_file.exists() and not bound_file.exists()
+            assert request('/api/documents/'+str(document))[0]==404
+            assert request('/api/learning/books/7')[1]['available'] is False
+            assert request('/api/library/documents/'+str(managed))[1]['progress']==position
+            with sqlite3.connect(database) as db:
+                assert db.execute('SELECT count(*) FROM zotero_import_sources WHERE document_id=?',(document,)).fetchone()[0]==0
+                assert db.execute('SELECT count(*) FROM library_file_cleanup').fetchone()[0]==0
+            assert write('/api/admin/documents/move',{'document_ids':[managed],'collection_id':None})[0]==200
+            assert write('/api/admin/collections/'+str(folder_b),{},'DELETE')[0]==200
+            assert write('/api/admin/collections/'+str(created_folder),{},'DELETE')[0]==200
             with sqlite3.connect(database) as db:
                 assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 2
                 assert db.execute('PRAGMA foreign_key_check').fetchall() == []

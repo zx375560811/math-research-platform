@@ -130,3 +130,5 @@ CREATE TABLE IF NOT EXISTS document_collections (
 );
 CREATE INDEX IF NOT EXISTS document_collection_lookup ON document_collections(collection_id,document_id);
 CREATE INDEX IF NOT EXISTS collection_parent_lookup ON library_collections(parent_id);
+
+CREATE TABLE IF NOT EXISTS library_file_cleanup (path TEXT PRIMARY KEY);

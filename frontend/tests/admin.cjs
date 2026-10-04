@@ -16,7 +16,7 @@ async function main() {
     const probe = http.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve)); const port = probe.address().port; await new Promise(resolve => probe.close(resolve));
     const base = `http://127.0.0.1:${port}`;
     if (process.env.MATH_BROWSER_MOCK === '1') {
-      const docs = [], invites = []; let session = null; let ai={base_url:'',model:'',enabled:false,available:false,has_key:false,daily_limit:50};
+      const docs = [], invites = [], folders=[{id:100,name:'大学数学基础',parent_id:null}]; let folderId=100; const memberships=new Map(); let session = null; let ai={base_url:'',model:'',enabled:false,available:false,has_key:false,daily_limit:50};
       const books = [{ id: 7, title: 'Linear Algebra Done Right', authors: 'Sheldon Axler', direction: 'algebra', direction_name: '代数', stage: '基础入门', prerequisites: 'Proofs', sort_order: 0, document_id: null }];
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, base), p = url.pathname;
@@ -28,13 +28,19 @@ async function main() {
         if (p === '/api/auth/login') { session = { username: body.username, role: body.username === 'owner_one' ? 'ADMIN' : 'USER' }; return json({ user: session }); }
         if (p === '/api/auth/logout') { session = null; return json({ status: 'ok' }); }
         if (p === '/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions:[{slug:'algebra',name:'代数'},{slug:'analysis',name:'分析'}]}]});
-        if (/^\/api\/documents\/\d+$/.test(p)) return json(docs.find(d=>d.id===Number(p.split('/').pop())));
+        if (/^\/api\/documents\/\d+$/.test(p)) return docs.some(d=>d.id===Number(p.split('/').pop()))?json(docs.find(d=>d.id===Number(p.split('/').pop()))):json({error:'not_found'},404);
         if (p === '/api/subjects') return json({ subjects: [{ id: 1, name: '代数', slug: 'algebra' }] });
         if (p.startsWith('/api/admin')) {
           if (session?.role !== 'ADMIN') return json({ error: session ? 'admin_required' : 'login_required' }, session ? 403 : 401);
+          if(p==='/api/admin/collections' && req.method==='GET')return json({collections:folders.map(f=>({...f,count:docs.filter(d=>(memberships.get(d.id)||[]).includes(f.id)).length})),total:docs.length,unfiled:docs.filter(d=>!(memberships.get(d.id)||[]).length).length});
+          if(p==='/api/admin/collections' && req.method==='POST'){const id=++folderId;folders.push({id,name:body.name,parent_id:body.parent_id});return json({id});}
+          if(/^\/api\/admin\/collections\/\d+(?:\/parent)?$/.test(p)){const id=Number(p.split('/')[4]),folder=folders.find(f=>f.id===id);if(req.method==='DELETE')folders.splice(folders.indexOf(folder),1);else Object.assign(folder,body);return json({status:'ok'});}
+          if(p==='/api/admin/documents/move'){for(const id of body.document_ids)memberships.set(id,body.collection_id==null?[]:[body.collection_id]);return json({status:'ok'});}
+          if(p==='/api/admin/documents/batch-delete'){for(const id of body.document_ids){const at=docs.findIndex(d=>d.id===id);if(at>=0)docs.splice(at,1);memberships.delete(id);}return json({status:'ok',cleanup_pending:0});}
+          if(/^\/api\/admin\/documents\/\d+\/name$/.test(p)){docs.find(d=>d.id===Number(p.split('/')[4])).title=body.name;return json({status:'ok'});}
           if(p==='/api/admin/ai/settings'){if(req.method==='PUT')ai={...ai,base_url:body.base_url,model:body.model,enabled:body.enabled,daily_limit:body.daily_limit,has_key:body.clear_key?false:!!body.api_key||ai.has_key};return json(ai);}
           if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], module:'mathematics', directions:url.searchParams.getAll('directions'), language:url.searchParams.get('language')||'und', file_size: bytes.length, format: req.headers['content-type']==='image/vnd.djvu'?'djvu':'pdf', file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
-          if (p === '/api/admin/documents') return json({ documents: docs.filter(d => d.title.includes(url.searchParams.get('q') || '')), offset: 0, limit: 20 });
+          if (p === '/api/admin/documents') return json({ documents: docs.filter(d => d.title.includes(url.searchParams.get('q') || '') && (!url.searchParams.get('collection') || url.searchParams.get('collection')==='unfiled'&&!(memberships.get(d.id)||[]).length || (memberships.get(d.id)||[]).includes(Number(url.searchParams.get('collection'))))), offset: 0, limit: 20 });
           if (/^\/api\/admin\/documents\/\d+$/.test(p)) { Object.assign(docs.find(d => d.id === Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
           if (p === '/api/admin/books' && req.method === 'POST') {const id=Math.max(...books.map(b=>b.id))+1;books.push({...body,id,direction_name:'代数'});return json({id},201);}
           if (p === '/api/admin/books') return json({ books });
@@ -45,7 +51,7 @@ async function main() {
         }
         if (p === '/api/learning/books/7') return json({ ...books[0], available: !!books[0].document_id });
         if (p === '/admin' && session?.role !== 'ADMIN') return json({ error: 'admin_required' }, 403);
-        const assets = { '/admin': 'admin.html', '/admin.js': 'admin.js', '/admin.css': 'admin.css', '/style.css': 'style.css' }; const name = assets[p];
+        const assets = { '/admin': 'admin.html', '/admin.js': 'admin.js', '/admin.css': 'admin.css', '/style.css': 'style.css' }; const name = assets[p] || (['/admin-library.js','/icons.js'].includes(p)||p.startsWith('/vendor/morphicons/')?p.slice(1):null);
         if (!name) return json({ error: 'not_found' }, 404); res.writeHead(200, { 'Content-Type': name.endsWith('.html') ? 'text/html' : name.endsWith('.css') ? 'text/css' : 'text/javascript', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'" }); res.end(fs.readFileSync(path.join(frontend, name)));
       });
       await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
@@ -63,7 +69,7 @@ async function main() {
       const grant = spawnSync('python3', [path.join(backend, 'admin/grant_admin.py'), 'owner_one'], { cwd: temp, encoding: 'utf8' }); assert.equal(grant.status, 0, grant.stderr);
     }
     assert.equal((await apiWrite('/api/auth/login', { username: 'owner_one', password: 'AdministratorPass123!' })).status(), 200);
-    await page.goto(base + '/admin'); await page.locator('#admin-content').waitFor();
+    await page.goto(base + '/admin'); await page.locator('#admin-content').waitFor(); await page.locator('#document-import').click();
     await page.locator('#document-title').fill('教材 <img src=x onerror=alert(1)>'); await page.locator('#document-authors').fill('Test author'); await page.locator('#document-file').setInputFiles({ name: 'textbook.pdf', mimeType: 'application/pdf', buffer: pdf }); await page.locator('#document-save').click();
     await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('文献已导入'));
     assert.equal(await page.locator('#document-list img').count(), 0); assert.match(await page.locator('#document-list').textContent(), /<img src=x/);
@@ -89,11 +95,23 @@ async function main() {
     assert.match(await page.locator('#invitation-list').textContent(), /已撤销/); await page.screenshot({ path: path.join(shots, 'admin-invitations.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'admin-mobile.png'), fullPage: true }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    await page.setViewportSize({width:1440,height:1000});await page.locator('[data-view="documents"]').click();if(await page.locator('#document-cancel').isVisible())await page.locator('#document-cancel').click();
+    await page.setViewportSize({width:1440,height:1000});await page.locator('[data-view="documents"]').click();await page.locator('#document-import').click();
     await page.locator('#document-title').fill('Native DjVu upload');await page.locator('#document-file').setInputFiles({name:'textbook.djvu',mimeType:'image/vnd.djvu',buffer:require('./fixture-djvu.cjs').fixtureDjvu()});await page.locator('#document-save').click();
     await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('文献已导入'));
-    const native=(await(await page.request.get(base+'/api/admin/documents')).json()).documents.find(d=>d.title==='Native DjVu upload');assert.equal(native.format,'djvu');assert.match(await page.locator('#document-list').textContent(),/下载 DJVU/);
-    assert.deepEqual(errors, []); console.log('Admin PDF/DJVU import, metadata, textbook binding, invitation revocation and mobile UI passed.');
+    const native=(await(await page.request.get(base+'/api/admin/documents')).json()).documents.find(d=>d.title==='Native DjVu upload');assert.equal(native.format,'djvu');assert.match(await page.locator('#document-list').textContent(),/DJVU/);
+    await page.locator('#admin-folder-create').click();await page.locator('#operation-name').fill('数学资料');await page.locator('#operation-submit').click();
+    await page.waitForFunction(()=>document.getElementById('admin-library-path').textContent==='数学资料' && document.getElementById('admin-library-browser').getAttribute('aria-busy')==='false');
+    const archive=await(await page.request.get(base+'/api/admin/collections')).json(),folder=archive.collections.find(f=>f.name==='数学资料');
+    async function chooseFolder(id){await page.locator(`[data-collection="${id}"]`).click();await page.waitForFunction(id=>document.querySelector(`[data-collection="${id}"]`)?.getAttribute('aria-current')==='page' && document.getElementById('admin-library-browser').getAttribute('aria-busy')==='false',String(id));}
+    await chooseFolder('');await page.locator(`[data-select-document="${doc.id}"]`).check();await page.locator('#admin-batch-move').click();await page.locator('#operation-destination').selectOption(String(folder.id));await page.locator('#operation-submit').click();await page.waitForFunction(()=>!document.getElementById('library-operation').open && document.getElementById('admin-library-browser').getAttribute('aria-busy')==='false');
+    await chooseFolder(folder.id);assert.equal(await page.locator('#document-list tr').count(),1);
+    await page.locator(`[data-document-actions="${doc.id}"]`).click();await page.locator('#document-rename').click();await page.locator('#operation-name').fill('数学分析学习资料');await page.locator('#operation-submit').click();await page.waitForFunction(()=>document.getElementById('document-list').textContent.includes('数学分析学习资料') && document.getElementById('admin-library-browser').getAttribute('aria-busy')==='false');
+    await page.locator('#admin-folder-rename').click();await page.locator('#operation-name').fill('分析教材');await page.locator('#operation-submit').click();await page.waitForFunction(()=>document.getElementById('admin-library-path').textContent==='分析教材' && document.getElementById('admin-library-browser').getAttribute('aria-busy')==='false');
+    await page.screenshot({path:path.join(shots,'admin-library.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.locator('#admin-folders-toggle').click();await page.screenshot({path:path.join(shots,'admin-library-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:320,height:568});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:1000});
+    await chooseFolder('');await page.locator(`[data-document-actions="${native.id}"]`).click();await page.locator('#document-delete').click();await page.locator('#operation-cancel').click();assert.equal((await page.request.get(base+'/api/documents/'+native.id)).status(),200);
+    await page.locator(`[data-document-actions="${native.id}"]`).click();await page.locator('#document-delete').click();await page.locator('#operation-submit').click();await page.waitForFunction(()=>!document.getElementById('library-operation').open && document.getElementById('admin-library-browser').getAttribute('aria-busy')==='false');assert.equal((await page.request.get(base+'/api/documents/'+native.id)).status(),404);
+    assert.deepEqual(errors, []); console.log('Directory tree, rename, move, confirmed deletion and responsive library passed.'); console.log('Admin PDF/DJVU import, metadata, textbook binding, invitation revocation and mobile UI passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));
     if (child && child.exitCode === null) { const stop = new Promise(resolve => child.once('exit', resolve)); child.kill('SIGTERM'); await stop; }

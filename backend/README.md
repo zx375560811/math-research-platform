@@ -294,3 +294,15 @@ sudo -u math-platform python3 admin/import_zotero.py "/opt/math-platform/imports
 `GET /api/library/collections` 返回目录、包含子目录的文献数量和未归目录数量；
 `GET /api/library/documents?collection=ID` 支持目录筛选，`collection=unfiled` 查看未归目录文献。
 以上接口仍要求登录，不公开服务器路径或导入原始 XML。新的 Zotero 批量导入自动保存完整目录。
+
+### 管理文献和目录
+
+管理员登录 `/admin` 的文献库，使用与用户端相同的 Zotero 目录树浏览。
+- 目录：新建子目录、改名、移动、删除空目录。非空目录先移走文献与子目录。
+- 文献：点击“编辑”更新元数据，“更多”可下载、改名、移动或删除；勾选文献可批量移动或删除。
+- 移动只改变目录归属（替换该文献原有目录关联），不改变原文件、方向分类、阅读进度及笔记。
+- 导入按钮中的 PDF / DJVU 会进入当前选中的目录。
+- 删除是永久操作，会删除文件和关联的个人阅读数据；被推荐教材引用时，需勾选“同时解除推荐教材关联”。推荐条目保留，但标记为未接入文档。
+- 批量删除在数据库事务内完成。文件清理失败会记录到 `library_file_cleanup`，服务器重启后重试；共享文件在仍被其他文献引用时保留。
+
+新增接口均要求管理员权限和 CSRF：`/api/admin/collections`（GET/POST）、`/api/admin/collections/{id}`（PATCH/DELETE）、`/api/admin/collections/{id}/parent`（PUT）、`/api/admin/documents/{id}/name`（PATCH）、`/api/admin/documents/move` 与 `/api/admin/documents/batch-delete`（POST）。批量操作最多 100 篇，目录最多 30 层。
