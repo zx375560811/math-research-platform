@@ -1,0 +1,225 @@
+{
+  "title": "Axiom 全站设计方向",
+  "question": "所有方案保留 Axiom、功能、阅读器布局与 Morphicons 按钮互动。请选择全站统一视觉方向。",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "几何陈列 · 蓝与青绿",
+      "thesis": "以数学图形辨识方向，以学科色标记教材与学习入口。",
+      "palette": [
+        "#122E40",
+        "#F7FAF9",
+        "#007E77",
+        "#2455CE"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "深色导航占比需控制，避免压缩阅读空间。",
+      "comp": ".impeccable/mocks/decision/assigned.png",
+      "kicker": "THE ROLL",
+      "raised": [
+        {
+          "from": "时刻表",
+          "raise": "统一控件密度和状态位置。"
+        },
+        {
+          "from": "曲目单",
+          "raise": "中文英文教材成对排列。"
+        },
+        {
+          "from": "构造网格",
+          "raise": "图形和布局共用对齐尺度。"
+        },
+        {
+          "from": "园区导览",
+          "raise": "方向色承担分类与选中状态。"
+        },
+        {
+          "from": "字体标本",
+          "raise": "由尺度而非重复边框建立层级。"
+        }
+      ]
+    },
+    {
+      "id": "pick",
+      "label": "数学图版 · 绿色书目",
+      "thesis": "用清晰书目与阶段顺序组织学习内容。",
+      "palette": [
+        "#163D37",
+        "#FAFCFB",
+        "#166E62",
+        "#466BB3"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "熟悉稳妥，独特性较少。",
+      "comp": ".impeccable/mocks/decision/pick.png",
+      "kicker": "IMPECCABLE’S PICK"
+    },
+    {
+      "id": "rw-timetable-slide-rack",
+      "label": "时刻表",
+      "thesis": "保留熟悉工作区，以此视觉系统统一色彩和信息层级。",
+      "palette": [
+        "#CEAF42",
+        "#353E44",
+        "#F8F5E9"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "来源联想较强，易干扰数学学习与操作。",
+      "comp": ".impeccable/mocks/decision/rw-timetable-slide-rack.png",
+      "verdict": "declined",
+      "case": "数学用户辨识和任务清晰度均不及几何陈列。",
+      "kept": "统一密度和状态位置。",
+      "hero": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack.webp"
+    },
+    {
+      "id": "vernacular-ephemera-cassette-j-card",
+      "label": "磁带曲目单",
+      "thesis": "保留熟悉工作区，以此视觉系统统一色彩和信息层级。",
+      "palette": [
+        "#245BB3",
+        "#FFFFFF",
+        "#BD382F"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "来源联想较强，易干扰数学学习与操作。",
+      "comp": ".impeccable/mocks/decision/vernacular-ephemera-cassette-j-card.png",
+      "verdict": "declined",
+      "case": "数学用户辨识和任务清晰度均不及几何陈列。",
+      "kept": "阶段教材成对次序。",
+      "hero": "https://impeccable.style/worlds/cards/vernacular-ephemera-cassette-j-card-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/vernacular-ephemera-cassette-j-card.webp"
+    },
+    {
+      "id": "design-annual-s-plate-section",
+      "label": "图版年鉴 · 淡紫",
+      "thesis": "保留熟悉工作区，以此视觉系统统一色彩和信息层级。",
+      "palette": [
+        "#F5F4F6",
+        "#16181A",
+        "#DCDDF3"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "数学辨识略弱，细小标签需调整。",
+      "comp": ".impeccable/mocks/decision/design-annual-s-plate-section.png",
+      "verdict": "competitive",
+      "case": "操作清晰度相当，数学辨识低于几何陈列。",
+      "kept": "图版级对齐。",
+      "hero": "https://impeccable.style/worlds/cards/design-annual-s-plate-section-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/design-annual-s-plate-section.webp"
+    },
+    {
+      "id": "crouwel-grid-specimen",
+      "label": "构造网格",
+      "thesis": "保留熟悉工作区，以此视觉系统统一色彩和信息层级。",
+      "palette": [
+        "#FFFFFF",
+        "#1D3869",
+        "#376BD6"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "来源联想较强，易干扰数学学习与操作。",
+      "comp": ".impeccable/mocks/decision/crouwel-grid-specimen.png",
+      "verdict": "declined",
+      "case": "数学用户辨识和任务清晰度均不及几何陈列。",
+      "kept": "统一图形和布局尺寸。",
+      "hero": "https://impeccable.style/worlds/cards/crouwel-grid-specimen-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/crouwel-grid-specimen.webp"
+    },
+    {
+      "id": "aww2-zoo-gardens-guide-map",
+      "label": "园区分色",
+      "thesis": "保留熟悉工作区，以此视觉系统统一色彩和信息层级。",
+      "palette": [
+        "#8ED462",
+        "#F5F1E4",
+        "#2C2E2A"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "来源联想较强，易干扰数学学习与操作。",
+      "comp": ".impeccable/mocks/decision/aww2-zoo-gardens-guide-map.png",
+      "verdict": "declined",
+      "case": "数学用户辨识和任务清晰度均不及几何陈列。",
+      "kept": "分类色承担功能。",
+      "hero": "https://impeccable.style/worlds/cards/aww2-zoo-gardens-guide-map-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/aww2-zoo-gardens-guide-map.webp"
+    },
+    {
+      "id": "variable-font-specimen",
+      "label": "字体标本",
+      "thesis": "保留熟悉工作区，以此视觉系统统一色彩和信息层级。",
+      "palette": [
+        "#FFFFFF",
+        "#16181A",
+        "#416BCE"
+      ],
+      "materials": [
+        "清晰无衬线字",
+        "平整工作区域"
+      ],
+      "viewport": "侧栏保留应用导航，主区呈现文献、方向和教材；阅读器保持白色大视野。",
+      "risk": "来源联想较强，易干扰数学学习与操作。",
+      "comp": ".impeccable/mocks/decision/variable-font-specimen.png",
+      "verdict": "declined",
+      "case": "数学用户辨识和任务清晰度均不及几何陈列。",
+      "kept": "尺度建立层级。",
+      "hero": "https://impeccable.style/worlds/cards/variable-font-specimen-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/variable-font-specimen.webp"
+    }
+  ],
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  },
+  "reroll": {
+    "registers": [
+      "safer",
+      "bolder"
+    ]
+  },
+  "steer": true,
+  "canon": true,
+  "canonCard": {
+    "label": "标准研究平台",
+    "thesis": "采用熟悉的白色工作台和蓝色操作体系。",
+    "palette": [
+      "#FFFFFF",
+      "#182B46",
+      "#4261DF"
+    ],
+    "materials": [
+      "标准工作台"
+    ],
+    "viewport": "熟悉的侧栏、筛选、书目与阅读布局。",
+    "risk": "视觉辨识较普通。",
+    "comp": ".impeccable/mocks/decision/canon.png"
+  }
+}

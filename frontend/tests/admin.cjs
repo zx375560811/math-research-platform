@@ -1,3 +1,13 @@
+// Capture full pages from the document top so fixed rails appear in place.
+async function capture(page, options) {
+  const position = await page.evaluate(() => ({x:scrollX,y:scrollY}));
+  await page.evaluate(() => window.scrollTo({top:0,left:0,behavior:'instant'}));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const result = await page.screenshot(options);
+  await page.evaluate(p => window.scrollTo({top:p.y,left:p.x,behavior:'instant'}), position);
+  return result;
+}
+
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -69,7 +79,7 @@ async function main() {
     const doc = (await (await page.request.get(base + '/api/admin/documents')).json()).documents[0];
     await page.locator('#document-list button').first().click(); await page.locator('#document-title').fill('线性代数学习资料'); await page.locator('#document-save').click(); await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('文献信息已保存'));
     await page.locator('#document-query').fill('线性代数'); await page.locator('#document-search button').click(); await page.waitForFunction(() => document.getElementById('document-list').textContent.includes('线性代数学习资料'));
-    const shots = path.join(frontend, 'tests/artifacts'); fs.mkdirSync(shots, { recursive: true }); await page.screenshot({ path: path.join(shots, 'admin-library.png'), fullPage: true });
+    const shots = path.join(frontend, 'tests/artifacts'); fs.mkdirSync(shots, { recursive: true }); await capture(page,{ path: path.join(shots, 'admin-library.png'), fullPage: true });
     await page.locator('[data-view="books"]').click(); await page.locator('#book-select').selectOption('7'); await page.locator('#book-document').selectOption(String(doc.id)); await page.locator('#book-order').fill('25'); await page.locator('#book-form button[type="submit"]').click();
     await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('教材配置已保存'));
     assert.equal(await page.locator('#book-document').isDisabled(), true); assert.equal((await (await page.request.get(base + '/api/learning/books/7')).json()).available, true);
@@ -77,16 +87,16 @@ async function main() {
     await page.locator('#new-book').click(); await page.locator('#book-direction').selectOption('algebra'); await page.locator('#book-language').selectOption('zh'); await page.locator('#book-document').selectOption(String(doc.id)); await page.locator('#book-title').fill('中文推荐教材'); await page.locator('#book-stage').selectOption('核心理论'); await page.locator('#book-form button[type="submit"]').click();
     await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('教材配置已保存') && document.getElementById('book-list').textContent.includes('中文推荐教材'));
     const configured=(await(await page.request.get(base+'/api/admin/books')).json()).books.find(b=>b.title==='中文推荐教材'); assert.equal(configured.language,'zh'); assert.equal(configured.document_id,doc.id); assert.equal(configured.direction,'algebra');
-    await page.screenshot({ path: path.join(shots, 'admin-books.png'), fullPage: true });
+    await capture(page,{ path: path.join(shots, 'admin-books.png'), fullPage: true });
     await page.locator('[data-view="ai"]').click(); await page.locator('#admin-ai-form').waitFor(); await page.locator('#admin-ai-enabled').check(); await page.locator('#admin-ai-url').fill('https://api.openai.com/v1'); await page.locator('#admin-ai-model').fill('math-model'); await page.locator('#admin-ai-key').fill('default-test-secret'); await page.locator('#admin-ai-limit').fill('30'); await page.locator('#admin-ai-form button[type=submit]').click();
     await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('API 设置已保存'));
     assert.equal(await page.locator('#admin-ai-key').inputValue(),''); assert.match(await page.locator('#admin-ai-key-state').textContent(),/密钥已保存/); await page.reload(); await page.waitForFunction(()=>document.getElementById('admin-ai-model').value==='math-model'); assert.equal(await page.locator('#admin-ai-limit').inputValue(),'30'); assert.equal(await page.locator('#admin-ai-enabled').isChecked(),true);
     const aiMeta=await(await page.request.get(base+'/api/admin/ai/settings')).json(); assert.equal(aiMeta.has_key,true); assert.equal(aiMeta.api_key,undefined);
-    await page.screenshot({path:path.join(shots,'admin-ai.png'),fullPage:true}); await page.locator('#admin-ai-remove').click(); await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('默认密钥已删除')); assert.equal(await page.locator('#admin-ai-enabled').isChecked(),false);
+    await capture(page,{path:path.join(shots,'admin-ai.png'),fullPage:true}); await page.locator('#admin-ai-remove').click(); await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('默认密钥已删除')); assert.equal(await page.locator('#admin-ai-enabled').isChecked(),false);
     await page.locator('[data-view="invitations"]').click(); await page.locator('#invitation-form button').click(); await page.locator('#created-invitation').waitFor(); assert.equal((await page.locator('#invitation-code').inputValue()).length, 43);
     await page.locator('#invitation-list button').first().click(); await page.waitForFunction(() => document.getElementById('admin-message').textContent.includes('邀请码已撤销'));
-    assert.match(await page.locator('#invitation-list').textContent(), /已撤销/); await page.screenshot({ path: path.join(shots, 'admin-invitations.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'admin-mobile.png'), fullPage: true }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.match(await page.locator('#invitation-list').textContent(), /已撤销/); await capture(page,{ path: path.join(shots, 'admin-invitations.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await capture(page,{ path: path.join(shots, 'admin-mobile.png'), fullPage: true }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.deepEqual(errors, []); console.log('Admin PDF import, metadata, textbook binding, invitation revocation and mobile UI passed.');
   } finally {

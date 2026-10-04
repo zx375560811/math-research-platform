@@ -8,3 +8,38 @@
 @media(max-width:800px){.admin-page .admin-columns:has(#book-form){grid-template-columns:minmax(0,1fr)}}
 
 .admin-ai-editor { max-width:680px; }.admin-ai-switch { display:flex!important;align-items:center;gap:10px; }.admin-ai-switch input { width:auto!important; }.admin-ai-editor input[type=number] { max-width:180px; }
+
+
+/* Administrator workspace uses the same approved product system. */
+.admin-rail { background:var(--rail);padding:30px 16px; }
+.admin-rail nav { gap:4px; }
+.admin-rail nav a { padding:10px 14px;border-radius:7px;font-size:15px; }
+.admin-rail nav a[aria-current] { background:#e9eaf4;color:#34398f; }
+.admin-rail nav a:hover { background:#edeef3; }
+.admin-main { padding:0 48px 48px; }
+.admin-top { height:64px; }
+.admin-heading { padding:40px 0 30px; }
+.admin-heading h1 { font:650 32px/1.4 var(--display);letter-spacing:-.03em;margin-bottom:10px; }
+.admin-heading p { font-size:16px;line-height:1.8; }
+.admin-emblem { display:none; }
+.admin-columns { gap:36px; }
+.admin-editor { background:#f7f8fa;border:0;border-radius:12px;padding:26px; }
+.admin-page h2 { font-size:20px; }
+.admin-page label { font-weight:500;color:#454b58; }
+.admin-page input,.admin-page select { border-color:var(--control-border);border-radius:7px;padding:11px 12px;font-size:16px;min-height:42px; }
+.admin-page input[type=checkbox] { min-height:0;accent-color:var(--blue); }
+.admin-records { padding:0; }
+.list-heading { margin-bottom:18px; }
+.admin-record { padding:22px 4px; }
+.admin-record h3 { font-size:18px;line-height:1.6; }
+.admin-record p { font-size:14px;line-height:1.8; }
+.admin-record:hover { background:#fafbfc; }
+.admin-record .badge { background:#eeeffb;color:#474dad; }
+.admin-pagination { margin-top:24px; }
+.admin-ai-editor { max-width:740px; }
+#admin-message { background:#edf5ef;color:#31623d;padding:14px 18px; }
+@media(max-width:1100px) { .admin-main { padding:0 28px 40px; }.admin-columns { gap:24px; } }
+@media(max-width:800px) {
+  .admin-rail { padding:20px 18px 14px; }.admin-main { padding:0 20px 32px; }.admin-top { height:58px; }.admin-heading { padding:28px 0 24px; }.admin-heading h1 { font-size:28px; }
+  .admin-rail nav a { padding:8px 10px;font-size:14px; }.admin-rail .return-app { top:22px;right:16px; }.admin-editor { padding:22px; }.admin-record h3 { font-size:17px; }
+}

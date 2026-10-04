@@ -1,3 +1,13 @@
+// Capture full pages from the document top so fixed rails appear in place.
+async function capture(page, options) {
+  const position = await page.evaluate(() => ({x:scrollX,y:scrollY}));
+  await page.evaluate(() => window.scrollTo({top:0,left:0,behavior:'instant'}));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const result = await page.screenshot(options);
+  await page.evaluate(p => window.scrollTo({top:p.y,left:p.x,behavior:'instant'}), position);
+  return result;
+}
+
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -168,8 +178,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#register-tab').click();
     await page.waitForFunction(() => document.body.classList.contains('auth-page'));
     for (const selector of ['.sidebar', '.topbar', '.auth-intro', '.workspace>footer']) assert.equal(await page.locator(selector).isVisible(), false);
-    await page.screenshot({ path: path.join(shots, 'register-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'register-mobile.png'), fullPage: true });
+    await capture(page,{ path: path.join(shots, 'register-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await capture(page,{ path: path.join(shots, 'register-mobile.png'), fullPage: true });
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('#account-invitation').fill(invitation);
@@ -180,7 +190,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(() => document.getElementById('account-message').textContent.includes('邀请码无效'));
     await page.locator('#account-invitation').fill(invitation); await page.locator('#account-submit').click();
     await page.waitForFunction(() => location.hash === '#/login');
-    await page.screenshot({ path: path.join(shots, 'login-desktop.png'), fullPage: true });
+    await capture(page,{ path: path.join(shots, 'login-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 320, height: 844 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('#account-password').fill('WrongPassword123!'); await page.locator('#account-submit').click();
@@ -198,12 +208,12 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(previous=>document.querySelector('#library-link path').getAttribute('d')!==previous,duringMorph);
     await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'workspace');
 
-    await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
+    await capture(page,{ path: path.join(shots, 'home-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await capture(page,{ path: path.join(shots, 'home-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card[href="#/apps/mathematics"]').click();
-    await page.screenshot({ path: path.join(shots, 'module-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });
+    await capture(page,{ path: path.join(shots, 'module-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await capture(page,{ path: path.join(shots, 'module-mobile.png'), fullPage: true });
     await page.setViewportSize({ width: 320, height: 568 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('[data-direction="algebra"]').click(); await page.locator('.textbook-row').first().waitFor();
@@ -211,17 +221,17 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.textbook-row').count(),6); assert.equal(await page.locator('.textbook-stage').count(),3); for(const stage of ['基础入门','核心理论','进阶学习']) for(const language of ['zh','en']) assert.equal(await page.locator(`.textbook-stage[data-stage="${stage}"] .recommendation-language[data-language="${language}"] .textbook-row`).count(),1);
     assert.equal(await page.locator('[data-book="7"]').textContent(),'开始学习');
     assert.equal(await page.locator('input[type=file],#upload-form').count(),0);
-    await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true });
+    await capture(page,{ path: path.join(shots, 'direction-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 }); await capture(page,{ path: path.join(shots, 'direction-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 });
     const choiceRow = page.locator('[data-recommendation="8"]');
     await choiceRow.locator('.book-library-choice').click();
     await choiceRow.locator('.book-picker input').fill('Test textbook'); await choiceRow.locator('.book-picker-search button').click();
     await choiceRow.locator('.book-picker-select option[value="1"]').waitFor({state:'attached'});
-    await page.screenshot({path:path.join(shots,'textbook-picker-desktop.png'),fullPage:true});
+    await capture(page,{path:path.join(shots,'textbook-picker-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-    await page.screenshot({path:path.join(shots,'textbook-picker-mobile.png'),fullPage:true}); await page.setViewportSize({width:1440,height:1100});
+    await capture(page,{path:path.join(shots,'textbook-picker-mobile.png'),fullPage:true}); await page.setViewportSize({width:1440,height:1100});
     await choiceRow.locator('.book-picker-select').selectOption('1'); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
     assert.match(page.url(),/directions\/algebra$/); assert.equal(await choiceRow.locator('[data-book="8"]').textContent(),'开始学习');
     await page.reload(); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
@@ -244,7 +254,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await scrollToPage(page,1);
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
     await page.evaluate(() => {const area=document.getElementById('reader-scroll'),next=document.querySelector('.pdf-page[data-page="2"]');area.scrollTop=document.getElementById('pdf-pages').offsetTop+next.offsetTop-area.clientHeight*.4;});
-    await page.screenshot({path:path.join(shots,'reader-continuous.png'),fullPage:true});
+    await capture(page,{path:path.join(shots,'reader-continuous.png'),fullPage:true});
     await scrollToPage(page,1);
     await page.waitForFunction(() => document.getElementById('reader-scroll').scrollTop<30);
     assert.ok(await page.locator('#reader-scroll').evaluate(node=>node.clientHeight/innerHeight)>.8);
@@ -280,7 +290,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('#ai-api-key').inputValue(),''); assert.equal(await page.locator('#ai-source').inputValue(),'custom');
     await page.locator('#ai-settings-toggle').click(); assert.equal(await page.locator('#ai-context').isVisible(),false); await page.locator('#ai-question').fill('继续解释'); await page.locator('#ai-send').click();
     await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===2); assert.equal(chatCalls.at(-1).source,'custom'); assert.equal(chatCalls.at(-1).context,null);
-    await page.screenshot({path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
+    await capture(page,{path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
     await page.locator('#ai-source').selectOption('default'); await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="yellow"]').click();
@@ -303,7 +313,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-note').nth(1).fill('Unsaved second note'); await page.locator('.annotation-summary').first().click();
     assert.equal(await page.locator('.annotation-note').first().isVisible(),true); assert.equal(await page.locator('.annotation-note').nth(1).isVisible(),false);
     await page.locator('.annotation-summary').nth(1).click(); assert.equal(await page.locator('.annotation-note').nth(1).inputValue(),'Unsaved second note');
-    await page.screenshot({path:path.join(shots,'reader-numbered-notes.png'),fullPage:true});
+    await capture(page,{path:path.join(shots,'reader-numbered-notes.png'),fullPage:true});
     await page.locator('.annotation-delete').nth(1).click(); await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===1);
     await page.locator('#reader-outline-toggle').click(); await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     const dimensions=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect();return {outline:rect('reader-outline').width,notes:rect('reader-notes').width,pdf:rect('reader-scroll').width};});
@@ -319,7 +329,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#reader-outline-resize').focus();await page.keyboard.press('ArrowLeft');await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     const threeColumns=await page.evaluate(()=>{const r=id=>document.getElementById(id).getBoundingClientRect();return {left:r('reader-outline').right,pdfLeft:r('reader-scroll').left,pdfRight:r('reader-scroll').right,right:r('reader-notes').left};});
     assert.ok(threeColumns.left<=threeColumns.pdfLeft && threeColumns.pdfRight<=threeColumns.right);
-    await page.screenshot({path:path.join(shots,'reader-resizable.png'),fullPage:true});
+    await capture(page,{path:path.join(shots,'reader-resizable.png'),fullPage:true});
 
     await zoomTo(page,137);
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
@@ -336,7 +346,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"][data-loaded]'));
     assert.ok(await page.locator('.pdf-highlight').count()>0);
-    await page.screenshot({path:path.join(shots,'reader-desktop.png'),fullPage:true});
+    await capture(page,{path:path.join(shots,'reader-desktop.png'),fullPage:true});
     const expandedPdfWidth=await page.locator('#reader-scroll').evaluate(node=>node.clientWidth);
     await page.locator('#reader-notes-close').click();await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     assert.ok(await page.locator('#reader-scroll').evaluate(node=>node.clientWidth)>expandedPdfWidth+150);
@@ -359,6 +369,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     const preferredNotesWidth=await page.locator('#reader-notes').evaluate(node=>node.clientWidth); await page.reload(); await page.waitForFunction(() => document.getElementById('reader-scroll').dataset.page==='2' && document.querySelector('.pdf-page[data-page="2"] .textLayer span')?.textContent==='Mathematics 2');
     assert.ok(Math.abs(await page.locator('#reader-notes').evaluate(node=>node.clientWidth)-preferredNotesWidth)<2); assert.ok(Number(await page.locator('#reader-ai-resize').getAttribute('aria-valuenow'))>35); assert.equal(await page.locator('.annotation-note').inputValue(),noteText);assert.equal(await page.locator('#annotation-list img').count(),0);
     const secondContext=await browser.newContext({viewport:{width:390,height:844}});const second=await secondContext.newPage();
+    await second.route('**/api/ai/settings', route => route.fulfill({contentType:'application/json',body:JSON.stringify({...aiConfig,source:'default'})}));
     await second.goto(base+'/#/apps/mathematics/read/7');await second.waitForFunction(()=>location.hash==='#/login');
     await second.locator('#account-username').fill('browser_reader');await second.locator('#account-password').fill('BrowserPass123!');await second.locator('#account-submit').click();
     await second.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='2' && document.querySelector('.pdf-page[data-page="2"] .textLayer span')?.textContent==='Mathematics 2');
@@ -369,7 +380,11 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await second.locator('.annotation-note').inputValue(),noteText);
     assert.equal(await second.locator('.annotation-item').evaluate(node=>!node.hidden),false); await second.locator('.annotation-summary').click();
     await second.locator('.annotation-jump').click();await second.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='1' && document.querySelector('.pdf-highlight'));
-    await second.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready'); assert.equal(await second.locator('#reader-scroll').getAttribute('data-page'),'1'); await second.screenshot({path:path.join(shots,'reader-mobile.png'),fullPage:true});
+    await second.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready'); assert.equal(await second.locator('#reader-scroll').getAttribute('data-page'),'1'); const mobileNotes=await second.locator('#reader-notes').boundingBox();assert.ok(mobileNotes.width>=170,'Mobile notes must be readable');
+    const mobileQuestion=await second.locator('#ai-question').boundingBox(),mobileAsk=await second.locator('#reader-ask-ai').boundingBox(),mobileSend=await second.locator('#ai-send').boundingBox();
+    assert.ok(mobileAsk.x>mobileQuestion.x && Math.abs(mobileAsk.x-mobileSend.x)<2 && mobileSend.y>mobileAsk.y,'Ask/send remain stacked to the right');
+    const mobileSettings=await second.locator('#ai-settings-toggle').boundingBox();assert.ok(mobileSettings.x+mobileSettings.width<=mobileNotes.x+mobileNotes.width,'Settings remains visible');
+    await capture(second,{path:path.join(shots,'reader-mobile.png'),fullPage:true});
     await second.setViewportSize({width:320,height:568});assert.equal(await second.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await second.locator('.annotation-delete').click();await second.waitForFunction(()=>!document.querySelector('.annotation-item'));
     await secondContext.close();
@@ -378,8 +393,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
-    await page.screenshot({path:path.join(shots,'library-desktop.png'),fullPage:true});
-    await page.setViewportSize({width:390,height:844}); await page.screenshot({path:path.join(shots,'library-mobile.png'),fullPage:true}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
+    await capture(page,{path:path.join(shots,'library-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844}); await capture(page,{path:path.join(shots,'library-mobile.png'),fullPage:true}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
     await page.locator('[data-document="1"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')); assert.match(await page.locator('#reader-back').textContent(),/文档库/);
     await scrollToPage(page,3); await page.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='3');
     await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="3"] .textLayer span')?.textContent==='Mathematics 3');
@@ -395,7 +410,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     const foldPosition=await page.locator('.annotation-more').evaluate(node=>{const a=node.previousElementSibling.getBoundingClientRect(),b=node.getBoundingClientRect();return Math.abs(a.top-b.top)<1&&b.left>=a.right;});assert.equal(foldPosition,true);
     await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),31);
     await page.locator('.annotation-summary').nth(30).click();assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),true);
-    await page.screenshot({path:path.join(shots,'reader-folded-markers.png'),fullPage:true});
+    await capture(page,{path:path.join(shots,'reader-folded-markers.png'),fullPage:true});
     await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),30);assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),false);
     await page.locator('#reader-back').click(); await page.locator('[data-book="7"]').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');

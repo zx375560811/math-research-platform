@@ -13,6 +13,9 @@ __pycache__/
 *.key
 frontend/node_modules/
 frontend/tests/artifacts/
+frontend/.impeccable/questions/
+frontend/.impeccable/review/
+frontend/.impeccable/mocks/
 
 backend/target/
 backend/data-backup-before-java-*/
