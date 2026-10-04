@@ -416,12 +416,25 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 /* The analysis introduction is a branching course roadmap, not three text cards. */
 .analysis-roadmap { overflow-x:auto;scrollbar-width:thin;padding:4px 0; }
 .analysis-roadmap svg { display:block;width:100%;min-width:760px;height:auto; }
-.analysis-course rect { fill:#f8faff;stroke:#dce4f3;stroke-width:1; }
-.analysis-course text { fill:var(--ink);font:16px system-ui,'Microsoft YaHei',sans-serif; }
-.analysis-course.foundation rect { fill:#eef1fc;stroke:#bccbf0; }
-.analysis-course.foundation text { fill:#3655b5;font-weight:600; }
-.analysis-course.advanced rect { fill:#f0f5fc; }
-.analysis-course.support rect { fill:white;stroke-dasharray:4 3; }
+.analysis-course { --route-accent:#6478d3;transition:transform .18s ease,filter .18s ease;transform-box:fill-box;transform-origin:center; }
+.analysis-course-card { fill:url(#analysis-course-fill);stroke:var(--route-accent);stroke-opacity:.25;stroke-width:1; }
+.analysis-course-icon { fill:var(--route-accent);fill-opacity:.12; }
+.analysis-course-title { fill:var(--ink);font:600 15px system-ui,'Microsoft YaHei',sans-serif; }
+.analysis-course-symbol { fill:var(--route-accent);font:20px var(--math); }
+.analysis-course.foundation .analysis-course-card { fill:url(#analysis-foundation-fill);stroke-opacity:0; }
+.analysis-course.foundation .analysis-course-title,.analysis-course.foundation .analysis-course-symbol { fill:white; }
+.analysis-course.foundation .analysis-course-icon { fill:white;fill-opacity:.18; }
+.analysis-course.complex { --route-accent:#9670c5; }
+.analysis-course.real { --route-accent:#388f8b; }
+.analysis-course.ode { --route-accent:#c08848; }
+.analysis-course.functional { --route-accent:#6478d3; }
+.analysis-course.pde { --route-accent:#398ea6; }
+.analysis-course.support .analysis-course-card { fill:#ffffffc9;stroke-dasharray:4 3; }
+.analysis-course:hover { transform:translateY(-2px);filter:drop-shadow(0 4px 5px #3447751a); }
+.analysis-course:hover .analysis-course-card { stroke-opacity:.6; }
+.analysis-route-edge { opacity:.8;transition:opacity .18s ease; }
+.analysis-roadmap:hover .analysis-route-edge { opacity:1; }
+@media(prefers-reduced-motion:reduce) { .analysis-course,.analysis-route-edge { transition:none; }.analysis-course:hover { transform:none; } }
 #direction-detail .direction-intro-section { padding:14px 18px;margin-bottom:18px; }
 #direction-detail .textbook-list { gap:14px; }
 #direction-detail .recommendation-language { padding:12px 14px; }

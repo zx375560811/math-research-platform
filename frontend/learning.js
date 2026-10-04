@@ -33,20 +33,35 @@ function analysisRoadmap() {
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  const svg = make('svg', {viewBox:'0 0 880 166',role:'img','aria-label':'分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
-  const defs = make('defs', {}), marker = make('marker', {id:'analysis-route-arrow',viewBox:'0 0 8 8',refX:'7',refY:'4',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});
-  marker.append(make('path', {d:'M1 1 L7 4 L1 7',fill:'none',stroke:'#8298c6','stroke-width':'1.4'})); defs.append(marker); svg.append(defs);
-  const edges = [
-    ['M160 83 H190 V23 H220',false],['M160 83 H220',false],['M160 83 H190 V143 H220',false],
-    ['M420 83 H470',false],['M550 45 V61',false],['M630 83 H710',false],['M420 143 H790 V105',true]
+  const svg = make('svg', {viewBox:'0 0 940 214',role:'img','aria-label':'分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const defs=make('defs', {});
+  const gradient=(id, colors) => {
+    const value=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
+    if (id==='analysis-edge-fill') for (const [key,val] of Object.entries({gradientUnits:'userSpaceOnUse',x1:0,y1:0,x2:940,y2:0})) value.setAttribute(key,val);
+    colors.forEach((color,i)=>value.append(make('stop',{offset:(i/(colors.length-1)*100)+'%','stop-color':color})));defs.append(value);
+  };
+  gradient('analysis-foundation-fill',['#7186f1','#4355c8']);
+  gradient('analysis-course-fill',['#ffffff','#f7f9ff']);
+  gradient('analysis-edge-fill',['#8495e1','#8ebcb5']);
+  const pattern=make('pattern',{id:'analysis-map-dots',width:18,height:18,patternUnits:'userSpaceOnUse'});
+  pattern.append(make('circle',{cx:2,cy:2,r:.8,fill:'#b5c5e6'}));defs.append(pattern);
+  const marker=make('marker',{id:'analysis-route-arrow',viewBox:'0 0 8 8',refX:'7',refY:'4',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});
+  marker.append(make('path',{d:'M1 1 L7 4 L1 7',fill:'none',stroke:'#8298c6','stroke-width':'1.4'}));defs.append(marker);svg.append(defs);
+  svg.append(make('rect',{x:0,y:0,width:940,height:214,rx:16,fill:'url(#analysis-map-dots)',opacity:'.4'}));
+  const edges=[
+    ['M208 107 C242 107 236 33 270 33',false],['M208 107 H270',false],['M208 107 C242 107 236 181 270 181',false],
+    ['M485 107 H550',false],['M630 60 V80',false],['M710 107 H760',false],['M485 181 H825 Q845 181 845 161 V134',true]
   ];
-  for (const [d, optional] of edges) svg.append(make('path',{d,fill:'none',stroke:'#8298c6','stroke-width':'1.4','marker-end':'url(#analysis-route-arrow)',...(optional ? {'stroke-dasharray':'5 4'} : {})}));
-  for (const [name,x,y,width,kind] of [
-    ['数学分析',0,61,160,'foundation'],['复分析',220,1,200,'branch'],['实分析与测度论',220,61,200,'branch'],
-    ['常微分方程',220,121,200,'branch'],['高等代数',470,1,160,'support'],['泛函分析',470,61,160,'advanced'],['偏微分方程',710,61,160,'advanced']
+  for (const [d,optional] of edges) svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(optional ? {'stroke-dasharray':'5 5'} : {})}));
+  for (const [name,symbol,x,y,width,kind] of [
+    ['数学分析','∫',28,80,180,'foundation'],['复分析','ℂ',270,6,215,'complex'],['实分析与测度论','μ',270,80,215,'real'],
+    ['常微分方程','y′',270,154,215,'ode'],['高等代数','ℝⁿ',550,6,160,'support'],['泛函分析','‖f‖',550,80,160,'functional'],['偏微分方程','∂',760,80,170,'pde']
   ]) {
     const group=make('g',{'class':'analysis-course '+kind,'data-course':name});
-    group.append(make('rect',{x,y,width,height:44,rx:9}),make('text',{x:x+width/2,y:y+22,'text-anchor':'middle','dominant-baseline':'central'},name)); svg.append(group);
+    group.append(make('title',{},name),make('rect',{class:'analysis-course-card',x,y,width,height:54,rx:14}),
+      make('circle',{class:'analysis-course-icon',cx:x+28,cy:y+27,r:17}),
+      make('text',{class:'analysis-course-symbol',x:x+28,y:y+27,'text-anchor':'middle','dominant-baseline':'central'},symbol),
+      make('text',{class:'analysis-course-title',x:x+53,y:y+27,'dominant-baseline':'central'},name));svg.append(group);
   }
   const box=el('div','analysis-roadmap');box.append(svg);return box;
 }
