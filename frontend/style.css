@@ -487,6 +487,11 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 }
 body { font-variant-numeric:tabular-nums; }
 ::selection { background:#cbd8ff;color:var(--ink); }
+/* The canvas paints the document text; selection must not paint it again. */
+.pdf-page .textLayer ::selection { color:transparent;background:rgba(66,97,223,.22);text-shadow:none; }
+.pdf-page .textLayer ::-moz-selection { color:transparent;background:rgba(66,97,223,.22);text-shadow:none; }
+.pdf-page .textLayer br::selection { background:transparent; }
+.pdf-page .textLayer br::-moz-selection { background:transparent; }
 input::placeholder,textarea::placeholder { color:var(--muted);opacity:1; }
 input,select,textarea { accent-color:var(--blue); }
 :where(input:not([type=checkbox]):not([type=radio]),select,textarea):disabled { color:var(--muted);background:#f0f3f8; }

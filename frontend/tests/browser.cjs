@@ -20,6 +20,14 @@ const analysisCourses=['数学分析','高等代数','复分析','实分析与�
 for(const [i,course] of analysisCourses.entries()) for(const [j,language] of ['zh','en'].entries()) mockBooks.push({id:400+i*2+j,direction:'analysis',title:course+' · '+(language==='zh'?'中文教材':'English textbook'),authors:'Course author',stage:course,language,prerequisites:'',source_url:'',available:false,file_url:null});
 const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'number-theory', name: '数论' }, { id: 3, slug: 'analysis', name: '分析' }, { id: 4, slug: 'geometry-topology', name: '几何与拓扑' }, { id: 5, slug: 'other', name: '其他数学方向' }];
 async function readerControl(page, id) { await page.locator('#' + id).click(); }
+async function assertTransparentSelection(page, selector) {
+  const style=await page.locator(selector).first().evaluate(node=>{const selected=getComputedStyle(node,'::selection');return {color:selected.color,shadow:selected.textShadow,background:selected.backgroundColor,normal:getComputedStyle(node).color};});
+  assert.equal(style.normal,'rgba(0, 0, 0, 0)');
+  assert.equal(style.color,'rgba(0, 0, 0, 0)','Selected text must not duplicate the canvas glyphs');
+  assert.equal(style.shadow,'none');
+  const channels=style.background.match(/[\d.]+/g).map(Number);assert.equal(channels.length,4);assert.ok(channels[3]>0&&channels[3]<1,'The selection tint must leave the document visible');
+}
+
 async function scrollToPage(page, number) {
   await page.locator('#reader-scroll').evaluate((node,n)=>{const frame=document.querySelector(`.pdf-page[data-page="${n}"]`);node.scrollTop=document.getElementById('pdf-pages').offsetTop+frame.offsetTop;node.dispatchEvent(new Event('scroll'));},number);
   await page.waitForFunction(n=>document.getElementById('reader-scroll').dataset.page===String(n)&&document.querySelector(`.pdf-page[data-page="${n}"][data-loaded]`),number);
@@ -327,6 +335,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.pdf-page[data-page="1"] .textLayer span').first().waitFor({state:'attached'});
     await page.evaluate(() => {const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span');const range=document.createRange();range.selectNodeContents(span);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);});
     await page.locator('#selection-tools').waitFor();
+    await assertTransparentSelection(page,'.pdf-page[data-page="1"] .textLayer span');
+    await page.locator('.pdf-page[data-page="1"]').screenshot({path:path.join(shots,'pdf-text-selection.png')});
     await page.locator('#reader-ask-ai').click();
     assert.equal(await page.locator('#ai-context').isVisible(),true); assert.match(await page.locator('#ai-context-quote').textContent(),/Mathematics/);
     const naturalWrap=await page.evaluate(()=>['selection-quote','ai-context-quote'].map(id=>{const node=document.getElementById(id),original=node.textContent;node.textContent='measure\nintegral';const range=document.createRange();range.selectNodeContents(node);const lines=range.getClientRects().length;node.textContent=original;return lines===1;})); assert.ok(naturalWrap.every(Boolean));
@@ -494,6 +504,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await scrollToPage(page,2); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="2"] .djvu-text-layer span'));
     await page.evaluate(()=>{const span=document.querySelector('.pdf-page[data-page="2"] .djvu-text-layer span');const range=document.createRange();range.selectNodeContents(span);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));});
     await page.locator('#selection-tools').waitFor(); assert.equal(await page.locator('#selection-quote').textContent(),'Native DjVu mathematics');
+    await assertTransparentSelection(page,'.pdf-page[data-page="2"] .djvu-text-layer span');
     await page.locator('#reader-ask-ai').click();await page.locator('#ai-question').fill('Explain this native DjVu passage');await page.locator('#ai-send').click();await page.locator('.ai-assistant').waitFor();
     assert.equal(chatCalls.at(-1).context.document_id,nativeId);assert.equal(chatCalls.at(-1).context.page,2);assert.equal(chatCalls.at(-1).context.quote,'Native DjVu mathematics');
     await page.evaluate(()=>{const span=document.querySelector('.pdf-page[data-page="2"] .djvu-text-layer span');const range=document.createRange();range.selectNodeContents(span);getSelection().addRange(range);document.dispatchEvent(new Event('selectionchange'));});await page.locator('#selection-tools').waitFor();
