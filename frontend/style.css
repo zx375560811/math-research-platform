@@ -345,5 +345,12 @@ body.reading-page { overflow:hidden; }
 .reader-heading-actions .icon,.ai-heading-actions .icon,.ai-compose-foot .icon { width:15px;height:15px; }
 .ai-compose-foot .button { font-size:14px; }
 .ai-compose-foot .button>span { color:inherit;font:inherit; }
+.reader-ai-pane .ai-chat-form { grid-template-columns:minmax(0,1fr) 112px; }
+.reader-ai-pane .ai-compose-foot { width:112px; }
+.reader-ai-pane .ai-compose-foot .button { gap:6px;padding:5px 8px; }
+@container(max-width:250px) {
+ .reader-ai-pane .ai-chat-form { grid-template-columns:minmax(0,1fr); }
+ .reader-ai-pane .ai-compose-foot { width:112px;max-width:100%; }
+}
 @container(max-width:250px) { .ai-compose-foot .icon { width:13px;height:13px; } }
 @media(max-width:650px) { .reader-heading-actions .button { gap:2px;padding:3px 4px; }.reader-heading-actions .icon { width:13px;height:13px; } }
