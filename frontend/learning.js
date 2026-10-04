@@ -106,6 +106,7 @@ export function createLearning({ api, write }) {
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
         let selectCourse = () => {};
+        $('textbook-list').classList.toggle('analysis-textbooks',analysisFlow);
         $('direction-introduction').classList.remove('analysis-flow');
         $('direction-introduction').classList.toggle('analysis-route', analysisFlow);
         if (analysisFlow) {
@@ -164,8 +165,11 @@ export function createLearning({ api, write }) {
         const groups = unclassified ? [...courses,'待归类教材'] : courses;
         for (const [index, stage] of groups.entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
-          const heading = el('div', 'stage-heading'); if (!analysisFlow) heading.append(el('span', 'stage-number', String(index + 1))); heading.append(el('h3', '', stage)); section.append(heading);
+          const heading = el('div', 'stage-heading'); if (!analysisFlow) heading.append(el('span', 'stage-number', String(index + 1))); const courseTitle=el('h3','',stage);
+          if(analysisFlow){ const toggle=el('button','course-heading-button',stage);toggle.type='button';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','analysis-books-'+index);toggle.addEventListener('click',()=>selectCourse(stage));courseTitle.replaceChildren(toggle); }
+          heading.append(courseTitle); section.append(heading);
           const columns = el('div', 'recommendation-columns');
+          if(analysisFlow) columns.id='analysis-books-'+index;
           for (const [language, label] of [['zh', '中文推荐'], ['en', '英文推荐']]) {
             const group = el('section', 'recommendation-language'); group.dataset.language = language; group.append(el('h4', '', label));
             const books = direction.books.filter(book => (stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage) && (book.language || 'en') === language);
@@ -173,13 +177,19 @@ export function createLearning({ api, write }) {
             if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐'));
             columns.append(group);
           }
+          if(analysisFlow){ const preview=el('button','course-book-preview');preview.type='button';preview.setAttribute('aria-controls',columns.id);preview.setAttribute('aria-expanded','false');preview.addEventListener('click',()=>selectCourse(stage));
+            for(const language of ['zh','en']) {const title=el('span');title.dataset.language=language;preview.append(title);} section.append(preview); }
           section.append(columns); $('textbook-list').append(section);
         }
         if (analysisFlow) {
           selectCourse = name => {
             if (!groups.includes(name)) return;
             selectedAnalysisCourse = name;
-            for (const section of $('textbook-list').children) section.hidden = section.dataset.stage !== name;
+            for (const section of $('textbook-list').children) {
+              const selected=section.dataset.stage===name;section.classList.toggle('course-collapsed',!selected);
+              for(const button of section.querySelectorAll('.course-heading-button,.course-book-preview')) button.setAttribute('aria-expanded',String(selected));
+              for(const label of section.querySelectorAll('.course-book-preview span')) {const title=section.querySelector('.recommendation-language[data-language="'+label.dataset.language+'"] .textbook-info h3')?.textContent || '暂无推荐';label.textContent=title;label.title=title;}
+            }
             for (const node of $('direction-introduction').querySelectorAll('[data-course]')) {
               const selected = node.dataset.course === name;
               node.setAttribute('aria-pressed',String(selected)); node.classList.toggle('selected',selected);

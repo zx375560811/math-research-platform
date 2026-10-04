@@ -231,14 +231,18 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('[data-direction="analysis"]').click();
     await page.locator('.analysis-roadmap svg').waitFor();
     assert.equal(await page.locator('.analysis-course').count(),7);
-    assert.equal(await page.locator('.textbook-stage:visible').count(),1);
-    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'数学分析');
-    assert.equal(await page.locator('.textbook-stage:visible .textbook-row').count(),2);
+    assert.equal(await page.locator('.analysis-textbooks .textbook-stage:visible').count(),7);
+    assert.equal(await page.locator('.course-book-preview:visible').count(),6);
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').count(),1);
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'数学分析');
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed) .textbook-row').count(),2);
     await page.locator('.analysis-course[data-course="复分析"]').click();
-    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'复分析');
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'复分析');
     assert.equal(await page.locator('.analysis-course[data-course="复分析"]').getAttribute('aria-pressed'),'true');
     await page.locator('.analysis-course[data-course="泛函分析"]').focus();await page.keyboard.press('Enter');
-    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'泛函分析');
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'泛函分析');
+    await page.locator('.course-heading-button').filter({hasText:'高等代数'}).click();
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'高等代数');
     await page.locator('.analysis-course[data-course="数学分析"]').click();
 
     assert.equal(await page.locator('.analysis-roadmap path[stroke-dasharray]').count(),1);
