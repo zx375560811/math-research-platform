@@ -25,6 +25,31 @@ function diagram(slug) {
   }
   const art = el('div', 'direction-art'); art.append(svg); return art;
 }
+function analysisRoadmap() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const make = (tag, attrs, text) => {
+    const node = document.createElementNS(ns, tag);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const svg = make('svg', {viewBox:'0 0 880 166',role:'img','aria-label':'分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const defs = make('defs', {}), marker = make('marker', {id:'analysis-route-arrow',viewBox:'0 0 8 8',refX:'7',refY:'4',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});
+  marker.append(make('path', {d:'M1 1 L7 4 L1 7',fill:'none',stroke:'#8298c6','stroke-width':'1.4'})); defs.append(marker); svg.append(defs);
+  const edges = [
+    ['M160 83 H190 V23 H220',false],['M160 83 H220',false],['M160 83 H190 V143 H220',false],
+    ['M420 83 H470',false],['M550 45 V61',false],['M630 83 H710',false],['M420 143 H790 V105',true]
+  ];
+  for (const [d, optional] of edges) svg.append(make('path',{d,fill:'none',stroke:'#8298c6','stroke-width':'1.4','marker-end':'url(#analysis-route-arrow)',...(optional ? {'stroke-dasharray':'5 4'} : {})}));
+  for (const [name,x,y,width,kind] of [
+    ['数学分析',0,61,160,'foundation'],['复分析',220,1,200,'branch'],['实分析与测度论',220,61,200,'branch'],
+    ['常微分方程',220,121,200,'branch'],['高等代数',470,1,160,'support'],['泛函分析',470,61,160,'advanced'],['偏微分方程',710,61,160,'advanced']
+  ]) {
+    const group=make('g',{'class':'analysis-course '+kind,'data-course':name});
+    group.append(make('rect',{x,y,width,height:44,rx:9}),make('text',{x:x+width/2,y:y+22,'text-anchor':'middle','dominant-baseline':'central'},name)); svg.append(group);
+  }
+  const box=el('div','analysis-roadmap');box.append(svg);return box;
+}
 export function createLearning({ api, write }) {
   let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
@@ -61,17 +86,17 @@ export function createLearning({ api, write }) {
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
-        $('direction-introduction').classList.toggle('analysis-flow', analysisFlow);
-        const introductionFields = analysisFlow
-          ? [['prerequisites','需要基础'],['research_object','研究对象'],['core_content','核心内容']]
-          : [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']];
-        for (const [field,label] of introductionFields) {
-          const item = el('div','introduction-item'), content = el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。');
-          if (analysisFlow && field === 'core_content' && direction.introduction?.[field]) {
-            content.className = 'analysis-flow-topics';
-            content.replaceChildren(...direction.introduction[field].split('、').filter(Boolean).map(text=>el('span','',text.replace(/[。\s]+$/u,''))));
-          }
-          item.append(el('dt','',label),content); $('direction-introduction').append(item);
+        $('direction-introduction').classList.remove('analysis-flow');
+        $('direction-introduction').classList.toggle('analysis-route', analysisFlow);
+        if (analysisFlow) {
+          const item=el('div','analysis-route-item'), content=el('dd','analysis-route-content');
+          content.append(analysisRoadmap());item.append(el('dt','sr-only','学习路线'),content);
+          $('direction-introduction').append(item);
+        }
+        else for (const [field,label] of [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']]) {
+          const item = el('div','introduction-item');
+          item.append(el('dt','',label),el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。'));
+          $('direction-introduction').append(item);
         }
         function renderBook(target, book, i, previous = null) {
           const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id; const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));

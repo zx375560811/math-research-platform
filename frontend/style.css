@@ -412,3 +412,19 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
  #direction-detail .analysis-flow>.introduction-item:not(:last-child)::before { right:-23px;width:16px; }
  #direction-detail .analysis-flow>.introduction-item:not(:last-child)::after { right:-23px; }
 }
+
+/* The analysis introduction is a branching course roadmap, not three text cards. */
+.analysis-roadmap { overflow-x:auto;scrollbar-width:thin;padding:4px 0; }
+.analysis-roadmap svg { display:block;width:100%;min-width:760px;height:auto; }
+.analysis-course rect { fill:#f8faff;stroke:#dce4f3;stroke-width:1; }
+.analysis-course text { fill:var(--ink);font:16px system-ui,'Microsoft YaHei',sans-serif; }
+.analysis-course.foundation rect { fill:#eef1fc;stroke:#bccbf0; }
+.analysis-course.foundation text { fill:#3655b5;font-weight:600; }
+.analysis-course.advanced rect { fill:#f0f5fc; }
+.analysis-course.support rect { fill:white;stroke-dasharray:4 3; }
+#direction-detail .direction-intro-section { padding:14px 18px;margin-bottom:18px; }
+#direction-detail .textbook-list { gap:14px; }
+#direction-detail .recommendation-language { padding:12px 14px; }
+#direction-detail .recommendation-language .textbook-row { gap:8px; }
+
+.analysis-route-content { margin:0; }
