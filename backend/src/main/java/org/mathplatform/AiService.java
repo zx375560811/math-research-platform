@@ -107,6 +107,21 @@ public class AiService {
         if (value.isObject()) return "object";
         return "scalar";
     }
+    // Reuse the same encrypted providers, network validation, concurrency and usage boundaries.
+    String organize(String username, String source, String instructions, String input) throws java.sql.SQLException {
+        if (!Set.of("default", "custom").contains(source)) throw new ApiProblem(400, "ai_invalid_settings");
+        var provider = settings.provider(source.equals("custom") ? username : null);
+        if (!provider.available()) throw new ApiProblem(503, "ai_not_configured");
+        URI url = endpoint(provider.baseUrl());
+        if (!active.add(username)) throw new ApiProblem(429, "ai_busy");
+        if (!slots.tryAcquire()) { active.remove(username); throw new ApiProblem(429, "ai_busy"); }
+        try {
+            settings.reserve(username, source.equals("default") ? provider.dailyLimit() : 0);
+            var answer=complete(url, provider, List.of(Map.of("role","system","content",instructions),Map.of("role","user","content",input)));
+            if(!answer.warning().isEmpty())throw new ApiProblem(502,"ai_response_budget");
+            return answer.reply();
+        } finally { slots.release(); active.remove(username); }
+    }
     private static ApiProblem responseProblem(String code, tools.jackson.databind.JsonNode value) {
         var first = value == null ? null : value.path("choices").path(0);
         var content = first == null ? null : first.path("message").path("content");

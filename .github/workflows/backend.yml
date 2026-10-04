@@ -37,6 +37,8 @@ jobs:
         run: python3 backend/tests/admin.py
       - name: Check AI settings, PDF context and provider boundaries
         run: python3 backend/tests/ai.py
+      - name: Check background AI library organization
+        run: python3 backend/tests/organizer.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

@@ -47,6 +47,7 @@ class PublicBoundary implements Filter {
             || (java.util.Set.of("PATCH", "DELETE").contains(method) && path.matches("/api/admin/collections/[0-9]+"))
             || (method.equals("PUT") && path.matches("/api/admin/collections/[0-9]+/parent"))
             || (method.equals("PATCH") && path.matches("/api/admin/documents/[0-9]+/name"));
+        adminWrite |= method.equals("POST") && (path.equals("/api/admin/library-ai") || path.matches("/api/admin/library-ai/[a-f0-9-]{36}/control"));
         if (!method.equals("GET") && !authWrite && !learningWrite && !adminWrite && !adminUpload && !aiWrite) {
             http.setStatus(405); http.setHeader("Allow", "GET"); http.setContentType("application/json; charset=utf-8");
             http.getWriter().write("{\"error\":\"method_not_allowed\"}"); return;

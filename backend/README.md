@@ -306,3 +306,14 @@ sudo -u math-platform python3 admin/import_zotero.py "/opt/math-platform/imports
 - 批量删除在数据库事务内完成。文件清理失败会记录到 `library_file_cleanup`，服务器重启后重试；共享文件在仍被其他文献引用时保留。
 
 新增接口均要求管理员权限和 CSRF：`/api/admin/collections`（GET/POST）、`/api/admin/collections/{id}`（PATCH/DELETE）、`/api/admin/collections/{id}/parent`（PUT）、`/api/admin/documents/{id}/name`（PATCH）、`/api/admin/documents/move` 与 `/api/admin/documents/batch-delete`（POST）。批量操作最多 100 篇，目录最多 30 层。
+
+### AI 自动整理
+
+管理员文献库的“AI 整理”按钮可以直接复用该管理员在阅读器保存的“我的 API”，也可使用管理员默认 API；不需要再次提供密钥。
+选择全部文献或当前目录后，服务器每批处理 8 篇，生成“数学主题 → 分析、代数、几何与拓扑等 → 课程/领域”的目录。
+第一版仅发送文献标题、作者与现有非 AI 目录名，不发送文件、聊天记录、高亮或笔记，也不声称读过全文。模型只允许返回固定分类表中的值；低于 0.8 的模型自评结果进入“待确认”。这个数值不是实测准确率。
+原 Zotero 目录、原文件和阅读数据保留；可靠分类同步研究方向，并保留推荐教材与用户自选教材必需的方向关联。
+任务记录在 `ai_library_jobs`/`ai_library_items`，关掉网页仍继续。服务器重启会暂停未完成任务，点击“继续”处理剩余文献。API 失败或额度不足也会暂停，已完成部分不重复调用。
+暂停后进行中的模型请求可能仍计费，但其返回结果不会继续写入。整理按已有 API 配额和每分钟频率规则运行，暂停与继续不会绕过这些限制。
+“撤销本次整理”恢复本次分类前的目录归属和研究方向；整理之后已手动改变分类的记录会跳过，以保留管理员调整。任务运行期间发生改名或移动的文献同样跳过。
+仅一个任务同时运行。个人 API 任务只能由原管理员继续，其他管理员可以暂停或撤销。新增后台 API：`GET/POST /api/admin/library-ai` 与 `POST /api/admin/library-ai/{id}/control`，控制动作是 `pause`、`resume`、`undo`。

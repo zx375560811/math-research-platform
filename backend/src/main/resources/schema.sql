@@ -132,3 +132,22 @@ CREATE INDEX IF NOT EXISTS document_collection_lookup ON document_collections(co
 CREATE INDEX IF NOT EXISTS collection_parent_lookup ON library_collections(parent_id);
 
 CREATE TABLE IF NOT EXISTS library_file_cleanup (path TEXT PRIMARY KEY);
+
+CREATE TABLE IF NOT EXISTS ai_library_jobs (
+ id TEXT PRIMARY KEY, owner TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+ source TEXT NOT NULL CHECK(source IN ('custom','default')), state TEXT NOT NULL,
+ revision INTEGER NOT NULL DEFAULT 0, error TEXT NOT NULL DEFAULT '',
+ created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ai_library_one_running ON ai_library_jobs((1)) WHERE state='running';
+CREATE TABLE IF NOT EXISTS ai_library_items (
+ job_id TEXT NOT NULL REFERENCES ai_library_jobs(id) ON DELETE CASCADE,
+ document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+ title TEXT NOT NULL, authors TEXT NOT NULL,
+ before_folders TEXT NOT NULL, before_directions TEXT NOT NULL,
+ after_folders TEXT NOT NULL DEFAULT '', after_directions TEXT NOT NULL DEFAULT '',
+ state TEXT NOT NULL DEFAULT 'pending', direction TEXT NOT NULL DEFAULT '', topic TEXT NOT NULL DEFAULT '',
+ confidence REAL NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '',
+ PRIMARY KEY(job_id,document_id)
+);
+CREATE INDEX IF NOT EXISTS ai_library_pending ON ai_library_items(job_id,state,document_id);

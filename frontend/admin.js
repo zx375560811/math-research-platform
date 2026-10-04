@@ -1,3 +1,4 @@
+import { createOrganizer } from './admin-organizer.js';
 import { createAdminLibrary } from './admin-library.js';
 const $ = id => document.getElementById(id);
 const state = { document: null, documents: [], subjects: [], books: [], docOffset: 0, inviteOffset: 0, query: '', ready: false };
@@ -5,7 +6,7 @@ const errors = { invalid_documents: '请选择 1–100 篇有效文献。', docu
 function message(text, error = false) { $('document-editor-status').textContent=$('document-editor').open && error ? text : '';  $('admin-message').textContent = text; $('admin-message').hidden = !text; $('admin-message').classList.toggle('error', error); }
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
-  if (!response.ok) { if (response.status === 401) location.replace('/#/admin'); throw new Error(errors[body.error] || '操作失败，请检查连接后重试。'); }
+  if (!response.ok) { if (response.status === 401) location.replace('/#/admin'); const failure=new Error(errors[body.error] || '操作失败，请检查连接后重试。'); failure.code=body.error; throw failure; }
   return body;
 }
 async function write(path, body, method = 'POST', pdf = false) {
@@ -25,6 +26,7 @@ function paging(prefix, offset, count) { $(prefix + '-prev').disabled = offset =
 function resetDocument() { state.document = null; $('document-form').reset(); if (state.subjects.length) $('subject-options').querySelector('input').checked = true; $('document-language').value = 'und'; for (const input of $('document-directions').querySelectorAll('input')) input.checked = input.value === 'algebra'; $('document-file').required = true; $('document-file-label').hidden = false; $('document-cancel').hidden = true; $('document-form-title').textContent = '导入文献'; $('document-save').textContent = '导入文献'; }
 function editDocument(doc) { $('document-editor').showModal();  state.document = doc.id; $('document-module').value = doc.module || 'mathematics'; $('document-language').value = doc.language || 'und'; for (const input of $('document-directions').querySelectorAll('input')) input.checked = (doc.directions || []).includes(input.value); $('document-title').value = doc.title; $('document-authors').value = doc.authors; for (const input of $('subject-options').querySelectorAll('input')) input.checked = doc.subject_ids.includes(Number(input.value)); $('document-file').required = false; $('document-file-label').hidden = true; $('document-cancel').hidden = false; $('document-form-title').textContent = `编辑文献 #${doc.id}`; $('document-save').textContent = '保存信息'; $('document-title').focus(); message(''); }
 const adminLibrary=createAdminLibrary({api,write,editDocument,message,paging,onChoose:()=>{state.docOffset=0;loadDocuments().catch(error=>message(error.message,true));},refresh:async()=>{state.docOffset=0;await loadDocuments();}});
+createOrganizer({api,write,collection:()=>adminLibrary.collection(),refresh:()=>loadDocuments()});
 async function loadDocuments() { state.documents=await adminLibrary.load({offset:state.docOffset,query:state.query})||[]; }
 $('document-import').addEventListener('click',()=>{resetDocument();$('document-editor-status').textContent='';$('document-editor').showModal();$('document-title').focus();});
 $('document-editor-close').addEventListener('click',()=>{if($('document-form').getAttribute('aria-busy')!=='true')$('document-editor').close();});
