@@ -76,7 +76,7 @@ export function createLearning({ api, write }) {
   let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function loadDirections() {
-    directions = (await api('/api/learning/directions')).directions;
+    directions = (await api('/api/learning/directions')).directions.filter(direction => direction.document_count > 0);
     $('featured-directions').replaceChildren(); $('more-directions').replaceChildren();
     for (const direction of directions) {
       const link = el('a', direction.featured ? 'direction-card' : 'direction-small', ''); link.href = `#/apps/mathematics/directions/${direction.slug}`; link.dataset.direction = direction.slug;
@@ -84,6 +84,9 @@ export function createLearning({ api, write }) {
       else link.append(el('strong', '', direction.name));
       $(direction.featured ? 'featured-directions' : 'more-directions').append(link);
     }
+    $('featured-directions').previousElementSibling.hidden = !directions.some(direction => direction.featured);
+    $('more-directions').previousElementSibling.hidden = !directions.some(direction => !direction.featured);
+    $('learning-status').textContent = directions.length ? '' : '研究方向的文献正在准备中，可先前往文档库阅读。';
   }
   async function navigate(hash) {
     close(); current = hash; const version = generation;

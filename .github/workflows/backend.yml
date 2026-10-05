@@ -29,6 +29,8 @@ jobs:
         run: cd backend && ./mvnw -B package
       - name: Check database initialization
         run: python3 backend/tests/schema.py
+      - name: Check direction document availability
+        run: python3 backend/tests/direction_availability.py
       - name: Check Zotero batch import and resume
         run: python3 backend/tests/zotero.py
       - name: Check read-only API and administrator import

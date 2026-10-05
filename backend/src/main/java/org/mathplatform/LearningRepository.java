@@ -21,8 +21,12 @@ public class LearningRepository {
 
     public List<Map<String, Object>> directions() throws SQLException {
         var values = new ArrayList<Map<String, Object>>();
-        try (var c = database.connect(true); var s = c.createStatement(); var rows = s.executeQuery("SELECT * FROM learning_directions ORDER BY sort_order")) {
-            while (rows.next()) values.add(Map.of("slug", rows.getString("slug"), "name", rows.getString("name"), "description", rows.getString("description"), "featured", rows.getBoolean("featured")));
+        String sql = "SELECT r.*,(SELECT COUNT(*) FROM documents d WHERE "
+            + "EXISTS(SELECT 1 FROM document_directions x WHERE x.document_id=d.id AND x.direction=r.slug) "
+            + "OR EXISTS(SELECT 1 FROM learning_books b WHERE b.document_id=d.id AND b.direction=r.slug)) AS document_count "
+            + "FROM learning_directions r ORDER BY r.sort_order";
+        try (var c = database.connect(true); var s = c.createStatement(); var rows = s.executeQuery(sql)) {
+            while (rows.next()) values.add(Map.of("slug", rows.getString("slug"), "name", rows.getString("name"), "description", rows.getString("description"), "featured", rows.getBoolean("featured"), "document_count", rows.getLong("document_count")));
         }
         return values;
     }
