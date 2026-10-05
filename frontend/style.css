@@ -838,3 +838,67 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
   .reading-page .sidebar>.workspace-link { margin-top:auto; }
   .reading-page .sidebar .icon { width:21px;height:21px; }
 }
+
+/* Textbook explorer: select a course, then give its real recommendations room. */
+#direction-detail #textbook-list.textbook-browser { display:grid;grid-template-columns:190px minmax(0,1fr);gap:28px;background:transparent;border:0;border-radius:0;overflow:visible; }
+.textbook-course-nav { display:flex;flex-direction:column;gap:8px;align-self:start; }
+.textbook-course-nav .course-heading-button { display:flex;align-items:center;gap:12px;padding:14px 12px;min-height:56px;width:100%;border-radius:10px;background:transparent;color:var(--muted);line-height:1.5;font-size:15px; }
+.course-index { display:grid;place-items:center;flex-shrink:0;width:28px;height:28px;font-size:14px;font-variant-numeric:tabular-nums;border-radius:8px;background:#e9eef6;color:var(--muted); }
+.textbook-course-nav .course-heading-button:hover { background:#edf1f8;color:var(--ink); }
+.textbook-course-nav .course-heading-button[aria-pressed=true] { background:#e8eefc;color:var(--accent-ink);font-weight:600; }
+.textbook-course-nav .course-heading-button[aria-pressed=true] .course-index { background:var(--blue);color:white; }
+.textbook-course-panels { min-width:0; }
+#direction-detail #textbook-list .textbook-stage { display:block;padding:0;margin:0;background:transparent;box-shadow:none;border:0; }
+#direction-detail #textbook-list .stage-heading { display:block;margin:0 0 22px;padding:0; }
+#direction-detail #textbook-list .stage-heading h3 { font:650 26px/1.4 var(--display);letter-spacing:-.025em; }
+.course-panel-meta { margin:8px 0 0;color:var(--muted);font-size:14px; }
+#direction-detail #textbook-list .recommendation-columns { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px; }
+#direction-detail #textbook-list .recommendation-language { min-width:0;border:0;border-radius:0;padding:0;background:transparent; }
+#direction-detail #textbook-list .recommendation-language>h4 { font-size:15px;font-weight:600;margin:0 0 14px;color:var(--muted); }
+#direction-detail #textbook-list .textbook-row { display:grid;grid-template-columns:72px minmax(0,1fr);align-items:start;gap:20px 16px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:24px;margin:0 0 16px;min-width:0; }
+.textbook-mark { height:104px;border-radius:10px;background:linear-gradient(155deg,#e4ebfc,#f3f6fd);display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:10px 6px;color:var(--accent-ink);overflow:hidden; }
+.textbook-mark-language { font-size:14px;line-height:1.5; }
+.textbook-mark-symbol { font:52px/1.2 var(--math); }
+#direction-detail #textbook-list .textbook-info { min-width:0; }
+#direction-detail #textbook-list .textbook-info h3 { font:600 19px/1.6 var(--display);margin:0;overflow-wrap:anywhere; }
+#direction-detail #textbook-list .textbook-info p { font-size:14px;line-height:1.65;margin:10px 0 0;color:var(--muted); }
+#direction-detail #textbook-list .book-prerequisites { display:block; }
+#direction-detail #textbook-list .book-stage { display:inline-block;margin-top:12px;font-size:14px;padding:3px 8px; }
+#direction-detail #textbook-list .textbook-actions { grid-column:1 / -1;display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:4px; }
+#direction-detail #textbook-list .book-reading-actions { display:flex;flex-direction:column;align-items:stretch;gap:10px; }
+#direction-detail #textbook-list .textbook-actions .button { min-height:44px;padding:10px 12px;font-size:14px; }
+#direction-detail #textbook-list .book-library-choice { background:#f8faff;border-color:#dce4f4; }
+#direction-detail #textbook-list .book-unavailable { display:flex;align-items:center;justify-content:center;min-height:44px;padding:10px 12px;border:1px dashed #cdd7e5;background:#f5f7fb; }
+#direction-detail #textbook-list .book-source { font-size:14px;align-self:flex-start; }
+#direction-detail #textbook-list .book-restore { align-self:flex-start; }
+#direction-detail #textbook-list .book-picker { grid-column:1 / -1;padding:16px;margin-top:0;background:#f5f8fd; }
+#direction-detail #textbook-list .recommendation-empty { display:grid;place-items:center;min-height:220px;padding:24px;background:#f8faff;border:1px dashed #cdd7e5;border-radius:16px;margin:0;line-height:1.6; }
+@media (max-width:1100px) {
+  #direction-detail #textbook-list.textbook-browser { grid-template-columns:160px minmax(0,1fr);gap:20px; }
+  #direction-detail #textbook-list .recommendation-columns { grid-template-columns:minmax(0,1fr); }
+  #direction-detail #textbook-list .textbook-row { grid-template-columns:56px minmax(0,1fr);padding:20px;gap:18px 12px; }
+  .textbook-mark { height:90px; }.textbook-mark-symbol { font-size:44px; }
+}
+@media (max-width:767px) {
+  #direction-detail #textbook-list.textbook-browser { grid-template-columns:minmax(0,1fr);gap:22px; }
+  .textbook-course-nav { flex-direction:row;overflow-x:auto;gap:8px;padding:4px 2px 10px;scrollbar-width:thin; }
+  .textbook-course-nav .course-heading-button { flex:0 0 auto;width:auto;white-space:nowrap;padding:10px 12px;min-height:48px; }
+  .textbook-course-nav .course-index { width:24px;height:24px; }
+  #direction-detail #textbook-list .recommendation-columns { grid-template-columns:minmax(0,1fr);gap:22px; }
+  #direction-detail #textbook-list .stage-heading { margin-bottom:18px; }
+  #direction-detail #textbook-list .stage-heading h3 { font-size:24px; }
+  #direction-detail #textbook-list .textbook-row { grid-template-columns:64px minmax(0,1fr);padding:22px;gap:18px 16px; }
+  .textbook-mark { height:96px; }
+  #direction-detail #textbook-list .recommendation-empty { min-height:140px; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  #direction-detail #textbook-list .textbook-stage:not([hidden]) .recommendation-columns { animation:textbook-reveal .28s ease-out both; }
+  .textbook-course-nav .course-heading-button { transition:background-color .18s ease,color .18s ease; }
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  #direction-detail #textbook-list .textbook-row { transition:transform .2s ease,border-color .2s ease; }
+  #direction-detail #textbook-list .textbook-row:hover { transform:translateY(-3px);border-color:#b7c8eb; }
+  .textbook-mark-symbol { transition:transform .25s ease; }
+  .textbook-row:hover .textbook-mark-symbol { transform:rotate(-6deg); }
+}
+@keyframes textbook-reveal { from { opacity:0;transform:translateY(8px); } to { opacity:1;transform:translateY(0); } }

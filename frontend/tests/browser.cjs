@@ -253,8 +253,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('[data-direction="analysis"]').click();
     await page.locator('.analysis-roadmap svg').waitFor();
     assert.equal(await page.locator('.analysis-course').count(),7);
-    assert.equal(await page.locator('.analysis-textbooks .textbook-stage:visible').count(),7);
-    assert.equal(await page.locator('.course-book-preview:visible').count(),6);
+    assert.equal(await page.locator('.analysis-textbooks .textbook-stage:visible').count(),1);
+    assert.equal(await page.locator('.textbook-course-nav button').count(),7);
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').count(),1);
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'数学分析');
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed) .textbook-row').count(),2);
@@ -265,14 +265,16 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'泛函分析');
     await page.locator('.course-heading-button').filter({hasText:'高等代数'}).click();
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'高等代数');
+    await page.locator('.textbook-course-nav button').first().focus(); await page.keyboard.press('ArrowDown');
+    assert.equal(await page.locator('.textbook-course-nav button[aria-pressed=true]').getAttribute('data-course'),'高等代数');
     await page.locator('.analysis-course[data-course="数学分析"]').click();
 
     assert.equal(await page.locator('.analysis-roadmap path[stroke-dasharray]').count(),1);
     assert.match(await page.locator('.analysis-roadmap svg').getAttribute('aria-label'),/实分析与测度论.*泛函分析/);
-    await page.screenshot({path:path.join(shots,'analysis-roadmap.png'),fullPage:true});
+    await page.screenshot({path:path.join(shots,'analysis-roadmap.png'),fullPage:true,animations:'disabled'});
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-    await page.screenshot({path:path.join(shots,'analysis-roadmap-mobile.png'),fullPage:true});
+    await page.screenshot({path:path.join(shots,'analysis-roadmap-mobile.png'),fullPage:true,animations:'disabled'});
     await page.setViewportSize({width:1440,height:1100});
     await page.locator('.direction-heading .back-link').click();
     await page.locator('[data-direction="algebra"]').click(); await page.locator('.textbook-row').first().waitFor();
@@ -281,11 +283,13 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('[data-book="7"]').textContent(),'开始学习');
     assert.equal(await page.locator('input[type=file],#upload-form').count(),0);
     await page.setViewportSize({width:1366,height:900});
-    assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight));
-    await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true });
-    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true });
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    assert.equal(await page.locator('.textbook-row:visible').count(),2);
+    await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true, animations:'disabled' });
+    await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true, animations:'disabled' });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 });
+    await page.locator('.textbook-course-nav button').filter({hasText:'核心理论'}).click();
     const choiceRow = page.locator('[data-recommendation="8"]');
     await choiceRow.locator('.book-library-choice').click();
     await choiceRow.locator('.book-picker input').fill('Test textbook'); await choiceRow.locator('.book-picker-search button').click();
@@ -299,6 +303,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await choiceRow.locator('[data-book="8"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
     await readerControl(page, 'reader-back'); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('h3').filter({hasText:'Abstract Algebra'}).waitFor();
     assert.equal(await choiceRow.locator('.book-unavailable').textContent(),'文档待接入');
+    await page.locator('.textbook-course-nav button').filter({hasText:'基础入门'}).click();
     await page.locator('[data-book="7"]').click();
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
     assert.equal(await page.locator('#reader-scroll').getAttribute('data-total-pages'),'12');

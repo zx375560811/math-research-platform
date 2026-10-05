@@ -73,7 +73,7 @@ function analysisRoadmap(onChoose) {
   const layout=el('div','analysis-route-layout');layout.append(box,help);return layout;
 }
 export function createLearning({ api, write }) {
-  let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false, selectedAnalysisCourse = '数学分析';
+  let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function loadDirections() {
     directions = (await api('/api/learning/directions')).directions;
@@ -123,8 +123,13 @@ export function createLearning({ api, write }) {
           $('direction-introduction').append(item);
         }
         function renderBook(target, book, i, previous = null) {
-          const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id; const spine = el('div', 'book-spine'); spine.append(el('span', '', String(i + 1).padStart(2, '0')), el('span', '', symbols[direction.slug] || 'ℳ'));
-          const info = el('div', 'textbook-info'); info.append(el('span', 'book-stage', book.stage), el('h3', '', book.title), el('p', '', book.authors), el('p', 'book-prerequisites', book.selected_document_id ? '个人自选文献' : '需要基础：' + book.prerequisites));
+          const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id;
+          const spine = el('div', 'textbook-mark'); spine.setAttribute('aria-hidden','true');
+          spine.append(el('span','textbook-mark-language',(book.language || 'en') === 'zh' ? '中文' : 'English'),el('span','textbook-mark-symbol',symbols[direction.slug] || 'ℳ'));
+          const info = el('div', 'textbook-info'); info.append(el('h3', '', book.title));
+          if(book.authors) info.append(el('p','textbook-author',book.authors));
+          if(book.selected_document_id) info.append(el('span','book-stage','个人自选文献'));
+          else if(book.prerequisites) info.append(el('p','book-prerequisites','需要基础：' + book.prerequisites));
           const actions = el('div', 'textbook-actions'), readingActions = el('div', 'book-reading-actions');
           if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; readingActions.append(link); }
           else readingActions.append(el('span', 'book-unavailable', '文档待接入'));
@@ -166,11 +171,20 @@ export function createLearning({ api, write }) {
         const courses = direction.courses || (analysisFlow ? analysisCourses : ['基础入门','核心理论','进阶学习']);
         const unclassified = analysisFlow && direction.books.some(book=>!courses.includes(book.stage));
         const groups = unclassified ? [...courses,'待归类教材'] : courses;
+        const list = $('textbook-list'); list.classList.add('textbook-browser');
+        const navigation = el('nav', 'textbook-course-nav'); navigation.setAttribute('aria-label', '教材课程');
+        const panels = el('div', 'textbook-course-panels');
         for (const [index, stage] of groups.entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
-          const heading = el('div', 'stage-heading'); if (!analysisFlow) heading.append(el('span', 'stage-number', String(index + 1))); const courseTitle=el('h3','',stage);
-          if(analysisFlow){ const toggle=el('button','course-heading-button',stage);toggle.type='button';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','analysis-books-'+index);toggle.addEventListener('click',()=>selectCourse(stage));courseTitle.replaceChildren(toggle); }
-          heading.append(courseTitle); section.append(heading);
+          section.id = 'textbook-panel-' + direction.slug + '-' + index; section.hidden = true;
+          const button = el('button', 'course-heading-button'); button.type = 'button'; button.dataset.course = stage;
+          button.id = section.id + '-control'; button.setAttribute('aria-controls', section.id); button.setAttribute('aria-pressed', 'false');
+          button.append(el('span', 'course-index', String(index + 1).padStart(2, '0')), el('span', '', stage));
+          button.addEventListener('click', () => selectCourse(stage)); navigation.append(button);
+          section.setAttribute('aria-labelledby', button.id);
+          const heading = el('div', 'stage-heading'); heading.append(el('h3', '', stage));
+          const count = direction.books.filter(book => stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage).length;
+          heading.append(el('p', 'course-panel-meta', count + ' 本推荐教材')); section.append(heading);
           const columns = el('div', 'recommendation-columns');
           if(analysisFlow) columns.id='analysis-books-'+index;
           for (const [language, label] of [['zh', '中文推荐'], ['en', '英文推荐']]) {
@@ -180,30 +194,38 @@ export function createLearning({ api, write }) {
             if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐'));
             columns.append(group);
           }
-          if(analysisFlow){ const preview=el('button','course-book-preview');preview.type='button';preview.setAttribute('aria-controls',columns.id);preview.setAttribute('aria-expanded','false');preview.addEventListener('click',()=>selectCourse(stage));
-            for(const language of ['zh','en']) {const title=el('span');title.dataset.language=language;preview.append(title);} section.append(preview); }
-          section.append(columns); $('textbook-list').append(section);
+          section.append(columns); panels.append(section);
         }
-        if (analysisFlow) {
+        list.append(navigation, panels);
+        const storageKey = 'axiom:textbook-course:' + direction.slug;
           selectCourse = name => {
             if (!groups.includes(name)) return;
-            selectedAnalysisCourse = name;
-            for (const section of $('textbook-list').children) {
-              const selected=section.dataset.stage===name;section.classList.toggle('course-collapsed',!selected);
-              for(const button of section.querySelectorAll('.course-heading-button,.course-book-preview')) button.setAttribute('aria-expanded',String(selected));
-              for(const label of section.querySelectorAll('.course-book-preview span')) {const title=section.querySelector('.recommendation-language[data-language="'+label.dataset.language+'"] .textbook-info h3')?.textContent || '暂无推荐';label.textContent=title;label.title=title;}
+            for (const section of panels.children) {
+              const selected=section.dataset.stage===name;section.hidden=!selected;section.classList.toggle('course-collapsed',!selected);
             }
+            for (const button of navigation.children) button.setAttribute('aria-pressed', String(button.dataset.course === name));
             for (const node of $('direction-introduction').querySelectorAll('[data-course]')) {
               const selected = node.dataset.course === name;
               node.setAttribute('aria-pressed',String(selected)); node.classList.toggle('selected',selected);
             }
+            try { sessionStorage.setItem(storageKey, name); } catch {}
           };
+          navigation.addEventListener('keydown', event => {
+            const buttons = [...navigation.children], index = buttons.indexOf(event.target); if (index < 0) return;
+            let next;
+            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % buttons.length;
+            else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (index + buttons.length - 1) % buttons.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = buttons.length - 1;
+            else return;
+            event.preventDefault(); buttons[next].focus(); selectCourse(buttons[next].dataset.course);
+          });
           if (unclassified) {
             const pending=el('button','button compact unclassified-books','待归类教材');pending.type='button';
             pending.addEventListener('click',()=>selectCourse('待归类教材'));$('direction-introduction').querySelector('.analysis-route-content').append(pending);
           }
-          selectCourse(groups.includes(selectedAnalysisCourse) ? selectedAnalysisCourse : '数学分析');
-        }
+          let remembered; try { remembered = sessionStorage.getItem(storageKey); } catch {}
+          selectCourse(groups.includes(remembered) ? remembered : groups[0]);
 
       } else if (!directions.length) await loadDirections();
     } catch (error) {
