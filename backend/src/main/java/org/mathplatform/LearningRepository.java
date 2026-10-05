@@ -53,14 +53,14 @@ public class LearningRepository {
         }
         return value;
     }
-    private static String bookQuery() { return "SELECT b.*,coalesce(x.language,'en') AS language,s.document_id AS selected_document_id,d.title AS selected_title,d.authors AS selected_authors,coalesce(s.document_id,b.document_id) AS effective_document_id,p.page,p.total_pages,p.position,p.zoom FROM learning_books b LEFT JOIN learning_book_details x ON x.book_id=b.id LEFT JOIN learning_selections s ON s.book_id=b.id AND s.username=? LEFT JOIN documents d ON d.id=s.document_id LEFT JOIN document_progress p ON p.document_id=coalesce(s.document_id,b.document_id) AND p.username=?"; }
+    private static String bookQuery() { return "SELECT b.*,coalesce(x.language,'en') AS language,s.document_id AS selected_document_id,d.title AS selected_title,d.authors AS selected_authors,coalesce(s.document_id,b.document_id) AS effective_document_id,p.page,p.total_pages,p.position,p.zoom FROM learning_books b LEFT JOIN learning_book_details x ON x.book_id=b.id LEFT JOIN learning_selections s ON s.book_id=b.id AND s.username=? LEFT JOIN documents d ON d.id=coalesce(s.document_id,b.document_id) LEFT JOIN document_progress p ON p.document_id=coalesce(s.document_id,b.document_id) AND p.username=?"; }
     private Map<String, Object> bookValue(ResultSet row) throws SQLException {
         var value = new LinkedHashMap<String, Object>();
         value.put("id", row.getLong("id"));
         for (String key : List.of("direction", "title", "authors", "stage", "prerequisites", "source_url", "language")) value.put(key, row.getString(key));
         long selected = row.getLong("selected_document_id"); value.put("selected_document_id", selected == 0 ? null : selected);
-        if (selected != 0) { value.put("title", LibraryRepository.displayTitle(row.getString("selected_title"))); value.put("authors", row.getString("selected_authors")); value.put("source_url", ""); }
         long document = row.getLong("effective_document_id"); value.put("available", document != 0);
+        if (document != 0) { value.put("title", LibraryRepository.displayTitle(row.getString("selected_title"))); value.put("authors", row.getString("selected_authors")); value.put("source_url", ""); }
         value.put("file_url", document == 0 ? null : "/api/documents/" + document + "/file");
         value.put("format", document == 0 ? "pdf" : database.format(document));
         int page = row.getInt("page");

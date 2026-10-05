@@ -76,7 +76,7 @@ export function createLearning({ api, write }) {
   let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function loadDirections() {
-    directions = (await api('/api/learning/directions')).directions.filter(direction => direction.document_count > 0);
+    directions = (await api('/api/learning/directions')).directions.filter(direction => ['analysis','geometry-topology','algebra'].includes(direction.slug) && direction.document_count > 0).map(direction=>({...direction,name:direction.slug==='geometry-topology'?'几何':direction.name}));
     $('featured-directions').replaceChildren(); $('more-directions').replaceChildren();
     for (const direction of directions) {
       const link = el('a', direction.featured ? 'direction-card' : 'direction-small', ''); link.href = `#/apps/mathematics/directions/${direction.slug}`; link.dataset.direction = direction.slug;
@@ -109,6 +109,7 @@ export function createLearning({ api, write }) {
       } else if (detail) {
         $('textbook-list').replaceChildren(); $('direction-introduction').replaceChildren(); $('direction-title').textContent = '正在加载…';
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
+        direction.books = direction.books.filter(book => book.available);
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
         let selectCourse = () => {};

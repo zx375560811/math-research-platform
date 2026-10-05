@@ -3,13 +3,14 @@ const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!=null)node.textContent=text;if(cls)node.className=cls;return node;};
 const option=(text,value)=>{const node=el('option',text);node.value=value;return node;};
 export function createAdminBooks({api,write,message,directions}) {
+  const recommendationDirections = () => directions().filter(d => ['analysis','geometry-topology','algebra'].includes(d.slug)).map(d=>({...d,name:d.slug==='geometry-topology'?'几何':d.name}));
   let books=[],courses={},direction='',course='',editing=null,documents=[],folders=[],offset=0,generation=0,loading=false,saving=false,failed=false,chosen='';
   const dialog=$('book-editor');
   const stages=slug=>courses[slug]||['基础入门','核心理论','进阶学习'];
   const name=slug=>directions().find(d=>d.slug===slug)?.name||slug;
   function control(text,callback,iconName) { const node=el('button',null,'button compact');node.type='button';if(iconName){const icon=el('span');icon.dataset.icon=iconName;icon.setAttribute('aria-hidden','true');node.append(icon);}node.append(document.createTextNode(text));node.addEventListener('click',callback);return node; }
   function render() {
-    const filter=$('books-direction-filter');filter.replaceChildren(...directions().map(d=>option(d.name,d.slug)));filter.value=direction;
+    const filter=$('books-direction-filter');filter.replaceChildren(...recommendationDirections().map(d=>option(d.name,d.slug)));filter.value=direction;
     const tabs=$('book-courses');tabs.replaceChildren();
     const extra=[...new Set(books.filter(b=>b.direction===direction&&!stages(direction).includes(b.stage)).map(b=>b.stage))];
     const values=[...stages(direction),...extra];if(!values.includes(course))course=values[0];
@@ -24,7 +25,8 @@ export function createAdminBooks({api,write,message,directions}) {
     mountIcons();
   }
   async function load() {
-    const body=await api('/api/admin/books');books=body.books;courses=body.courses||{};
+    const body=await api('/api/admin/books');books=body.books.filter(book=>book.document_id && recommendationDirections().some(d=>d.slug===book.direction));courses=body.courses||{};
+    $('book-direction').replaceChildren(...recommendationDirections().map(d=>option(d.name,d.slug)));
     courses.analysis=body.analysis_courses||courses.analysis||['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
     if(!direction)direction=directions().some(d=>d.slug==='analysis')?'analysis':directions()[0]?.slug;render();
   }
@@ -33,6 +35,15 @@ export function createAdminBooks({api,write,message,directions}) {
     if(selected&&!values.includes(selected)){const pending=option('请选择新的课程','');pending.disabled=true;$('book-stage').prepend(pending);$('book-stage').value='';}else $('book-stage').value=selected||values[0];
   }
   function path(folder) { const names=[],seen=new Set();while(folder&&!seen.has(folder.id)){seen.add(folder.id);names.unshift(folder.name);folder=folders.find(f=>f.id===folder.parent_id);}return names.join(' / '); }
+  function recommendationFolders() {
+    return [['分析',['分析']],['几何',['几何','几何与拓扑']],['代数',['代数']]].flatMap(([label,names])=>{
+      const matches=folders.filter(folder=>names.includes(folder.name)).sort((a,b)=>{
+        const preferred=folder=>folders.find(parent=>parent.id===folder.parent_id)?.name==='数学主题'?0:1;
+        return preferred(a)-preferred(b)||path(a).split(' / ').length-path(b).split(' / ').length||a.id-b.id;
+      });
+      return matches.length?[option(label,matches[0].id)]:[];
+    });
+  }
   function syncSave() { $('book-save').disabled=loading||saving||failed;$('book-editor').setAttribute('aria-busy',String(loading||saving)); }
   function context() { $('book-context').textContent=`${name($('book-direction').value)} / ${$('book-stage').selectedOptions[0]?.textContent||course} / ${$('book-language').selectedOptions[0].textContent}`; }
   async function loadDocuments() {
@@ -56,7 +67,7 @@ export function createAdminBooks({api,write,message,directions}) {
     $('book-title').value=book?.title||'';$('book-author-input').value=book?.authors||'';$('book-source').value=book?.source_url||'';$('book-prerequisites').value=book?.prerequisites||'';$('book-order').value=book?.sort_order??10;
     $('book-document').required=!book;context();
     dialog.showModal();$('book-title').focus();
-    try { const body=await api('/api/admin/collections');if(version!==generation)return;folders=body.collections;$('book-folder').replaceChildren(option('全部目录',''),...folders.map(f=>option(path(f),f.id)),option('未归入目录','unfiled'));await loadDocuments(); }
+    try { const body=await api('/api/admin/collections');if(version!==generation)return;folders=body.collections;$('book-folder').replaceChildren(option('全部文献',''),...recommendationFolders());await loadDocuments(); }
     catch(error){if(version===generation){failed=true;loading=false;syncSave();$('book-editor-error').textContent=error.message;}}
   }
   $('books-direction-filter').addEventListener('change',()=>{direction=$('books-direction-filter').value;course='';render();});

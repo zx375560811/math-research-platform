@@ -150,6 +150,10 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/books/7', {**config, 'document_id': 999}, 'PUT')[0] == 404
             assert write('/api/admin/books/7', config, 'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['available']
+            actual_book = request('/api/learning/books/7')[1]
+            assert actual_book['title'] == 'Changed title' and actual_book['authors'] == 'New author'
+            actual_config = next(b for b in request('/api/admin/books')[1]['books'] if b['id'] == 7)
+            assert actual_config['title'] == actual_book['title'] and actual_config['authors'] == actual_book['authors']
             assert write('/api/learning/books/7/progress', {'page': 1, 'total_pages': 2, 'position': .3, 'zoom': 1.2}, 'PUT')[0] == 200
             assert write('/api/admin/books/7', {**config, 'document_id': None}, 'PUT')[0] == 200
             assert request('/api/learning/books/7')[1]['available'] is False

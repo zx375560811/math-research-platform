@@ -127,10 +127,11 @@ public class AdminController {
     @GetMapping("/books")
     public Map<String, Object> books(Authentication user) throws SQLException {
         authorize(user); List<Map<String, Object>> values = new ArrayList<>();
-        try (var db = library.connect(true); var query = db.createStatement(); var rows = query.executeQuery("SELECT b.*,coalesce(x.language,'en') AS language,d.name AS direction_name FROM learning_books b JOIN learning_directions d ON d.slug=b.direction LEFT JOIN learning_book_details x ON x.book_id=b.id ORDER BY d.sort_order,b.sort_order,b.id")) {
+        try (var db = library.connect(true); var query = db.createStatement(); var rows = query.executeQuery("SELECT b.*,coalesce(x.language,'en') AS language,d.name AS direction_name,doc.title AS document_title,doc.authors AS document_authors FROM learning_books b JOIN learning_directions d ON d.slug=b.direction LEFT JOIN learning_book_details x ON x.book_id=b.id LEFT JOIN documents doc ON doc.id=b.document_id ORDER BY d.sort_order,b.sort_order,b.id")) {
             while (rows.next()) {
                 Map<String, Object> value = new LinkedHashMap<>();
                 for (String field : List.of("title", "authors", "direction", "direction_name", "stage", "prerequisites", "language", "source_url")) value.put(field, rows.getString(field));
+                if (rows.getObject("document_id") != null) { value.put("title", LibraryRepository.displayTitle(rows.getString("document_title"))); value.put("authors", rows.getString("document_authors")); value.put("source_url", ""); }
                 value.put("id", rows.getLong("id")); value.put("sort_order", rows.getInt("sort_order")); value.put("document_id", rows.getObject("document_id")); values.add(value);
             }
         }

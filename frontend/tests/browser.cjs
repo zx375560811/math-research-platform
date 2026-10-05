@@ -14,10 +14,10 @@ const {fixtureDjvuBundle} = require('./fixture-djvu.cjs');
 const djvu = fixtureDjvuBundle(3);
 let nativeId;
 const directions = [['analysis','分析',true],['geometry-topology','几何与拓扑',true],['algebra','代数',true],['number-theory','数论',false],['probability-statistics','概率与统计',false],['computational','计算数学与数值方法',false],['optimization','优化与数学建模',false],['discrete-foundations','离散数学与数学基础',false]].map(([slug,name,featured]) => ({slug,name,featured,document_count:['analysis','algebra'].includes(slug)?1:0,description:'研究结构与数学问题'}));
-const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:false,file_url:null}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
+const mockBooks = [{id:7,direction:'algebra',title:'Linear Algebra Done Right',authors:'Sheldon Axler',stage:'基础入门',prerequisites:'基本证明方法',source_url:'https://linear.axler.net/',available:true,file_url:'/api/documents/1/file'}, {id:8,direction:'algebra',title:'Abstract Algebra: Theory and Applications',authors:'Thomas W. Judson',stage:'核心理论',prerequisites:'线性代数',source_url:'https://scholarworks.sfasu.edu/ebooks/23/',available:true,document_id:1,file_url:'/api/documents/1/file'}, {id:9,direction:'algebra',title:'Representation Theory: A First Course',authors:'William Fulton, Joe Harris',stage:'进阶学习',prerequisites:'群论与线性代数',source_url:'https://link.springer.com/book/10.1007/978-1-4612-0979-9',available:false,file_url:null}];
 for (const [i, stage] of ['基础入门','核心理论','进阶学习'].entries()) mockBooks.push({id:106+i,direction:'algebra',title:['高等代数','近世代数基础','交换代数基础'][i],authors:'中文推荐作者',stage,language:'zh',prerequisites:'前一阶段基础',source_url:'https://2d.hep.com.cn/585562293/3',available:false,file_url:null});
 const analysisCourses=['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
-for(const [i,course] of analysisCourses.entries()) for(const [j,language] of ['zh','en'].entries()) mockBooks.push({id:400+i*2+j,direction:'analysis',title:course+' · '+(language==='zh'?'中文教材':'English textbook'),authors:'Course author',stage:course,language,prerequisites:'',source_url:'',available:false,file_url:null});
+for(const [i,course] of analysisCourses.entries()) for(const [j,language] of ['zh','en'].entries()) mockBooks.push({id:400+i*2+j,direction:'analysis',title:course+' · '+(language==='zh'?'中文教材':'English textbook'),authors:'Course author',stage:course,language,prerequisites:'',source_url:'',available:i===0,document_id:i===0?1:null,file_url:i===0?'/api/documents/1/file':null});
 const subjects = [{ id: 1, slug: 'algebra', name: '代数' }, { id: 2, slug: 'number-theory', name: '数论' }, { id: 3, slug: 'analysis', name: '分析' }, { id: 4, slug: 'geometry-topology', name: '几何与拓扑' }, { id: 5, slug: 'other', name: '其他数学方向' }];
 async function readerControl(page, id) { await page.locator('#' + id).click(); }
 async function assertTransparentSelection(page, selector) {
@@ -53,7 +53,7 @@ async function main() {
       nativeId = 22; const nativeDocument = {id:nativeId,title:'Native DjVu',authors:'Test',subject_ids:[1],file_size:djvu.length,module:'mathematics',language:'en',directions:['algebra'],format:'djvu',file_url:'/api/documents/22/file'};
       const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0;
       const bookValue = (book,user) => {
-        const selected = selections.get(user+':'+book.id), doc = documents.find(doc=>doc.id===selected);
+        const selected = selections.get(user+':'+book.id), doc = documents.find(doc=>doc.id===(selected||book.document_id||(book.id===7?1:null)));
         return {...book,...(doc ? {title:doc.title,authors:doc.authors,source_url:'',available:true,file_url:doc.file_url} : {}),selected_document_id:selected||null,progress:progress.get(user+':doc:'+(selected||1))||null};
       };
       server = http.createServer(async (req, res) => {
@@ -152,7 +152,7 @@ async function main() {
       const issued = spawnSync('python3', [path.join(repo, 'backend/admin/create_invitation.py')], { cwd: temp, encoding: 'utf8' }); assert.equal(issued.status, 0, issued.stderr); invitation = issued.stdout.trim();
       fs.writeFileSync(path.join(temp, 'source.pdf'), pdf);
       const imported = spawnSync('python3', [path.join(repo, 'backend/admin/import_document.py'), 'source.pdf', '--title', 'Test textbook', '--authors', 'Test author', '--subject-id', '1'], { cwd: temp, encoding: 'utf8' }); assert.equal(imported.status,0,imported.stderr);
-      const collections=spawnSync('python3',['-c',`import sqlite3,json;db=sqlite3.connect('data/math.db');rows=[(100,None,'大学数学基础'),(101,100,'分析'),(102,101,'复分析'),(103,100,'代数'),(104,100,'读书笔记')];db.executemany('INSERT INTO library_collections(id,parent_id,name,source,path_key,sort_order) VALUES(?,?,?,?,?,?)',[(i,parent,name,'browser.rdf',str(i),i) for i,parent,name in rows]);db.executemany('INSERT INTO document_collections VALUES(?,?)',[(1,102),(1,103)]);db.execute("INSERT OR IGNORE INTO document_directions VALUES(1,'analysis')");db.commit();db.close()`],{cwd:temp,encoding:'utf8'});assert.equal(collections.status,0,collections.stderr);
+      const collections=spawnSync('python3',['-c',`import sqlite3,json;db=sqlite3.connect('data/math.db');rows=[(100,None,'大学数学基础'),(101,100,'分析'),(102,101,'复分析'),(103,100,'代数'),(104,100,'读书笔记')];db.executemany('INSERT INTO library_collections(id,parent_id,name,source,path_key,sort_order) VALUES(?,?,?,?,?,?)',[(i,parent,name,'browser.rdf',str(i),i) for i,parent,name in rows]);db.executemany('INSERT INTO document_collections VALUES(?,?)',[(1,102),(1,103)]);db.execute("INSERT OR IGNORE INTO document_directions VALUES(1,'analysis')");db.execute("UPDATE learning_books SET document_id=1 WHERE id IN(1,100,8)");db.commit();db.close()`],{cwd:temp,encoding:'utf8'});assert.equal(collections.status,0,collections.stderr);
       const linked = spawnSync('python3', [path.join(repo, 'backend/admin/link_textbook.py'),'7',String(JSON.parse(imported.stdout).id)],{cwd:temp,encoding:'utf8'});assert.equal(linked.status,0,linked.stderr);
     }
     assert.equal((await fetch(base + '/api/documents', { method: 'POST', body: pdf })).status, 405);
@@ -223,7 +223,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.unroute(directionEndpoint);
     await page.route(directionEndpoint, route => route.fulfill({contentType:'application/json',body:JSON.stringify({directions:directions.map(direction=>({...direction,document_count:['geometry-topology','number-theory'].includes(direction.slug)?1:direction.document_count}))})}));
     await page.reload(); await page.locator('[data-direction="geometry-topology"]').waitFor({state:'attached'});
-    assert.equal(await page.locator('[data-direction="number-theory"]').count(),1);
+    assert.equal(await page.locator('[data-direction="number-theory"]').count(),0);
     await page.unroute(directionEndpoint);
     await page.reload(); await page.waitForFunction(()=>document.querySelectorAll('#featured-directions .direction-card').length===2);
     await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
@@ -296,12 +296,13 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.direction-heading .back-link').click();
     await page.locator('[data-direction="algebra"]').click(); await page.locator('.textbook-row').first().waitFor();
     assert.equal(await page.locator('#direction-introduction dt').count(),3); assert.match(await page.locator('#direction-introduction').textContent(),/研究对象.*核心内容.*需要基础/); assert.equal(await page.locator('#direction-questions').count(),0);
-    assert.equal(await page.locator('.textbook-row').count(),6); assert.equal(await page.locator('.textbook-stage').count(),3); for(const stage of ['基础入门','核心理论','进阶学习']) for(const language of ['zh','en']) assert.equal(await page.locator(`.textbook-stage[data-stage="${stage}"] .recommendation-language[data-language="${language}"] .textbook-row`).count(),1);
+    assert.equal(await page.locator('.textbook-row').count(),2); assert.equal(await page.locator('.textbook-stage').count(),3);
+    assert.equal(await page.locator('[data-recommendation="9"],[data-recommendation="106"]').count(),0);
     assert.equal(await page.locator('[data-book="7"]').textContent(),'开始学习');
     assert.equal(await page.locator('input[type=file],#upload-form').count(),0);
     await page.setViewportSize({width:1366,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-    assert.equal(await page.locator('.textbook-row:visible').count(),2);
+    assert.equal(await page.locator('.textbook-row:visible').count(),1);
     await page.screenshot({ path: path.join(shots, 'direction-desktop.png'), fullPage: true, animations:'disabled' });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'direction-mobile.png'), fullPage: true, animations:'disabled' });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
@@ -318,8 +319,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.match(page.url(),/directions\/algebra$/); assert.equal(await choiceRow.locator('[data-book="8"]').textContent(),'开始学习');
     await page.reload(); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
     await choiceRow.locator('[data-book="8"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
-    await readerControl(page, 'reader-back'); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('h3').filter({hasText:'Abstract Algebra'}).waitFor();
-    assert.equal(await choiceRow.locator('.book-unavailable').textContent(),'文档待接入');
+    await readerControl(page, 'reader-back'); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('.book-restore').waitFor({state:'hidden'});
+    assert.match(await choiceRow.locator('[data-book="8"]').textContent(),/继续学习|开始学习/);
     await page.locator('.textbook-course-nav button').filter({hasText:'基础入门'}).click();
     await page.locator('[data-book="7"]').click();
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
