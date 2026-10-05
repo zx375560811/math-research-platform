@@ -122,9 +122,8 @@ body.reading-page { overflow:hidden; }
 .reader-outline { width:var(--reader-outline-width,220px);border:0; }.reader-notes { width:var(--reader-notes-width,280px);border:0;padding:18px; }
 .reader-foot { flex-shrink:0;margin:0;padding:4px 14px;font-size:14px;line-height:1.6;background:white;border-top:1px solid var(--line); }
 #reader-view:fullscreen { width:100%;height:100dvh; }
-/* Reading takes the full viewport; leaving the reader restores application navigation. */
-.reading-page .sidebar { display:none; }
-.reading-page .workspace { margin-left:0; }
+/* Small screens keep the original distraction-free reading layout. */
+@media (max-width:900px) { .reading-page .sidebar { display:none; }.reading-page .workspace { margin-left:0; } }
 @media (max-width:650px) {
 .reading-page #main-content { padding:0; }.reader-heading { display:flex;padding:8px 10px;gap:12px; }.reader-heading h1 { margin:0;font-size:14px; }.reader-heading .back-link { font-size:14px; }
 .reader-toolbar { gap:6px;padding:7px 8px; }.reader-toolbar .button { font-size:14px;padding:5px 7px; }.reader-toolbar input { width:45px; }.reader-toolbar select { max-width:108px; }.reader-toolbar input,.reader-toolbar select { font-size:14px; }.reader-toolbar label { font-size:14px; }
@@ -822,3 +821,19 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
   .auth-tabs a, .library-read, .library-extra-filters summary { transition: background-color .16s ease, border-color .16s ease; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Desktop reading keeps a compact, keyboard-accessible application rail. */
+@media (min-width:901px) {
+  .reading-page .sidebar { width:64px;padding:24px 10px;overflow:visible; }
+  .reading-page .workspace { margin-left:64px; }
+  .reading-page .sidebar .brand { justify-content:center;padding:0;margin-bottom:26px; }
+  .reading-page .sidebar .brand-wordmark { width:44px; }
+  .reading-page .sidebar .brand small,
+  .reading-page .sidebar .nav-heading,
+  .reading-page .sidebar .nav-label { display:none; }
+  .reading-page .sidebar nav,.reading-page .sidebar .subject-nav { display:grid;gap:8px; }
+  .reading-page .sidebar .workspace-link,.reading-page .sidebar .subject-nav a { width:44px;min-height:44px;justify-content:center;gap:0;padding:10px; }
+  .reading-page .sidebar .subject-nav { margin-top:8px; }
+  .reading-page .sidebar>.workspace-link { margin-top:auto; }
+  .reading-page .sidebar .icon { width:21px;height:21px; }
+}

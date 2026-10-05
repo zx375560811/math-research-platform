@@ -215,10 +215,10 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('#admin-link').isVisible(), false);
     const libraryIcon = page.locator('#library-link [data-icon]');
     await page.locator('#library-link').hover();
-    assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
+    assert.equal(await libraryIcon.getAttribute('data-icon'),'file');
     const duringMorph = await libraryIcon.locator('path').getAttribute('d');
     await page.waitForFunction(previous=>document.querySelector('#library-link path').getAttribute('d')!==previous,duringMorph);
-    await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'workspace');
+    await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
 
     const mathCases = await page.evaluate(async () => {
       const {renderAnswer}=await import('/richtext.js');
@@ -302,10 +302,13 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.pdf-page').count(),12);
     assert.equal(await page.locator('#reader-notes').isVisible(),true); assert.equal(await page.locator('#reader-outline').isVisible(),false); assert.equal(await page.locator('#reader-outline-toggle').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('.topbar').isVisible(),false);
-    assert.equal(await page.locator('.sidebar').isVisible(),false);
+    assert.equal(await page.locator('.sidebar').isVisible(),true);
+    assert.equal((await page.locator('.sidebar').boundingBox()).width,64);
+    assert.equal(await page.locator('#library-link').getAttribute('aria-label'),'文档库');
+    assert.equal(await page.locator('#library-link .nav-label').isVisible(),false);
     const readerWorkspace = await page.locator('.workspace').boundingBox();
-    assert.equal(readerWorkspace.x,0);
-    assert.equal(readerWorkspace.width,page.viewportSize().width);
+    assert.equal(readerWorkspace.x,64);
+    assert.equal(readerWorkspace.width,page.viewportSize().width-64);
     assert.equal(await page.locator('#reader-heading').isVisible(),true);
     assert.equal(await page.locator('#reader-tools-toggle').count(),0);
     assert.equal(await page.locator('.reader-note-pane h2').count(),0);
@@ -470,6 +473,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await secondContext.close();
     await readerControl(page, 'reader-back');await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
     assert.equal(await page.locator('.sidebar').isVisible(),true);
+    assert.equal((await page.locator('.sidebar').boundingBox()).width,216);
+    assert.equal(await page.locator('#library-link .nav-label').isVisible(),true);
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
@@ -489,8 +494,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     let libraryProgress;
     for(let attempt=0;attempt<100;attempt++){libraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;if(libraryProgress?.page===3)break;await page.waitForTimeout(100);}
     assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
-    assert.equal(await page.locator('.sidebar').isVisible(),false);
-    assert.equal((await page.locator('.workspace').boundingBox()).width,page.viewportSize().width);
+    assert.equal(await page.locator('.sidebar').isVisible(),true);
+    assert.equal((await page.locator('.sidebar').boundingBox()).width,64);
+    assert.equal((await page.locator('.workspace').boundingBox()).width,page.viewportSize().width-64);
     await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor();assert.match(page.url(),/collection=102/);await page.locator('[data-collection="102"]').waitFor();
     assert.equal(await page.locator('.sidebar').isVisible(),true);
     await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
