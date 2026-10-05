@@ -110,3 +110,20 @@
 @media(max-width:1100px) { .book-workspace { grid-template-columns:160px minmax(0,1fr);gap:20px; }.book-language-grid { gap:20px; }.book-recommendation { flex-wrap:wrap; }.book-recommendation-info { flex-basis:100%; } }
 @media(max-width:800px) { .book-page-heading { flex-wrap:wrap;gap:16px; }.book-workspace { display:block; }.book-course-nav { display:flex;overflow-x:auto;gap:8px;padding-bottom:16px; }.admin-page .book-course-nav .button { flex-shrink:0;white-space:nowrap; }.book-language-grid { grid-template-columns:1fr;gap:4px; }.book-recommendation { flex-wrap:nowrap; }.book-recommendation-info { flex-basis:auto; }.book-form-context { grid-template-columns:1fr;gap:0; }.book-editor-dialog .book-form-metadata { grid-template-columns:1fr;gap:0; }.book-direction-control { flex:1; }.admin-page .book-direction-control select { width:100%; }.book-course-heading { padding-top:12px; }.book-course-heading h2 { font-size:21px; } }
 @media(max-width:800px) { .admin-library-heading { flex-wrap:wrap; }.admin-library-heading .admin-actions { flex-wrap:wrap; } }
+
+/* Management uses the shared Axiom visual tokens; product geometry stays local. */
+.admin-rail { background:#fbfcfe; }
+.admin-rail nav a { border-radius:var(--radius-control); }
+.admin-rail nav a[aria-current] { background:#e9eefb;box-shadow:inset 2px 0 0 var(--blue); }
+.admin-heading h1 { font-family:var(--display);font-weight:650;letter-spacing:-.035em; }
+.admin-editor,.admin-dialog,.admin-library-browser { border-radius:var(--radius-sheet);border-color:var(--line); }
+.admin-editor,.admin-library-browser { box-shadow:var(--shadow-soft); }
+.admin-dialog { box-shadow:0 24px 80px #20324c26; }
+.admin-dialog::backdrop { background:#20324c66; }
+.admin-library-folders { background:#f8fafd; }
+.admin-page input,.admin-page select { background:var(--field);border-color:var(--field-line); }
+.admin-page label,.admin-page legend { color:var(--ink); }
+.book-course-nav { gap:6px; }
+.admin-page .book-course-nav .button[aria-pressed=true] { border-color:#d9e2f4;background:#e9eefb;color:var(--accent-ink); }
+.book-course-heading h2 { font-weight:650;letter-spacing:-.025em; }
+.book-recommendation h4 { font-weight:600; }
