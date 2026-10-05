@@ -254,7 +254,8 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.analysis-roadmap svg').waitFor();
     assert.equal(await page.locator('.analysis-course').count(),7);
     assert.equal(await page.locator('.analysis-textbooks .textbook-stage:visible').count(),1);
-    assert.equal(await page.locator('.textbook-course-nav button').count(),7);
+    assert.equal(await page.locator('.textbook-course-nav button,.textbook-course-nav a,.textbook-course-nav [tabindex]').count(),0);
+    assert.equal(await page.locator('.textbook-course-nav li').count(),7);
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').count(),1);
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'数学分析');
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed) .textbook-row').count(),2);
@@ -263,10 +264,11 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.analysis-course[data-course="复分析"]').getAttribute('aria-pressed'),'true');
     await page.locator('.analysis-course[data-course="泛函分析"]').focus();await page.keyboard.press('Enter');
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'泛函分析');
-    await page.locator('.course-heading-button').filter({hasText:'高等代数'}).click();
+    await page.locator('.course-heading-label').filter({hasText:'高等代数'}).click();
+    assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'泛函分析');
+    assert.equal(await page.locator('.course-heading-label[aria-current=step]').getAttribute('data-course'),'泛函分析');
+    await page.locator('.analysis-course[data-course="高等代数"]').click();
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'高等代数');
-    await page.locator('.textbook-course-nav button').first().focus(); await page.keyboard.press('ArrowDown');
-    assert.equal(await page.locator('.textbook-course-nav button[aria-pressed=true]').getAttribute('data-course'),'高等代数');
     await page.locator('.analysis-course[data-course="数学分析"]').click();
 
     assert.equal(await page.locator('.analysis-roadmap path[stroke-dasharray]').count(),1);

@@ -68,7 +68,7 @@ function analysisRoadmap(onChoose) {
     svg.append(group);
   }
   const box=el('div','analysis-roadmap');box.append(svg);
-  const help=el('p','analysis-route-help','点击课程节点，查看对应教材。也可点击下方课程名切换。');
+  const help=el('p','analysis-route-help','点击流程图中的课程节点，查看对应教材。');
   help.id='analysis-route-help';svg.setAttribute('aria-describedby',help.id);
   const layout=el('div','analysis-route-layout');layout.append(box,help);return layout;
 }
@@ -172,15 +172,16 @@ export function createLearning({ api, write }) {
         const unclassified = analysisFlow && direction.books.some(book=>!courses.includes(book.stage));
         const groups = unclassified ? [...courses,'待归类教材'] : courses;
         const list = $('textbook-list'); list.classList.add('textbook-browser');
-        const navigation = el('nav', 'textbook-course-nav'); navigation.setAttribute('aria-label', '教材课程');
+        const navigation = el(analysisFlow ? 'ol' : 'nav', 'textbook-course-nav'); navigation.setAttribute('aria-label', '教材课程');
         const panels = el('div', 'textbook-course-panels');
         for (const [index, stage] of groups.entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
           section.id = 'textbook-panel-' + direction.slug + '-' + index; section.hidden = true;
-          const button = el('button', 'course-heading-button'); button.type = 'button'; button.dataset.course = stage;
-          button.id = section.id + '-control'; button.setAttribute('aria-controls', section.id); button.setAttribute('aria-pressed', 'false');
+          const button = el(analysisFlow ? 'li' : 'button', analysisFlow ? 'course-heading-label' : 'course-heading-button'); button.dataset.course = stage;
+          button.id = section.id + '-control';
+          if (!analysisFlow) { button.type = 'button'; button.setAttribute('aria-controls', section.id); button.setAttribute('aria-pressed', 'false'); }
           button.append(el('span', 'course-index', String(index + 1).padStart(2, '0')), el('span', '', stage));
-          button.addEventListener('click', () => selectCourse(stage)); navigation.append(button);
+          if (!analysisFlow) button.addEventListener('click', () => selectCourse(stage)); navigation.append(button);
           section.setAttribute('aria-labelledby', button.id);
           const heading = el('div', 'stage-heading'); heading.append(el('h3', '', stage));
           const count = direction.books.filter(book => stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage).length;
@@ -203,14 +204,18 @@ export function createLearning({ api, write }) {
             for (const section of panels.children) {
               const selected=section.dataset.stage===name;section.hidden=!selected;section.classList.toggle('course-collapsed',!selected);
             }
-            for (const button of navigation.children) button.setAttribute('aria-pressed', String(button.dataset.course === name));
+            for (const button of navigation.children) {
+              const selected = button.dataset.course === name; button.classList.toggle('is-current', selected);
+              if (analysisFlow) { if (selected) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current'); }
+              else button.setAttribute('aria-pressed', String(selected));
+            }
             for (const node of $('direction-introduction').querySelectorAll('[data-course]')) {
               const selected = node.dataset.course === name;
               node.setAttribute('aria-pressed',String(selected)); node.classList.toggle('selected',selected);
             }
             try { sessionStorage.setItem(storageKey, name); } catch {}
           };
-          navigation.addEventListener('keydown', event => {
+          if (!analysisFlow) navigation.addEventListener('keydown', event => {
             const buttons = [...navigation.children], index = buttons.indexOf(event.target); if (index < 0) return;
             let next;
             if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % buttons.length;
