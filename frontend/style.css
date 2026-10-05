@@ -17,7 +17,8 @@ button,input,select,textarea { font:inherit; }button { cursor:pointer; }button:d
 .workspace-link,.subject-nav a { display:flex;align-items:center;gap:11px;padding:12px;border-radius:9px;color:var(--muted);font-size:14px; }
 .workspace-link.active,.subject-nav a.active { background:var(--soft-blue);color:var(--blue);font-weight:600; }
 .workspace-link:hover,.subject-nav a:hover { background:#f3f5fa;color:var(--blue); }
-.workspace-link>span { display:grid;place-items:center;width:21px; }
+.workspace-link>[data-icon] { display:grid;place-items:center;width:21px;flex-shrink:0; }
+.sidebar .nav-label { white-space:nowrap; }
 .nav-heading { margin:30px 12px 10px;font-size:14px;color:#8a95a5; }.subject-nav { display:grid;gap:4px; }
 .sidebar-future { margin-top:auto;padding:22px 11px 12px;border-top:1px solid var(--line); }.small-mark { display:inline-flex;vertical-align:middle;color:var(--blue);margin-right:6px; }.small-mark .icon { width:16px;height:16px; }
 .sidebar-future strong { font-size:14px;font-weight:500; }.sidebar-future p { font-size:14px;color:var(--muted);margin:8px 0;line-height:1.9; }.sidebar-foot { color:#8a95a5;font-size:14px;padding:0 11px; }

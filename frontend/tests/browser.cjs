@@ -212,6 +212,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('#featured-directions .direction-card').count(),3);
     assert.equal(await page.locator('#more-directions .direction-small').count(),5);
     await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
+    const homeNavigationLabel = await page.locator('#home-link .nav-label').evaluate(node => ({height:node.getBoundingClientRect().height,lineHeight:parseFloat(getComputedStyle(node).lineHeight),width:node.getBoundingClientRect().width,scrollWidth:node.scrollWidth}));
+    assert.ok(homeNavigationLabel.height<=homeNavigationLabel.lineHeight+1,'Full navigation labels must remain on one line');
+    assert.ok(homeNavigationLabel.width>=homeNavigationLabel.scrollWidth-1,'Navigation text must not inherit the icon width');
     assert.equal(await page.locator('#admin-link').isVisible(), false);
     const libraryIcon = page.locator('#library-link [data-icon]');
     await page.locator('#library-link').hover();
