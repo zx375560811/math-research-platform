@@ -302,6 +302,10 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.pdf-page').count(),12);
     assert.equal(await page.locator('#reader-notes').isVisible(),true); assert.equal(await page.locator('#reader-outline').isVisible(),false); assert.equal(await page.locator('#reader-outline-toggle').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('.topbar').isVisible(),false);
+    assert.equal(await page.locator('.sidebar').isVisible(),false);
+    const readerWorkspace = await page.locator('.workspace').boundingBox();
+    assert.equal(readerWorkspace.x,0);
+    assert.equal(readerWorkspace.width,page.viewportSize().width);
     assert.equal(await page.locator('#reader-heading').isVisible(),true);
     assert.equal(await page.locator('#reader-tools-toggle').count(),0);
     assert.equal(await page.locator('.reader-note-pane h2').count(),0);
@@ -465,6 +469,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await second.locator('.annotation-delete').click();await second.waitForFunction(()=>!document.querySelector('.annotation-item'));
     await secondContext.close();
     await readerControl(page, 'reader-back');await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').textContent(),/继续学习/);
+    assert.equal(await page.locator('.sidebar').isVisible(),true);
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
@@ -484,7 +489,11 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     let libraryProgress;
     for(let attempt=0;attempt<100;attempt++){libraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;if(libraryProgress?.page===3)break;await page.waitForTimeout(100);}
     assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
-    await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor();assert.match(page.url(),/collection=102/);await page.locator('[data-collection="102"]').waitFor(); await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
+    assert.equal(await page.locator('.sidebar').isVisible(),false);
+    assert.equal((await page.locator('.workspace').boundingBox()).width,page.viewportSize().width);
+    await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor();assert.match(page.url(),/collection=102/);await page.locator('[data-collection="102"]').waitFor();
+    assert.equal(await page.locator('.sidebar').isVisible(),true);
+    await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
     const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
     for(let i=1;i<=31;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
     await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===31);
