@@ -568,8 +568,16 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.goto(base+'/#/apps/mathematics/directions/analysis');
     await page.locator('.analysis-course[data-course="测度论"]').waitFor();
     assert.equal(await page.locator('.analysis-roadmap').count(),1);
-    assert.deepEqual(await page.locator('.analysis-course').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),folderCourses);
-    assert.deepEqual(await page.locator('.textbook-course-nav [data-course]').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),folderCourses);
+    const fullRoute=['分析','复分析','测度论','实分析','常微分方程','高等代数','泛函分析','偏微分方程'];
+    assert.deepEqual(await page.locator('.analysis-course').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),fullRoute);
+    assert.deepEqual(await page.locator('.textbook-course-nav [data-course]').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),fullRoute);
+    assert.equal(await page.locator('.analysis-route-edge[data-from="测度论"][data-to="实分析"]').count(),1);
+    assert.equal(await page.locator('.analysis-route-edge[data-from="实分析"][data-to="测度论"]').count(),0);
+    await page.locator('.analysis-course[data-course="常微分方程"]').click();
+    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'常微分方程');
+    assert.equal(await page.locator('.textbook-stage:visible .textbook-row').count(),0);
+    await page.locator('.analysis-course[data-course="高等代数"]').click();
+    assert.equal(await page.locator('.textbook-stage:visible a[href="#/apps/mathematics/directions/algebra"]').count(),1);
     await page.locator('.analysis-course[data-course="测度论"]').click();
     assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'测度论');
     assert.match(await page.locator('.textbook-stage:visible').textContent(),/测度论目录教材/);

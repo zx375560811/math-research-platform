@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
 const analysisCourses = ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
+const folderAnalysisCourses = ['分析','复分析','测度论','实分析','常微分方程','高等代数','泛函分析','偏微分方程'];
 const symbols = { analysis: '∫', 'geometry-topology': '𝒮', algebra: '𝔾' };
 function el(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
 // Each illustration describes its subject: a function, a torus, and group symmetries.
@@ -34,7 +35,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析和实分析；实分析通向测度论、泛函分析，再到偏微分方程。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、实分析和常微分方程；测度论单独指向实分析；实分析和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
   const defs=make('defs', {});
   const gradient=(id, colors) => {
     const value=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
@@ -52,20 +53,24 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   const customEdges = [
     ['分析','复分析','M208 85 C242 85 236 22 270 22'],
     ['分析','实分析','M208 85 H270'],
-    ['实分析','测度论','M450 85 H510'],
-    ['测度论','泛函分析','M690 85 H750'],
-    ['泛函分析','偏微分方程','M835 106 V127']
+    ['分析','常微分方程','M208 85 C242 85 236 148 270 148'],
+    ['测度论','实分析','M535 43 C535 60 420 48 420 64'],
+    ['实分析','泛函分析','M450 85 H510'],
+    ['高等代数','泛函分析','M775 43 C775 60 660 48 660 64'],
+    ['泛函分析','偏微分方程','M690 85 C725 85 715 148 750 148'],
+    ['常微分方程','偏微分方程','M450 148 H750',true]
   ];
-  const edges=custom ? customEdges.filter(([from,to])=>courses.includes(from)&&courses.includes(to)).map(([, , d])=>[d,false]) : [
+  const edges=custom ? customEdges.map(([from,to,d,optional=false])=>[d,optional,from,to]) : [
     ['M208 85 C242 85 236 22 270 22',false],['M208 85 H270',false],['M208 85 C242 85 236 148 270 148',false],
     ['M485 85 H550',false],['M630 43 V64',false],['M710 85 H760',false],['M485 148 H825 Q845 148 845 128 V106',true]
   ];
-  for (const [d,optional] of edges) svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(optional ? {'stroke-dasharray':'5 5'} : {})}));
+  for (const [d,optional,from,to] of edges) svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(from ? {'data-from':from,'data-to':to} : {}),...(optional ? {'stroke-dasharray':'5 5'} : {})}));
   const nodes = custom ? [
     ['分析','∫',28,64,180,'foundation'],['复分析','ℂ',270,1,180,'complex'],
-    ['实分析','ℝ',270,64,180,'real'],['测度论','μ',510,64,180,'real'],
-    ['泛函分析','‖f‖',750,64,170,'functional'],['偏微分方程','∂',750,127,170,'pde']
-  ].filter(([name])=>courses.includes(name)) : [
+    ['测度论','μ',510,1,180,'real'],['实分析','ℝ',270,64,180,'real'],
+    ['常微分方程','y′',270,127,180,'ode'],['高等代数','ℝⁿ',750,1,170,'support'],
+    ['泛函分析','‖f‖',510,64,180,'functional'],['偏微分方程','∂',750,127,170,'pde']
+  ] : [
     ['数学分析','∫',28,64,180,'foundation'],['复分析','ℂ',270,1,215,'complex'],['实分析与测度论','μ',270,64,215,'real'],
     ['常微分方程','y′',270,127,215,'ode'],['高等代数','ℝⁿ',550,1,160,'support'],['泛函分析','‖f‖',550,64,160,'functional'],['偏微分方程','∂',760,64,170,'pde']
   ];
@@ -124,7 +129,8 @@ export function createLearning({ api, write }) {
         direction.books = direction.books.filter(book => book.available);
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
-        const courses = direction.courses || (analysisFlow ? analysisCourses : ['基础入门','核心理论','进阶学习']);
+        const configuredCourses = direction.courses || (analysisFlow ? analysisCourses : ['基础入门','核心理论','进阶学习']);
+        const courses = analysisFlow && direction.custom_courses ? [...new Set([...folderAnalysisCourses,...configuredCourses])] : configuredCourses;
         $('direction-introduction').hidden = !!direction.custom_courses && !analysisFlow;
         $('direction-introduction').closest('.direction-intro-section').hidden = !!direction.custom_courses && !analysisFlow;
         let selectCourse = () => {};
@@ -212,6 +218,9 @@ export function createLearning({ api, write }) {
             books.forEach((book, i) => renderBook(group, book, i));
             if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐'));
             columns.append(group);
+          }
+          if (analysisFlow && direction.custom_courses && stage === '高等代数' && !count) {
+            const algebraLink = el('a','button compact','查看代数方向教材');algebraLink.href='#/apps/mathematics/directions/algebra';columns.append(algebraLink);
           }
           section.append(columns); panels.append(section);
         }
