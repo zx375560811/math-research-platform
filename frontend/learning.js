@@ -111,7 +111,8 @@ export function createLearning({ api, write }) {
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
         direction.books = direction.books.filter(book => book.available);
         $('direction-title').textContent = direction.name;
-        const analysisFlow = direction.slug === 'analysis';
+        const analysisFlow = direction.slug === 'analysis' && !direction.custom_courses;
+        $('direction-introduction').hidden = !!direction.custom_courses;
         let selectCourse = () => {};
         $('textbook-list').classList.toggle('analysis-textbooks',analysisFlow);
         $('direction-introduction').classList.remove('analysis-flow');
@@ -121,7 +122,7 @@ export function createLearning({ api, write }) {
           content.append(analysisRoadmap(name=>selectCourse(name)));item.append(el('dt','sr-only','学习路线'),content);
           $('direction-introduction').append(item);
         }
-        else for (const [field,label] of [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']]) {
+        else if (!direction.custom_courses) for (const [field,label] of [['research_object','研究对象'],['core_content','核心内容'],['prerequisites','需要基础']]) {
           const item = el('div','introduction-item');
           item.append(el('dt','',label),el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。'));
           $('direction-introduction').append(item);

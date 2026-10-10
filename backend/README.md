@@ -323,3 +323,22 @@ sudo -u math-platform python3 admin/import_zotero.py "/opt/math-platform/imports
 管理员先选择研究方向，再选择课程，分别配置中文和英文推荐；分析方向七门课与学习流程图顺序一致，其他方向保留已确定的三个阶段。新增、编辑推荐在同一表单完成，可按文献库目录、标题或作者筛选当前方向和语种的 PDF / DJVU。选中文献自动填入标题和作者，可自定义展示信息。课程内排序控制同一课程的推荐顺序。旧推荐不删除，未归类的条目单独显示并可重新归类。
 
 `GET /api/admin/books` 额外返回 `courses`（研究方向到课程/阶段列表的映射）。更换或解除推荐文档只更新教材引用，不删除文献、用户自选记录或该文献的进度、高亮笔记。暂无文档时仍展示教材信息与用户自选入口。
+
+### 从本地文件夹整体替换文献库
+
+管理员已明确要求删除旧文献时，可用 `admin/replace_library.py`。源目录支持“分析、复分析、实分析、测度论、泛函分析、偏微分方程、高等代数、抽象代数”，按原名递归保留所有子目录；其他顶层分类会拒绝导入。全部源文件按课程加入中文或英文推荐，不将已有默认书目保留为候选。标题使用清理来源标记后的文件名，作者不凭空填写。语种仅按文件名提示，可在预览 JSON 中修正 `language`（zh/en）、标题和作者。完全相同文件只存一份，保留多目录归属和不同课程推荐。
+
+先更新、构建并启动后端，确认 `/api/health` 正常以初始化新表。随后停服，在 backend 目录运行：
+
+```bash
+sudo -u math-platform python3 admin/replace_library.py "/opt/math-platform/imports/数学文献"
+systemctl stop math-platform
+sudo -u math-platform python3 admin/replace_library.py "/opt/math-platform/imports/数学文献" --apply --replace
+systemctl start math-platform
+```
+
+预览默认写 `data/folder-import-plan.json`，不改数据库。执行替换前复查全部文件的 SHA-256、格式、分类及计划；备份数据库、整个旧 data/files 和 ai-secret.key 到 `data/backups/library-时间/` 后复制新文件，数据库事务一次提交，失败回滚且保留旧文件。服务运行时拒绝替换，源文件夹与存储目录必须分开，禁止符号链接与越界存储路径。数据库提交后清理旧存储文件（备份保留），文件清理失败记录在备份的 result.json。
+
+替换移除旧文献、目录、推荐、阅读进度、高亮、个人教材选择及旧 AI 整理任务；保留用户、管理员、邀请码、API 配置、加密密钥和 API 使用配额。推荐分类由 `learning_course_config` 保存，前后台使用同一配置；实分析与测度论分别显示。设置 `library_settings.seed_books=disabled` 阻止重启补回默认教材。
+
+恢复时先停服：将备份 math.db 复制回当前数据库，把备份 files 的文件复制回 data/files（不要覆盖外部源目录），必要时恢复 ai-secret.key，然后启动服务。推荐使用 SQLite backup API恢复数据库，避免遗留 WAL 文件。备份含账号和 API 配置，应仅由服务管理员读取。

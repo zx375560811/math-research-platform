@@ -151,3 +151,6 @@ CREATE TABLE IF NOT EXISTS ai_library_items (
  PRIMARY KEY(job_id,document_id)
 );
 CREATE INDEX IF NOT EXISTS ai_library_pending ON ai_library_items(job_id,state,document_id);
+
+CREATE TABLE IF NOT EXISTS library_settings (name TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS learning_course_config (direction TEXT NOT NULL REFERENCES learning_directions(slug), name TEXT NOT NULL, sort_order INTEGER NOT NULL, PRIMARY KEY(direction,name));

@@ -27,7 +27,7 @@ export function createAdminBooks({api,write,message,directions}) {
   async function load() {
     const body=await api('/api/admin/books');books=body.books.filter(book=>book.document_id && recommendationDirections().some(d=>d.slug===book.direction));courses=body.courses||{};
     $('book-direction').replaceChildren(...recommendationDirections().map(d=>option(d.name,d.slug)));
-    courses.analysis=body.analysis_courses||courses.analysis||['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
+    courses.analysis=courses.analysis||body.analysis_courses||['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
     if(!direction)direction=directions().some(d=>d.slug==='analysis')?'analysis':directions()[0]?.slug;render();
   }
   function updateStages(selected) {

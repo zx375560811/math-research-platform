@@ -557,6 +557,26 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-summary').click();assert.equal(await page.locator('.annotation-note').inputValue(),'Native note');
     await page.screenshot({path:path.join(shots,'reader-djvu.png'),fullPage:true});
     await readerControl(page,'reader-back'); await page.locator('#library-view').waitFor();
+    const folderCourses=['分析','复分析','实分析','测度论','泛函分析','偏微分方程'];
+    await page.route('**/api/learning/directions/analysis',async route=>{
+      const response=await route.fetch(),body=await response.json();
+      body.custom_courses=true;body.courses=folderCourses;
+      const source=body.books.find(b=>b.available);
+      body.books=folderCourses.map((course,i)=>({...source,id:950+i,stage:course,title:course+'目录教材',available:true,language:'en'}));
+      await route.fulfill({response,json:body});
+    });
+    await page.goto(base+'/#/apps/mathematics/directions/analysis');
+    await page.locator('.course-heading-button[data-course="测度论"]').waitFor();
+    assert.equal(await page.locator('.analysis-roadmap').count(),0);
+    assert.deepEqual(await page.locator('.textbook-course-nav [data-course]').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),folderCourses);
+    await page.locator('.course-heading-button[data-course="测度论"]').click();
+    assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'测度论');
+    assert.match(await page.locator('.textbook-stage:visible').textContent(),/测度论目录教材/);
+    assert.equal(await page.locator('#direction-introduction').isVisible(),false);
+    await page.locator('.textbook-stage:visible').evaluate(async node=>{await Promise.all(node.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));});
+    await page.screenshot({path:path.join(shots,'folder-courses-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'folder-courses-mobile.png'),fullPage:true});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);

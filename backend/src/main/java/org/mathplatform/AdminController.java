@@ -136,7 +136,9 @@ public class AdminController {
             }
         }
         Map<String,List<String>> courses = new LinkedHashMap<>();
-        for (var book : values) { String direction = (String)book.get("direction"); courses.put(direction,LearningCourses.forDirection(direction)); }
+        try (var db = library.connect(true); var query = db.createStatement(); var rows = query.executeQuery("SELECT slug FROM learning_directions ORDER BY sort_order")) {
+            while (rows.next()) { String direction = rows.getString(1); courses.put(direction,LearningCourses.forDirection(db,direction)); }
+        }
         return Map.of("books", values, "analysis_courses", LearningCourses.ANALYSIS, "courses", courses);
     }
     public record Book(String stage, String prerequisites, Integer sort_order, Long document_id, String direction, String language, String title, String authors, String source_url) {}
@@ -164,7 +166,7 @@ public class AdminController {
                         }
                     }
                 }
-                if (language == null || !Set.of("zh","en").contains(language) || direction == null || !LearningCourses.forDirection(direction).contains(value.stage)) throw new ApiProblem(400,"invalid_book");
+                if (language == null || !Set.of("zh","en").contains(language) || direction == null || !LearningCourses.forDirection(db,direction).contains(value.stage)) throw new ApiProblem(400,"invalid_book");
                 title = LibraryRepository.displayTitle(text(title,true)); authors = text(authors,false); source = source == null ? "" : text(source,false);
                 if (!source.isEmpty()) {
                     try { var uri = java.net.URI.create(source); if (uri.getScheme() == null || !Set.of("https","http").contains(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) throw new IllegalArgumentException(); }

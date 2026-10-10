@@ -26,7 +26,11 @@ public class LearningRepository {
             + "OR EXISTS(SELECT 1 FROM learning_books b WHERE b.document_id=d.id AND b.direction=r.slug)) AS document_count "
             + "FROM learning_directions r ORDER BY r.sort_order";
         try (var c = database.connect(true); var s = c.createStatement(); var rows = s.executeQuery(sql)) {
-            while (rows.next()) values.add(Map.of("slug", rows.getString("slug"), "name", rows.getString("name"), "description", rows.getString("description"), "featured", rows.getBoolean("featured"), "document_count", rows.getLong("document_count")));
+            boolean customLibrary = LearningCourses.replacementLibrary(c);
+            while (rows.next()) {
+                if (customLibrary && LearningCourses.forDirection(c,rows.getString("slug")).isEmpty()) continue;
+                values.add(Map.of("slug", rows.getString("slug"), "name", rows.getString("name"), "description", rows.getString("description"), "featured", rows.getBoolean("featured"), "document_count", rows.getLong("document_count")));
+            }
         }
         return values;
     }
@@ -49,7 +53,8 @@ public class LearningRepository {
             try (var q = c.prepareStatement(bookQuery() + " WHERE b.direction=? ORDER BY b.sort_order,b.id")) {
                 q.setString(1, user); q.setString(2, user); q.setString(3, slug); try (var rows = q.executeQuery()) { while (rows.next()) books.add(bookValue(rows)); }
             }
-            value.put("books", books); value.put("courses", LearningCourses.forDirection(slug));
+            value.put("books", books); value.put("courses", LearningCourses.forDirection(c,slug));
+            value.put("custom_courses", LearningCourses.replacementLibrary(c));
         }
         return value;
     }

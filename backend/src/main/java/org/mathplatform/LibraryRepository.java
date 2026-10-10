@@ -37,7 +37,11 @@ public class LibraryRepository {
             for (String sql : schema.split(";")) if (!sql.isBlank()) statement.execute(sql);
             try (var catalog = getClass().getResourceAsStream("/learning.sql")) {
                 if (catalog == null) throw new IOException("Missing learning.sql");
-                for (String sql : new String(catalog.readAllBytes(), StandardCharsets.UTF_8).split(";")) if (!sql.isBlank()) statement.execute(sql);
+                boolean customLibrary = LearningCourses.replacementLibrary(connection);
+                for (String sql : new String(catalog.readAllBytes(), StandardCharsets.UTF_8).split(";")) {
+                    if (customLibrary && (sql.contains("INSERT OR IGNORE INTO learning_books") || sql.contains("INSERT OR IGNORE INTO learning_book_details"))) continue;
+                    if (!sql.isBlank()) statement.execute(sql);
+                }
             }
             // One-time transition requested by the owner: discard open-registration accounts.
             statement.execute("BEGIN IMMEDIATE");
