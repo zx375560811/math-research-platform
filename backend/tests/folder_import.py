@@ -19,7 +19,36 @@ sys.path.insert(0, str(backend / 'admin'))
 import replace_library as importer
 
 
+def check_legacy_backup():
+    class LegacyConnection:
+        def __init__(self, db):
+            self.db = db
+
+        def __getattr__(self, name):
+            if name == 'backup':
+                raise AttributeError(name)
+            return getattr(self.db, name)
+
+    with closing(sqlite3.connect(':memory:')) as db:
+        db.executescript("""
+            CREATE TABLE sample(id INTEGER PRIMARY KEY AUTOINCREMENT, value BLOB);
+            INSERT INTO sample(value) VALUES(X'00FF');
+            CREATE VIEW sample_view AS SELECT * FROM sample;
+            CREATE TRIGGER preserve_trigger AFTER INSERT ON sample
+            BEGIN UPDATE sample SET value=X'01' WHERE id=NEW.id; END;
+        """)
+        for source in (db, LegacyConnection(db)):
+            with closing(sqlite3.connect(':memory:')) as snapshot:
+                importer.backup_database(source, snapshot)
+                assert snapshot.execute('SELECT * FROM sample_view').fetchall() == [(1, b'\x00\xff')]
+                snapshot.execute("INSERT INTO sample(value) VALUES(X'02')")
+                assert snapshot.execute('SELECT * FROM sample WHERE id=2').fetchone() == (2, b'\x01')
+                snapshot.rollback()
+            assert not db.in_transaction
+
+
 def run():
+    check_legacy_backup()
     previous = Path.cwd()
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)

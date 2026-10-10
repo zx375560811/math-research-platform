@@ -52,6 +52,26 @@ def suggest_language(name):
     return 'zh' if re.search(r'[\u4e00-\u9fff]', name) else 'en'
 
 
+def backup_database(db, snapshot):
+    backup = getattr(db, 'backup', None)
+    if callable(backup):
+        backup(snapshot)
+    else:
+        # Python 3.6 has no Connection.backup. Keep one consistent read
+        # transaction while restoring SQLite's SQL dump into the empty backup.
+        db.execute('BEGIN')
+        try:
+            for statement in db.iterdump():
+                snapshot.execute(statement)
+        except Exception:
+            snapshot.rollback()
+            raise
+        finally:
+            db.rollback()
+    if snapshot.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+        raise ValueError('Database backup failed integrity verification')
+
+
 def preview(source):
     root = Path(source).resolve(strict=True)
     if not root.is_dir():
@@ -152,7 +172,7 @@ def apply(source, plan, database='data/math.db'):
         old_files = [p.resolve() for p in storage.rglob('*') if p.is_file()]
         backup.mkdir(mode=0o700, parents=True, exist_ok=False)
         with closing(sqlite3.connect(str(backup / 'math.db'))) as snapshot:
-            db.backup(snapshot)
+            backup_database(db, snapshot)
         shutil.copytree(str(storage), str(backup / 'files'))
         # The database includes encrypted API keys; preserve the encryption key too.
         key = workspace / 'data' / 'ai-secret.key'
