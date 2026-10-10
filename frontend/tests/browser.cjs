@@ -573,6 +573,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'测度论');
     assert.match(await page.locator('.textbook-stage:visible').textContent(),/测度论目录教材/);
     assert.equal(await page.locator('#direction-introduction').isVisible(),false);
+    assert.equal(await page.locator('.direction-intro-section').isVisible(),false);
     await page.locator('.textbook-stage:visible').evaluate(async node=>{await Promise.all(node.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));});
     await page.screenshot({path:path.join(shots,'folder-courses-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'folder-courses-mobile.png'),fullPage:true});

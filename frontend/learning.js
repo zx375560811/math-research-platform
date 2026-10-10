@@ -113,6 +113,7 @@ export function createLearning({ api, write }) {
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis' && !direction.custom_courses;
         $('direction-introduction').hidden = !!direction.custom_courses;
+        $('direction-introduction').closest('.direction-intro-section').hidden = !!direction.custom_courses;
         let selectCourse = () => {};
         $('textbook-list').classList.toggle('analysis-textbooks',analysisFlow);
         $('direction-introduction').classList.remove('analysis-flow');
