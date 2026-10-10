@@ -370,7 +370,11 @@ with tempfile.TemporaryDirectory() as directory:
             with sqlite3.connect(database) as db:
                 assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 2
                 assert db.execute('PRAGMA foreign_key_check').fetchall() == []
+                # Older imported course lists must expose ODE before books exist.
+                db.execute("DELETE FROM learning_course_config WHERE direction='analysis'")
+                db.execute("INSERT INTO learning_course_config(direction,name,sort_order) VALUES('analysis','分析',0),('analysis','泛函分析',10)")
+            configured=request('/api/admin/books')[1]['courses']['analysis']
+            assert configured == ['分析','常微分方程','泛函分析']
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')
-

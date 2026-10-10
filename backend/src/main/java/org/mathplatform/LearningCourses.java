@@ -21,7 +21,14 @@ final class LearningCourses {
             for (String course : courses) if (!complete.contains(course)) complete.add(course);
             return complete;
         }
-        return courses.isEmpty() ? forDirection(direction) : courses;
+        if (courses.isEmpty()) return forDirection(direction);
+        // Imported course configurations can predate the ODE course. Keep its
+        // entry available even when no corresponding document has been added.
+        if ("analysis".equals(direction) && !courses.contains("常微分方程")) {
+            int functional = courses.indexOf("泛函分析");
+            courses.add(functional < 0 ? courses.size() : functional, "常微分方程");
+        }
+        return courses;
     }
     static boolean replacementLibrary(Connection db) throws SQLException {
         try (var query = db.createStatement(); var row = query.executeQuery("SELECT 1 FROM library_settings WHERE name='seed_books' AND value='disabled'")) { return row.next(); }
