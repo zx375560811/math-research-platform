@@ -27,15 +27,15 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   svg.append(make('rect',{x:0,y:0,width:940,height:170,rx:12,fill:'url(#analysis-map-dots)',opacity:'.4'}));
   const customEdges = [
     ['分析','复分析','M172 85 H180 Q188 85 188 77 V37 Q188 29 196 29 H204'],
-    ['分析','测度论','M172 85 H204'],
+    ['分析','测度论','M172 85 H364 Q376 85 376 97 V129 Q376 141 388 141 H392'],
     ['分析','常微分方程','M172 85 H180 Q188 85 188 93 V133 Q188 141 196 141 H204'],
-    ['测度论','实分析','M360 85 H392'],
+    ['测度论','实分析','M470 120 V106'],
     ['实分析','泛函分析','M548 85 H580'],
     ['高等代数','泛函分析','M548 29 H552 Q564 29 564 41 V73 Q564 85 576 85 H580'],
     ['高等代数','抽象代数','M548 29 H580'],
     ['抽象代数','泛函分析','M658 50 V64',true],
     ['泛函分析','偏微分方程','M736 85 H768'],
-    ['常微分方程','偏微分方程','M360 141 H838 Q846 141 846 133 V106',true]
+    ['常微分方程','偏微分方程','M360 141 H362 Q370 141 370 149 V154 Q370 164 380 164 H834 Q846 164 846 152 V106',true]
   ];
   const edges=custom ? customEdges.map(([from,to,d,optional=false])=>[d,optional,from,to]) : [
     ['M208 85 C242 85 236 22 270 22',false],['M208 85 H270',false],['M208 85 C242 85 236 148 270 148',false],
@@ -44,7 +44,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   for (const [d,optional,from,to] of edges) svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(from ? {'data-from':from,'data-to':to} : {}),...(optional ? {'stroke-dasharray':'5 5'} : {})}));
   const nodes = custom ? [
     ['分析','∫',16,64,156,'foundation'],['复分析','ℂ',204,8,156,'complex'],
-    ['测度论','μ',204,64,156,'real'],['实分析','ℝ',392,64,156,'real'],
+    ['测度论','μ',392,120,156,'real'],['实分析','ℝ',392,64,156,'real'],
     ['常微分方程','y′',204,120,156,'ode'],['高等代数','ℝⁿ',392,8,156,'support'],
     ['抽象代数','𝔾',580,8,156,'complex'],['泛函分析','‖f‖',580,64,156,'functional'],['偏微分方程','∂',768,64,156,'pde']
   ] : [

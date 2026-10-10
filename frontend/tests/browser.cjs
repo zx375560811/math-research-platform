@@ -585,7 +585,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.textbook-stage:visible .textbook-row').count(),8);
     assert.equal(await page.locator('.textbook-stage:visible .book-library-choice,.textbook-stage:visible .recommendation-language').count(),0);
     const positions=await page.locator('.analysis-course').evaluateAll(nodes=>Object.fromEntries(nodes.map(n=>[n.dataset.course,Number(n.querySelector('rect').getAttribute('x'))])));
-    assert.equal(positions['实分析'],392);assert.ok(positions['实分析']>positions['测度论']);
+    assert.equal(positions['实分析'],392);assert.equal(positions['测度论'],positions['实分析']);
     await page.setViewportSize({width:1440,height:900});
     const lastBook=await page.locator('.textbook-stage:visible .textbook-row').last().boundingBox();assert.ok(lastBook.y+lastBook.height<900,'All eight course recommendations should fit on one desktop screen');
     await page.locator('.textbook-stage:visible').evaluate(async node=>{await Promise.all(node.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));});
