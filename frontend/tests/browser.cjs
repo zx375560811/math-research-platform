@@ -279,7 +279,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.analysis-course[data-course="复分析"]').getAttribute('aria-pressed'),'true');
     await page.locator('.analysis-course[data-course="泛函分析"]').focus();await page.keyboard.press('Enter');
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'泛函分析');
-    await page.locator('.course-heading-label').filter({hasText:'高等代数'}).click();
+    assert.equal(await page.locator('.textbook-course-nav').isVisible(),false);
     assert.equal(await page.locator('.textbook-stage:not(.course-collapsed)').getAttribute('data-stage'),'泛函分析');
     assert.equal(await page.locator('.course-heading-label[aria-current=step]').getAttribute('data-course'),'泛函分析');
     await page.locator('.analysis-course[data-course="高等代数"]').click();
@@ -309,18 +309,10 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.locator('.textbook-course-nav button').filter({hasText:'核心理论'}).click();
     const choiceRow = page.locator('[data-recommendation="8"]');
-    await choiceRow.locator('.book-library-choice').click();
-    await choiceRow.locator('.book-picker input').fill('Test textbook'); await choiceRow.locator('.book-picker-search button').click();
-    await choiceRow.locator('.book-picker-select option[value="1"]').waitFor({state:'attached'});
-    await page.screenshot({path:path.join(shots,'textbook-picker-desktop.png'),fullPage:true});
-    await page.setViewportSize({width:390,height:844}); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-    await page.screenshot({path:path.join(shots,'textbook-picker-mobile.png'),fullPage:true}); await page.setViewportSize({width:1440,height:1100});
-    await choiceRow.locator('.book-picker-select').selectOption('1'); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
-    assert.match(page.url(),/directions\/algebra$/); assert.equal(await choiceRow.locator('[data-book="8"]').textContent(),'开始学习');
-    await page.reload(); await choiceRow.locator('h3').filter({hasText:'Test textbook'}).waitFor();
-    await choiceRow.locator('[data-book="8"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
-    await readerControl(page, 'reader-back'); await choiceRow.locator('.book-restore').click(); await choiceRow.locator('.book-restore').waitFor({state:'hidden'});
-    assert.match(await choiceRow.locator('[data-book="8"]').textContent(),/继续学习|开始学习/);
+    assert.equal(await choiceRow.locator('.book-library-choice,.book-picker,.book-restore').count(),0);
+    assert.equal(await page.locator('.recommendation-language').count(),0);
+    await choiceRow.locator('[data-book="8"]').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));
+    await readerControl(page,'reader-back');await choiceRow.waitFor();
     await page.locator('.textbook-course-nav button').filter({hasText:'基础入门'}).click();
     await page.locator('[data-book="7"]').click();
     await page.waitForFunction(() => document.querySelector('.pdf-page[data-page="1"] .textLayer span')?.textContent.includes('Mathematics'));
@@ -525,7 +517,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal((await page.locator('.workspace').boundingBox()).width,page.viewportSize().width-64);
     await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor();assert.match(page.url(),/collection=102/);await page.locator('[data-collection="102"]').waitFor();
     assert.equal(await page.locator('.sidebar').isVisible(),true);
-    await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').textContent(),/第 3 页/);
+    await page.locator('#math-app-link').click(); await page.locator('[data-direction="algebra"]').click(); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').getAttribute('title'),/第 3 页/);
     const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
     for(let i=1;i<=31;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
     await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===31);
@@ -563,12 +555,18 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
       body.custom_courses=true;body.courses=folderCourses;
       const source=body.books.find(b=>b.available);
       body.books=folderCourses.map((course,i)=>({...source,id:950+i,stage:course,title:course+'目录教材',available:true,language:'en'}));
+      for(let i=1;i<8;i++)body.books.push({...source,id:980+i,stage:'分析',title:['数学分析 上册','数学分析 下册','Principles of Mathematical Analysis','Mathematical Analysis: A Modern Approach to Advanced Calculus','Introduction to Analysis','A Course of Pure Mathematics','Advanced Calculus: Theory and Practice'][i-1],authors:'',available:true,language:i%2 ? 'zh' : 'en'});
+      await route.fulfill({response,json:body});
+    });
+    await page.route('**/api/learning/directions/algebra',async route=>{
+      const response=await route.fetch(),body=await response.json();const source=body.books.find(b=>b.available);
+      body.books=['高等代数','抽象代数'].map((stage,i)=>({...source,id:990+i,stage,title:stage+'目录教材',available:true}));
       await route.fulfill({response,json:body});
     });
     await page.goto(base+'/#/apps/mathematics/directions/analysis');
     await page.locator('.analysis-course[data-course="测度论"]').waitFor();
     assert.equal(await page.locator('.analysis-roadmap').count(),1);
-    const fullRoute=['分析','复分析','测度论','实分析','常微分方程','高等代数','泛函分析','偏微分方程'];
+    const fullRoute=['分析','复分析','测度论','实分析','常微分方程','高等代数','抽象代数','泛函分析','偏微分方程'];
     assert.deepEqual(await page.locator('.analysis-course').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),fullRoute);
     assert.deepEqual(await page.locator('.textbook-course-nav [data-course]').evaluateAll(nodes=>nodes.map(n=>n.dataset.course)),fullRoute);
     assert.equal(await page.locator('.analysis-route-edge[data-from="测度论"][data-to="实分析"]').count(),1);
@@ -577,7 +575,10 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'常微分方程');
     assert.equal(await page.locator('.textbook-stage:visible .textbook-row').count(),0);
     await page.locator('.analysis-course[data-course="高等代数"]').click();
-    assert.equal(await page.locator('.textbook-stage:visible a[href="#/apps/mathematics/directions/algebra"]').count(),1);
+    assert.match(await page.locator('.textbook-stage:visible').textContent(),/高等代数目录教材/);
+    await page.locator('.analysis-course[data-course="抽象代数"]').click();
+    assert.match(await page.locator('.textbook-stage:visible').textContent(),/抽象代数目录教材/);
+    assert.equal(await page.locator('.textbook-stage:visible [data-book="991"]').count(),1);
     await page.locator('.analysis-course[data-course="测度论"]').click();
     assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'测度论');
     assert.match(await page.locator('.textbook-stage:visible').textContent(),/测度论目录教材/);
@@ -585,7 +586,13 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('.direction-intro-section').isVisible(),true);
     await page.locator('.analysis-course[data-course="实分析"]').focus();await page.keyboard.press('Enter');
     assert.equal(await page.locator('.textbook-stage:visible').getAttribute('data-stage'),'实分析');
-    await page.locator('.analysis-course[data-course="测度论"]').click();
+    await page.locator('.analysis-course[data-course="分析"]').click();
+    assert.equal(await page.locator('.textbook-stage:visible .textbook-row').count(),8);
+    assert.equal(await page.locator('.textbook-stage:visible .book-library-choice,.textbook-stage:visible .recommendation-language').count(),0);
+    const positions=await page.locator('.analysis-course').evaluateAll(nodes=>Object.fromEntries(nodes.map(n=>[n.dataset.course,Number(n.querySelector('rect').getAttribute('x'))])));
+    assert.equal(positions['实分析'],392);assert.ok(positions['实分析']>positions['测度论']);
+    await page.setViewportSize({width:1440,height:900});
+    const lastBook=await page.locator('.textbook-stage:visible .textbook-row').last().boundingBox();assert.ok(lastBook.y+lastBook.height<900,'All eight course recommendations should fit on one desktop screen');
     await page.locator('.textbook-stage:visible').evaluate(async node=>{await Promise.all(node.getAnimations({subtree:true}).map(animation=>animation.finished.catch(()=>{})));});
     await page.screenshot({path:path.join(shots,'folder-courses-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'folder-courses-mobile.png'),fullPage:true});

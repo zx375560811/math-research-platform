@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const analysisCourses = ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
-const folderAnalysisCourses = ['分析','复分析','测度论','实分析','常微分方程','高等代数','泛函分析','偏微分方程'];
+const folderAnalysisCourses = ['分析','复分析','测度论','实分析','常微分方程','高等代数','抽象代数','泛函分析','偏微分方程'];
 const symbols = { analysis: '∫', 'geometry-topology': '𝒮', algebra: '𝔾' };
 function el(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
 // Each illustration describes its subject: a function, a torus, and group symmetries.
@@ -35,7 +35,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、实分析和常微分方程；测度论单独指向实分析；实分析和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、测度论和常微分方程；测度论指向第三列的实分析；高等代数通向抽象代数及泛函分析；实分析通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
   const defs=make('defs', {});
   const gradient=(id, colors) => {
     const value=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
@@ -51,14 +51,15 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   marker.append(make('path',{d:'M1 1 L7 4 L1 7',fill:'none',stroke:'#8298c6','stroke-width':'1.4'}));defs.append(marker);svg.append(defs);
   svg.append(make('rect',{x:0,y:0,width:940,height:170,rx:12,fill:'url(#analysis-map-dots)',opacity:'.4'}));
   const customEdges = [
-    ['分析','复分析','M208 85 C242 85 236 22 270 22'],
-    ['分析','实分析','M208 85 H270'],
-    ['分析','常微分方程','M208 85 C242 85 236 148 270 148'],
-    ['测度论','实分析','M535 43 C535 60 420 48 420 64'],
-    ['实分析','泛函分析','M450 85 H510'],
-    ['高等代数','泛函分析','M775 43 C775 60 660 48 660 64'],
-    ['泛函分析','偏微分方程','M690 85 C725 85 715 148 750 148'],
-    ['常微分方程','偏微分方程','M450 148 H750',true]
+    ['分析','复分析','M172 85 H180 Q188 85 188 77 V37 Q188 29 196 29 H204'],
+    ['分析','测度论','M172 85 H204'],
+    ['分析','常微分方程','M172 85 H180 Q188 85 188 93 V133 Q188 141 196 141 H204'],
+    ['测度论','实分析','M360 85 H392'],
+    ['实分析','泛函分析','M548 85 H580'],
+    ['高等代数','泛函分析','M548 29 H552 Q564 29 564 41 V73 Q564 85 576 85 H580'],
+    ['高等代数','抽象代数','M548 29 H580'],
+    ['泛函分析','偏微分方程','M736 85 H768'],
+    ['常微分方程','偏微分方程','M360 141 H838 Q846 141 846 133 V106',true]
   ];
   const edges=custom ? customEdges.map(([from,to,d,optional=false])=>[d,optional,from,to]) : [
     ['M208 85 C242 85 236 22 270 22',false],['M208 85 H270',false],['M208 85 C242 85 236 148 270 148',false],
@@ -66,10 +67,10 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   ];
   for (const [d,optional,from,to] of edges) svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(from ? {'data-from':from,'data-to':to} : {}),...(optional ? {'stroke-dasharray':'5 5'} : {})}));
   const nodes = custom ? [
-    ['分析','∫',28,64,180,'foundation'],['复分析','ℂ',270,1,180,'complex'],
-    ['测度论','μ',510,1,180,'real'],['实分析','ℝ',270,64,180,'real'],
-    ['常微分方程','y′',270,127,180,'ode'],['高等代数','ℝⁿ',750,1,170,'support'],
-    ['泛函分析','‖f‖',510,64,180,'functional'],['偏微分方程','∂',750,127,170,'pde']
+    ['分析','∫',16,64,156,'foundation'],['复分析','ℂ',204,8,156,'complex'],
+    ['测度论','μ',204,64,156,'real'],['实分析','ℝ',392,64,156,'real'],
+    ['常微分方程','y′',204,120,156,'ode'],['高等代数','ℝⁿ',392,8,156,'support'],
+    ['抽象代数','𝔾',580,8,156,'complex'],['泛函分析','‖f‖',580,64,156,'functional'],['偏微分方程','∂',768,64,156,'pde']
   ] : [
     ['数学分析','∫',28,64,180,'foundation'],['复分析','ℂ',270,1,215,'complex'],['实分析与测度论','μ',270,64,215,'real'],
     ['常微分方程','y′',270,127,215,'ode'],['高等代数','ℝⁿ',550,1,160,'support'],['泛函分析','‖f‖',550,64,160,'functional'],['偏微分方程','∂',760,64,170,'pde']
@@ -127,6 +128,12 @@ export function createLearning({ api, write }) {
         $('textbook-list').replaceChildren(); $('direction-introduction').replaceChildren(); $('direction-title').textContent = '正在加载…';
         const direction = await api('/api/learning/directions/' + detail[1]); if (version !== generation) return;
         direction.books = direction.books.filter(book => book.available);
+        if (direction.slug === 'analysis' && direction.custom_courses) {
+          try {
+            const algebra = await api('/api/learning/directions/algebra');if (version !== generation) return;
+            direction.books.push(...algebra.books.filter(book=>book.available && ['高等代数','抽象代数'].includes(book.stage)));
+          } catch { if (version !== generation) return; /* The empty panel retains its algebra entry point. */ }
+        }
         $('direction-title').textContent = direction.name;
         const analysisFlow = direction.slug === 'analysis';
         const configuredCourses = direction.courses || (analysisFlow ? analysisCourses : ['基础入门','核心理论','进阶学习']);
@@ -147,56 +154,25 @@ export function createLearning({ api, write }) {
           item.append(el('dt','',label),el('dd','',direction.introduction?.[field] || '方向介绍暂未配置。'));
           $('direction-introduction').append(item);
         }
-        function renderBook(target, book, i, previous = null) {
+        function renderBook(target, book, i) {
           const row = el('article', 'textbook-row'); row.dataset.recommendation = book.id;
-          const spine = el('div', 'textbook-mark'); spine.setAttribute('aria-hidden','true');
-          spine.append(el('span','textbook-mark-language',(book.language || 'en') === 'zh' ? '中文' : 'English'),el('span','textbook-mark-symbol',symbols[direction.slug] || 'ℳ'));
-          const info = el('div', 'textbook-info'); info.append(el('h3', '', book.title));
-          if(book.authors) info.append(el('p','textbook-author',book.authors));
-          if(book.selected_document_id) info.append(el('span','book-stage','个人自选文献'));
-          else if(book.prerequisites) info.append(el('p','book-prerequisites','需要基础：' + book.prerequisites));
-          const actions = el('div', 'textbook-actions'), readingActions = el('div', 'book-reading-actions');
-          if (book.available) { const link = el('a', 'button primary', book.progress ? `继续学习 · 第 ${book.progress.page} 页` : '开始学习'); link.href = `#/apps/mathematics/read/${book.id}`; link.dataset.book = book.id; readingActions.append(link); }
-          else readingActions.append(el('span', 'book-unavailable', '文档待接入'));
-          const choose = el('button', 'button book-library-choice', '文献库自选'); choose.type = 'button'; choose.setAttribute('aria-expanded','false'); readingActions.append(choose); actions.append(readingActions);
-          const picker = el('div', 'book-picker'); picker.hidden = true; picker.id = 'book-picker-' + book.id; choose.setAttribute('aria-controls',picker.id);
-          const search = el('form', 'book-picker-search'), query = el('input'); query.type = 'search'; query.placeholder = '搜索标题或作者'; query.setAttribute('aria-label','搜索本方向文献'); const searchButton = el('button','button','搜索'); searchButton.type = 'submit'; search.append(query,searchButton);
-          const label = el('label','','选择本方向文献'), select = el('select','book-picker-select'); select.id = 'book-choice-' + book.id; label.htmlFor = select.id;
-          const status = el('p','book-picker-status'); status.setAttribute('role','status');
-          const paging = el('div','book-picker-paging'), prev = el('button','button','上一页'), next = el('button','button','下一页'), page = el('span'); prev.type = next.type = 'button'; prev.disabled = next.disabled = true; paging.append(prev,page,next);
-          picker.append(search,label,select,status,paging); let offset = 0, serial = 0;
-          async function loadChoices() {
-            const request = ++serial; select.disabled = true; prev.disabled = next.disabled = true; status.textContent = '正在加载文献…';
-            try {
-              const result = await api('/api/library/documents?' + new URLSearchParams({module:'mathematics',direction:direction.slug,q:query.value.trim(),offset}));
-              if (request !== serial || version !== generation) return;
-              const candidates = result.documents.filter(doc => doc.language === (book.language || 'en') || doc.language === 'und');
-              const placeholder = el('option','','请选择文献'); placeholder.value = ''; select.replaceChildren(placeholder);
-              if (book.selected_document_id && !candidates.some(doc => doc.id === book.selected_document_id)) { const current = el('option','',book.title); current.value = book.selected_document_id; select.append(current); }
-              for (const doc of candidates) { const option = el('option','',doc.title + (doc.authors ? ' — ' + doc.authors : '') + (doc.language === 'und' ? '（语种未标注）' : '')); option.value = doc.id; select.append(option); }
-              select.value = book.selected_document_id || ''; select.disabled = !candidates.length; prev.disabled = offset === 0; next.disabled = result.documents.length < 20; page.textContent = '第 ' + (offset / 20 + 1) + ' 页';
-              status.textContent = candidates.length ? '选取后将替换此卡片，作为你的个人学习教材。' : next.disabled ? '本页没有匹配文献，可搜索其他关键词或查看上一页。' : '本页没有匹配文献，可查看下一页或搜索。';
-            } catch (error) { if (request === serial && version === generation) status.textContent = error instanceof TypeError ? '连接失败，请重试。' : error.message; }
+          const index = el('span','textbook-number',String(i+1).padStart(2,'0'));
+          const info = el('div','textbook-info'); info.append(el('h3','',book.title));
+          if (book.authors) info.append(el('p','textbook-author',book.authors));
+          const actions = el('div','textbook-actions');
+          if (book.available) {
+            const link=el('a','button primary',book.progress ? '继续学习' : '开始学习');
+            link.href=`#/apps/mathematics/read/${book.id}`;link.dataset.book=book.id;
+            link.setAttribute('aria-label',(book.progress ? '继续学习' : '开始学习')+'：'+book.title);
+            if(book.progress) link.title='已读至第 '+book.progress.page+' 页';
+            actions.append(link);
           }
-          async function saveChoice(document) {
-            ++serial; for (const control of picker.querySelectorAll('button,input,select')) control.disabled = true; choose.disabled = true; status.textContent = '正在保存选择…';
-            try {
-              const selected = await write('/api/learning/books/' + book.id + '/selection', {document_id:document}, 'PUT');
-              if (version !== generation) return; renderBook(target,selected,i,row);
-            } catch (error) { if (version === generation) { for (const control of picker.querySelectorAll('button,input,select')) control.disabled = false; prev.disabled = offset === 0; choose.disabled = false; status.textContent = error instanceof TypeError ? '连接失败，请重新选择。' : error.message; } }
-          }
-          choose.addEventListener('click', () => { picker.hidden = !picker.hidden; choose.setAttribute('aria-expanded',String(!picker.hidden)); if (!picker.hidden) loadChoices(); });
-          search.addEventListener('submit',event => { event.preventDefault(); offset = 0; loadChoices(); });
-          prev.addEventListener('click',()=>{ offset = Math.max(0,offset - 20); loadChoices(); }); next.addEventListener('click',()=>{ offset += 20; loadChoices(); });
-          select.addEventListener('change',()=>{ if (select.value) saveChoice(Number(select.value)); });
-          if (book.selected_document_id) { const restore = el('button','book-restore','恢复推荐'); restore.type = 'button'; restore.addEventListener('click',()=>{ picker.hidden = false; choose.setAttribute('aria-expanded','true'); restore.disabled = true; saveChoice(null).finally(()=>restore.disabled = false); }); actions.append(restore); }
-          const source = el('a', 'book-source', '教材信息 ↗'); source.href = book.source_url; source.target = '_blank'; source.rel = 'noopener noreferrer'; if (book.source_url) actions.append(source);
-          row.append(spine, info, actions, picker); if (previous) { previous.replaceWith(row); choose.focus(); } else target.append(row);
+          row.append(index,info,actions);target.append(row);
         }
         const unclassified = analysisFlow && direction.books.some(book=>!courses.includes(book.stage));
         const groups = unclassified ? [...courses,'待归类教材'] : courses;
-        const list = $('textbook-list'); list.classList.add('textbook-browser');
-        const navigation = el(analysisFlow ? 'ol' : 'nav', 'textbook-course-nav'); navigation.setAttribute('aria-label', '教材课程');
+        const list = $('textbook-list'); list.classList.add('textbook-browser','compact-recommendations');
+        const navigation = el(analysisFlow ? 'ol' : 'nav', 'textbook-course-nav'); navigation.hidden=analysisFlow; navigation.setAttribute('aria-label', '教材课程');
         const panels = el('div', 'textbook-course-panels');
         for (const [index, stage] of groups.entries()) {
           const section = el('section', 'textbook-stage'); section.dataset.stage = stage;
@@ -206,21 +182,17 @@ export function createLearning({ api, write }) {
           if (!analysisFlow) { button.type = 'button'; button.setAttribute('aria-controls', section.id); button.setAttribute('aria-pressed', 'false'); }
           button.append(el('span', 'course-index', String(index + 1).padStart(2, '0')), el('span', '', stage));
           if (!analysisFlow) button.addEventListener('click', () => selectCourse(stage)); navigation.append(button);
-          section.setAttribute('aria-labelledby', button.id);
+          section.setAttribute('aria-labelledby', section.id+'-heading');
           const heading = el('div', 'stage-heading'); heading.append(el('h3', '', stage));
           const count = direction.books.filter(book => stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage).length;
-          heading.append(el('p', 'course-panel-meta', count + ' 本推荐教材')); section.append(heading);
+          heading.querySelector('h3').id=section.id+'-heading';heading.append(el('p', 'course-panel-meta', count + ' 本推荐教材')); section.append(heading);
           const columns = el('div', 'recommendation-columns');
           if(analysisFlow) columns.id='analysis-books-'+index;
-          for (const [language, label] of [['zh', '中文推荐'], ['en', '英文推荐']]) {
-            const group = el('section', 'recommendation-language'); group.dataset.language = language; group.append(el('h4', '', label));
-            const books = direction.books.filter(book => (stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage) && (book.language || 'en') === language);
-            books.forEach((book, i) => renderBook(group, book, i));
-            if (!books.length) group.append(el('p', 'recommendation-empty', '暂无推荐'));
-            columns.append(group);
-          }
-          if (analysisFlow && direction.custom_courses && stage === '高等代数' && !count) {
-            const algebraLink = el('a','button compact','查看代数方向教材');algebraLink.href='#/apps/mathematics/directions/algebra';columns.append(algebraLink);
+          const books = direction.books.filter(book => stage === '待归类教材' ? !courses.includes(book.stage) : book.stage === stage);
+          books.forEach((book,i)=>renderBook(columns,book,i));
+          if (!books.length) columns.append(el('p','recommendation-empty','暂无推荐教材'));
+          if (analysisFlow && direction.custom_courses && ['高等代数','抽象代数'].includes(stage) && !count) {
+            const algebraLink=el('a','button compact','查看代数方向教材');algebraLink.href='#/apps/mathematics/directions/algebra';columns.append(algebraLink);
           }
           section.append(columns); panels.append(section);
         }

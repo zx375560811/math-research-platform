@@ -902,3 +902,25 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
   .textbook-row:hover .textbook-mark-symbol { transform:rotate(-6deg); }
 }
 @keyframes textbook-reveal { from { opacity:0;transform:translateY(8px); } to { opacity:1;transform:translateY(0); } }
+
+/* Recommendations are narrow reading entries, without language panels. */
+#direction-detail #textbook-list.compact-recommendations { grid-template-columns:minmax(0,1fr);gap:12px; }
+.compact-recommendations .textbook-course-nav { flex-direction:row;flex-wrap:wrap;gap:6px; }
+.compact-recommendations .textbook-course-nav .course-heading-button { width:auto;min-height:38px;padding:6px 10px;gap:8px;font-size:14px; }
+#direction-detail #textbook-list.compact-recommendations .stage-heading { display:flex;align-items:baseline;gap:12px;margin:0 0 10px; }
+#direction-detail #textbook-list.compact-recommendations .stage-heading h3 { font-size:18px;line-height:1.5; }
+.compact-recommendations .course-panel-meta { margin:0; }
+#direction-detail #textbook-list.compact-recommendations .recommendation-columns { grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px; }
+#direction-detail #textbook-list.compact-recommendations .textbook-row { grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:66px;padding:10px 12px;margin:0;border-radius:12px; }
+.textbook-number { color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums; }
+#direction-detail #textbook-list.compact-recommendations .textbook-info h3 { font:600 15px/1.45 system-ui,'Microsoft YaHei','PingFang SC',sans-serif;overflow-wrap:anywhere; }
+#direction-detail #textbook-list.compact-recommendations .textbook-info p { font-size:14px;line-height:1.4;margin:4px 0 0;overflow-wrap:anywhere; }
+#direction-detail #textbook-list.compact-recommendations .textbook-actions { grid-column:auto;display:block;margin:0; }
+#direction-detail #textbook-list.compact-recommendations .textbook-actions .button { white-space:nowrap;min-height:36px;padding:7px 10px;font-size:14px; }
+#direction-detail #textbook-list.compact-recommendations .recommendation-empty { min-height:54px;padding:12px;display:block;grid-column:1 / -1;font-size:14px;border-radius:12px; }
+.compact-recommendations .recommendation-columns>.button { justify-self:start; }
+@media(max-width:767px) {
+  #direction-detail #textbook-list.compact-recommendations .recommendation-columns { grid-template-columns:minmax(0,1fr); }
+  .compact-recommendations .textbook-course-nav { flex-wrap:nowrap; }
+  #direction-detail #textbook-list.compact-recommendations .textbook-row { padding:10px;gap:8px; }
+}
