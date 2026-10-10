@@ -98,7 +98,7 @@ def run():
                     sock.bind(('127.0.0.1', 0)); port = sock.getsockname()[1]
                 with (root / 'server.log').open('w+') as log:
                     process = subprocess.Popen(['java', '-jar', str(backend / 'target/math-server.jar')],
-                                               env={**os.environ, 'MATH_PORT': str(port)}, stdout=log, stderr=log)
+                                               env={**os.environ, 'MATH_PORT': str(port), 'MATH_WEB_DIR': str(backend.parent / 'frontend')}, stdout=log, stderr=log)
                     try:
                         for _ in range(300):
                             try:
