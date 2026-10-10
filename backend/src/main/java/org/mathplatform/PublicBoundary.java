@@ -41,8 +41,8 @@ class PublicBoundary implements Filter {
             || (method.equals("POST") && path.equals("/api/ai/chat"));
         boolean adminUpload = method.equals("POST") && path.equals("/api/admin/documents");
         boolean adminWrite = (method.equals("PATCH") && path.matches("/api/admin/documents/[0-9]+"))
-            || (method.equals("PUT") && path.matches("/api/admin/books/[0-9]+"))
-            || (method.equals("POST") && (path.equals("/api/admin/books") || path.equals("/api/admin/invitations") || path.matches("/api/admin/invitations/[a-f0-9]{64}/revoke")));
+            || (java.util.Set.of("PUT", "DELETE").contains(method) && path.matches("/api/admin/books/[0-9]+"))
+            || (method.equals("POST") && (path.equals("/api/admin/books") || path.equals("/api/admin/books/order") || path.equals("/api/admin/invitations") || path.matches("/api/admin/invitations/[a-f0-9]{64}/revoke")));
         adminWrite |= (method.equals("POST") && java.util.Set.of("/api/admin/collections", "/api/admin/documents/move", "/api/admin/documents/batch-delete").contains(path))
             || (java.util.Set.of("PATCH", "DELETE").contains(method) && path.matches("/api/admin/collections/[0-9]+"))
             || (method.equals("PUT") && path.matches("/api/admin/collections/[0-9]+/parent"))
