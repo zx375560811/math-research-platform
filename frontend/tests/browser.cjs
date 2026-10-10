@@ -129,7 +129,7 @@ async function main() {
         }
         if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { const native = Number(url.pathname.split('/')[3])===nativeId; res.writeHead(200, { 'Content-Type': native?'image/vnd.djvu':'application/pdf' }); return res.end(native?djvu:pdf); }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
-        for (const name of ['reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        for (const name of ['series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -592,6 +592,23 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.screenshot({path:path.join(shots,'folder-courses-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'folder-courses-mobile.png'),fullPage:true});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
+    const seriesNames=['Graduate Studies in Mathematics (GSM)','Graduate Texts in Mathematics (GTM)','Lecture Notes in Mathematics','London Mathematical Society Student Texts','SMM 系列','UTM 系列'];
+    const seriesFixture=seriesNames.map((name,i)=>({id:i+1,name,description:'',sort_order:i*10,book_count:i===0?1:0}));
+    const seriesDoc=await(await page.request.get(base+'/api/library/documents/1')).json();
+    let recommendationInput;
+    await page.route('**/api/series**',async route=>{const url=new URL(route.request().url());let body;
+      if(url.pathname==='/api/series')body={series:seriesFixture};
+      else if(url.pathname==='/api/series/recommend'){recommendationInput=route.request().postDataJSON();body={summary:'根据你的基础，先阅读这本教材。',books:[{...seriesDoc,reason:'适合当前学习目标。'}]};}
+      else body={series:seriesFixture[0],books:[seriesDoc],offset:0,limit:20};
+      await route.fulfill({json:body});
+    });
+    await page.setViewportSize({width:1440,height:900});await page.locator('.series-application').click();await page.locator('.series-card').first().waitFor();assert.equal(await page.locator('.series-card').count(),6);
+    await page.screenshot({path:path.join(shots,'series-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'series-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
+    await page.locator('#series-requirement').fill('学过线性代数，希望学习代数。');await page.locator('#series-recommend').click();await page.locator('#series-ai-results .series-book').waitFor();assert.equal(recommendationInput.requirement,'学过线性代数，希望学习代数。');assert.equal(recommendationInput.source,'default');
+    await page.locator('#series-ai-results a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/系列书籍/);await readerControl(page,'reader-back');await page.locator('.series-card').first().waitFor();
+    await page.locator('.series-card').first().click();await page.locator('#series-catalog .series-book').waitFor();assert.equal(await page.locator('#series-catalog .series-book').count(),1);
+    await page.unroute('**/api/series**');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);

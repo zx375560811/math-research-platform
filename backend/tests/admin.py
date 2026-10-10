@@ -78,6 +78,9 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/invitations', {'days': 7})[0] == 403
             assert write('/api/admin/books/7', {}, 'DELETE')[0] == 403
             assert write('/api/admin/books/order', {'ids':[7]})[0] == 403
+            assert write('/api/admin/series',{'name':'Forbidden'})[0] == 403
+            assert write('/api/admin/series/1/books',{'document_id':1})[0] == 403
+            assert write('/api/admin/series/1',{},'DELETE')[0] == 403
             assert write('/api/admin/collections', {'name':'Forbidden','parent_id':None})[0] == 403
             assert write('/api/admin/documents/move', {'document_ids':[1], 'collection_id':None})[0] == 403
             assert write('/api/admin/documents/batch-delete', {'document_ids':[1]})[0] == 403
@@ -386,6 +389,30 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/admin/collections')[1] == folders_before
             assert request('/api/learning/books/'+str(created['id']))[1]['available'] is True
             assert request(managed_path)[1]['progress'] == position
+            # Series reference existing files; recursive folder imports are idempotent.
+            assert len(request('/api/series')[1]['series']) == 6
+            sf=write('/api/admin/collections',{'name':'GTM 教材','parent_id':None})[1]['id']
+            child=write('/api/admin/collections',{'name':'子目录','parent_id':sf})[1]['id']
+            assert write('/api/admin/documents/move',{'document_ids':[managed],'collection_id':child})[0] == 200
+            status,created=write('/api/admin/series',{'name':'测试系列','description':'基础到进阶','sort_order':70,'collection_id':sf});assert status == 201 and created['added'] == 1
+            sid=created['id'];sp='/api/admin/series/'+str(sid)
+            assert write('/api/admin/series',{'name':'测试系列'})[0] == 409
+            assert write(sp+'/books',{'collection_id':sf})[1]['added'] == 0
+            assert write(sp+'/books',{'document_id':native_id})[1]['added'] == 1
+            assert write(sp+'/books',{'document_id':999999})[0] == 404
+            assert write(sp+'/books/'+str(managed),{'sort_order':20},'PATCH')[0] == 200
+            assert write(sp+'/books/'+str(native_id),{'sort_order':0},'PATCH')[0] == 200
+            assert request('/api/series/'+str(sid))[1]['books'][0]['id'] == native_id
+            assert request('/api/series/'+str(sid)+'?q='+urllib.parse.quote('改名文献'))[1]['books'][0]['id'] == managed
+            assert write(sp,{'name':'新的系列名称','description':'更改简介','sort_order':80},'PATCH')[0] == 200
+            assert request('/api/series/'+str(sid))[1]['series']['name'] == '新的系列名称'
+            assert write(sp+'/books/'+str(managed),{},'DELETE')[0] == 200
+            assert request(managed_path)[1]['progress'] == position
+            assert request(managed_path+'/annotations')[1]['annotations'][0]['id'] == kept_mark
+            assert write(sp,{},'DELETE')[0] == 200
+            assert request('/api/documents/'+str(native_id))[0] == 200
+            assert request('/api/documents/'+str(managed)+'/file') == (200,pdf)
+            assert request('/api/series/'+str(sid))[0] == 404
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')

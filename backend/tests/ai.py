@@ -32,6 +32,10 @@ class Provider(BaseHTTPRequestHandler):
         if mode == 'unauthorized':
             self.send_response(401); self.end_headers(); self.wfile.write(b'private-default-key'); return
         self.send_response(200); self.send_header('Content-Type', 'application/json'); self.end_headers()
+        if mode in ('series','series-invalid'):
+            catalog=json.loads(received[-1][2]['messages'][-1]['content'])['catalog']
+            content=json.dumps({'summary':'先学习基础教材。','books':[{'id':catalog[0]['id'] if mode=='series' else 999999,'reason':'适合当前基础。'}]})
+            self.wfile.write(json.dumps({'choices':[{'message':{'content':content}}]}).encode());return
         if mode == 'oversized':
             self.wfile.write(b'X' * 16777217); return
         if mode == 'invalid':
@@ -109,6 +113,12 @@ try:
                     assert write('/api/admin/ai/settings',{**default,'base_url':url},'PUT') == (400,{'error':'ai_invalid_url'}), url
                 doc = write('/api/admin/documents?title=Library%20theorem&subject_id=1&module=mathematics&language=en&directions=algebra',b'%PDF-1.4\n%%EOF',pdf=True)
                 assert doc[0] == 201; docid = doc[1]['id']
+                assert write('/api/admin/series/1/books',{'document_id':docid})[0] == 200
+                mode='series'
+                status,result=write('/api/series/recommend',{'source':'default','requirement':'学习代数','series_id':1})
+                assert status == 200 and result['books'][0]['id'] == docid
+                assert received[-1][1] == 'Bearer private-default-key'
+                mode='ok'
                 client = new_client()
                 credentials2 = {'username':'ai_reader','password':'ReaderPassword123!','invitation':invitations.create_invitation(database)}
                 assert write('/api/auth/register',credentials2)[0] == 201
@@ -175,6 +185,13 @@ try:
                 client = reader; assert write('/api/auth/login',credentials2)[0] == 200
                 assert request('/api/ai/settings')[1]['source'] == 'custom'
                 reset_rate(); assert write('/api/ai/chat',customchat)[0] == 200 and received[-1][1] == 'Bearer private-personal-key'
+                mode='series';reset_rate()
+                assert write('/api/series/recommend',{'source':'custom','requirement':'学习代数','series_id':1})[0] == 200
+                assert received[-1][1] == 'Bearer private-personal-key'
+                assert write('/api/series/recommend',{'source':'custom','requirement':'学习代数','series_id':2}) == (409,{'error':'series_empty'})
+                mode='series-invalid'
+                assert write('/api/series/recommend',{'source':'custom','requirement':'学习代数','series_id':1}) == (502,{'error':'ai_recommendation_invalid'})
+                mode='ok';reset_rate()
                 assert write('/api/ai/settings',{**custom,'api_key':'','enabled':False,'clear_key':True},'PUT')[1]['custom']['has_key'] is False
                 assert write('/api/ai/chat',customchat) == (503,{'error':'ai_not_configured'})
                 client = owner

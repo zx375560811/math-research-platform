@@ -23,6 +23,13 @@ with sqlite3.connect(':memory:') as db:
     db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))
     assert db.execute('SELECT title FROM learning_books WHERE id=7').fetchone()[0] == '管理员修改'
     assert db.execute('SELECT COUNT(*) FROM subjects').fetchone()[0] == 5
+    assert db.execute('SELECT COUNT(*) FROM book_series').fetchone()[0] == 6
+    db.execute("UPDATE book_series SET name='管理员重命名' WHERE sort_order=10")
+    db.execute('DELETE FROM book_series WHERE sort_order=60')
+    db.commit()
+    db.executescript(sql)
+    assert db.execute('SELECT COUNT(*) FROM book_series').fetchone()[0] == 5
+    assert db.execute("SELECT count(*) FROM book_series WHERE name='管理员重命名'").fetchone()[0] == 1
     db.execute("UPDATE subjects SET name = '代数研究' WHERE id = 1")
     db.commit()
     db.executescript(sql)

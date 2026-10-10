@@ -1,6 +1,7 @@
 import { createAdminBooks } from './admin-books.js';
 import { createOrganizer } from './admin-organizer.js';
 import { createAdminLibrary } from './admin-library.js';
+import { createAdminSeries } from './admin-series.js';
 const $ = id => document.getElementById(id);
 const state = { document: null, documents: [], subjects: [], books: [], docOffset: 0, inviteOffset: 0, query: '', ready: false };
 const errors = { invalid_documents: '请选择 1–100 篇有效文献。', document_in_use: '文献被推荐教材使用，请勾选解除推荐教材关联后再删除。', collection_name_exists: '该位置已有同名目录。', invalid_collection_parent: '不能移动到自身或子目录中，目录层级最多 30 层。', file_unavailable: '文献文件路径无效，请检查存储记录。', ai_invalid_url: '请输入公网 HTTPS API 地址。', ai_invalid_settings: '启用默认 API 时，请填写地址、模型和密钥；每日次数为 1–1000。', ai_key_unavailable: '服务器加密密钥不可用，请检查 data/ai-secret.key。', admin_required: '此账号没有管理员权限。', login_required: '请重新登录。', invalid_csrf: '登录状态已更新，请重新提交。', invalid_pdf: '请选择有效的 PDF 文件。', invalid_document: '请选择有效的 PDF 或 DJVU 文件。', request_too_large: '请求被服务器拒绝，请检查服务配置。', invalid_metadata: '标题或作者最多 500 个 UTF-8 字节，且不能包含换行等控制字符。', invalid_subject: '请选择有效的数学分类。', invalid_book: '请检查课程与排序信息。', recommendation_exists: '这本文献已在该课程中。', recommendations_changed: '课程教材已更新，请刷新后重新排序。', not_found: '记录不存在，请检查文献编号。', invitation_unavailable: '邀请码已使用或不存在，无法撤销。', invalid_expiry: '有效天数需为 1–365。', invalid_classification: '请检查模块、方向和语种。', classification_in_use: '此文献已作为推荐教材使用，请保留对应方向和语种。', document_direction_mismatch: '所选文献需属于此研究方向，并与推荐语种一致。', document_required: '新增推荐时，请先选择文献库中的文档。', invalid_source: '教材信息链接应以 http:// 或 https:// 开头。' };
@@ -34,6 +35,7 @@ $('document-editor-close').addEventListener('click',()=>{if($('document-form').g
 $('document-editor').addEventListener('cancel',event=>{if($('document-form').getAttribute('aria-busy')==='true')event.preventDefault();});
 const adminBooks=createAdminBooks({api,write,message,directions:()=>state.directions||[]});
 const loadBooks=()=>adminBooks.load();
+const adminSeries=createAdminSeries({api,write,message});
 const date = value => value ? new Date(typeof value === 'number' ? value * 1000 : value).toLocaleString('zh-CN') : '未设置';
 async function loadInvitations() {
   const body = await api(`/api/admin/invitations?offset=${state.inviteOffset}`); const list = $('invitation-list'); list.replaceChildren();
@@ -56,10 +58,10 @@ $('admin-ai-remove').addEventListener('click', () => action($('admin-ai-form'), 
   showAi(await write('/api/admin/ai/settings', { ...aiSettings, enabled: false, clear_key: true }, 'PUT')); message('默认密钥已删除，默认 API 已停用。');
 }));
 async function route() {
-  if (!state.ready) return; const view = ['books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
-  for (const name of ['documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
+  if (!state.ready) return; const view = ['series','books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
+  for (const name of ['series','documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
   for (const link of document.querySelectorAll('[data-view]')) { if (link.dataset.view === view) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); }
-  try { if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
+  try { if(view==='series')await adminSeries.load();else if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
 }
 $('document-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => {
   const title = $('document-title').value.trim(), authors = $('document-authors').value.trim();

@@ -154,3 +154,8 @@ CREATE INDEX IF NOT EXISTS ai_library_pending ON ai_library_items(job_id,state,d
 
 CREATE TABLE IF NOT EXISTS library_settings (name TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS learning_course_config (direction TEXT NOT NULL REFERENCES learning_directions(slug), name TEXT NOT NULL, sort_order INTEGER NOT NULL, PRIMARY KEY(direction,name));
+CREATE TABLE IF NOT EXISTS book_series (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, description TEXT NOT NULL DEFAULT '', sort_order INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS series_documents (series_id INTEGER NOT NULL REFERENCES book_series(id) ON DELETE CASCADE, document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE, sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(series_id,document_id));
+CREATE INDEX IF NOT EXISTS series_document_order ON series_documents(series_id,sort_order,document_id);
+INSERT OR IGNORE INTO book_series(name,sort_order) SELECT name,sorting FROM (SELECT 'Graduate Studies in Mathematics (GSM)' AS name,10 AS sorting UNION ALL SELECT 'Graduate Texts in Mathematics (GTM)',20 UNION ALL SELECT 'Lecture Notes in Mathematics',30 UNION ALL SELECT 'London Mathematical Society Student Texts',40 UNION ALL SELECT 'SMM 系列',50 UNION ALL SELECT 'UTM 系列',60) WHERE NOT EXISTS(SELECT 1 FROM account_migrations WHERE name='book_series_v1');
+INSERT OR IGNORE INTO account_migrations(name) VALUES('book_series_v1');

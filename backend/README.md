@@ -345,6 +345,18 @@ systemctl start math-platform
 
 ### 简化的推荐教材管理
 
+### 系列书籍
+
+新增独立“系列书籍”应用，默认建立 GSM、GTM、Lecture Notes in Mathematics、London Mathematical Society Student Texts、SMM、UTM 六个空系列。默认入口只初始化一次，管理员改名或删除后重启不会补回。`book_series` 保存名称、简介和顺序，`series_documents` 关联文献库原文件；PDF/DjVu 阅读沿用文档级进度、高亮和 AI。
+
+管理员在 `/admin#series` 可编辑系列、调整书籍顺序、关联单本文献，或选择文献目录后“关联整个目录”（包含子目录，重复关联不重复添加）。删除系列和移除关联只改系列记录，保留原文献文件与个人数据。新文件先通过文献库导入，再关联至系列。
+
+用户接口为 `GET /api/series`、`GET /api/series/{id}?offset=0&q=...`、`POST /api/series/recommend`。推荐请求 `{"source":"custom","requirement":"学过线性代数，希望学习代数","series_id":1}`；`series_id:null` 表示全部系列。复用已加密的个人/默认 AI 设置、CSRF、网络地址验证、并发及额度规则。只发送系列简介、书名和作者；模型必须返回候选文献编号，服务器核对编号和当前关联后返回推荐理由及顺序，不声称已检索全文。
+
+管理接口：`POST /api/admin/series`、`PATCH/DELETE /api/admin/series/{id}`、`POST /api/admin/series/{id}/books`（`document_id` 或 `collection_id` 二选一）、`PATCH/DELETE /api/admin/series/{id}/books/{document}`。排序字段为 `sort_order`。目录批量关联与新建系列在事务内执行。部署需重新构建 Java 并重启，已有数据库自动添加新表。
+
+### 推荐教材操作
+
 管理员进入推荐教材，选择分析或代数下的课程，通过“添加教材”直接从文档库关联文献。书名和作者来自文献元数据，不再填写或按中英文拆分。常微分方程和抽象代数等课程由服务端提供，不需要手工修改数据库。添加时自动记录文献语种以兼容现有接口，但界面不要求选择。
 
 - `POST /api/admin/books/order`，JSON `{"ids":[2,1]}`：原子保存同一方向及课程全部已关联教材的顺序；列表过期或混入其他课程时拒绝更新。

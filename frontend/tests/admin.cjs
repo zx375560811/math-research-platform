@@ -18,6 +18,7 @@ async function main() {
     if (process.env.MATH_BROWSER_MOCK === '1') {
       const docs = [], invites = [], folders=[{id:100,name:'大学数学基础',parent_id:null},{id:200,name:'数学主题',parent_id:null},{id:201,name:'分析',parent_id:200},{id:202,name:'几何与拓扑',parent_id:200},{id:203,name:'代数',parent_id:200},{id:204,name:'微分几何',parent_id:202},{id:205,name:'复分析',parent_id:201}]; let folderId=205, organizer={state:'idle'}, organizerGets=0; const memberships=new Map(); let session = null; let ai={base_url:'',model:'',enabled:false,available:false,has_key:false,daily_limit:50};
       const books = [{ id: 7, title: 'Linear Algebra Done Right', authors: 'Sheldon Axler', direction: 'algebra', direction_name: '代数', language:'en', stage: '基础入门', prerequisites: 'Proofs', sort_order: 0, document_id: null }];
+      let seriesItems=['Graduate Studies in Mathematics (GSM)','Graduate Texts in Mathematics (GTM)','Lecture Notes in Mathematics','London Mathematical Society Student Texts','SMM 系列','UTM 系列'].map((name,i)=>({id:i+1,name,description:'',sort_order:i*10}));const seriesMembers=new Map();
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, base), p = url.pathname;
         const json = (data, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
@@ -33,6 +34,10 @@ async function main() {
         if (p === '/api/subjects') return json({ subjects: [{ id: 1, name: '代数', slug: 'algebra' }] });
         if (p.startsWith('/api/admin')) {
           if (session?.role !== 'ADMIN') return json({ error: session ? 'admin_required' : 'login_required' }, session ? 403 : 401);
+          if(p==='/api/admin/series'){if(req.method==='POST'){const id=Math.max(0,...seriesItems.map(s=>s.id))+1;seriesItems.push({...body,id});return json({id,added:0},201);}return json({series:seriesItems.map(s=>({...s,book_count:(seriesMembers.get(s.id)||[]).length}))});}
+          const sm=p.match(/^\/api\/admin\/series\/(\d+)(?:\/books(?:\/(\d+))?)?$/);if(sm){const id=Number(sm[1]),entry=seriesItems.find(s=>s.id===id);let members=seriesMembers.get(id)||[];
+            if(p.includes('/books')){if(req.method==='POST'){if(!members.some(m=>m.id===body.document_id))members.push({id:body.document_id,sort_order:members.length*10});seriesMembers.set(id,members);return json({added:1});}if(req.method==='PATCH')Object.assign(members.find(m=>m.id===Number(sm[2])),body);if(req.method==='DELETE')seriesMembers.set(id,members.filter(m=>m.id!==Number(sm[2])));return json({status:'ok'});}
+            if(req.method==='PATCH'){Object.assign(entry,body);return json({status:'ok'});}if(req.method==='DELETE'){seriesItems=seriesItems.filter(s=>s.id!==id);return json({status:'ok'});}return json({series:entry,books:members.sort((a,b)=>a.sort_order-b.sort_order).map(m=>({...docs.find(d=>d.id===m.id),sort_order:m.sort_order})),offset:0,limit:20});}
           if(p==='/api/admin/library-ai'){if(req.method==='POST'){organizer={id:'job-one',source:body.source,state:'running',done:0,total:docs.length,applied:0,review:0,skipped:0,failed:0,error:''};organizerGets=0;}else if(organizer.state==='running'&&++organizerGets>1)organizer={...organizer,state:'completed',done:docs.length,applied:docs.length};return json(organizer);}
           if(p==='/api/admin/library-ai/job-one/control'){organizer={...organizer,state:{pause:'paused',resume:'running',undo:'undone'}[body.action]};organizerGets=0;return json(organizer);}
           if(p==='/api/admin/collections' && req.method==='GET')return json({collections:folders.map(f=>({...f,count:docs.filter(d=>(memberships.get(d.id)||[]).includes(f.id)).length})),total:docs.length,unfiled:docs.filter(d=>!(memberships.get(d.id)||[]).length).length});
@@ -55,7 +60,7 @@ async function main() {
         }
         if (/^\/api\/learning\/books\/\d+$/.test(p)) return json({ ...books[0], available: !!books.find(b=>b.id===Number(p.split('/').pop())).document_id });
         if (p === '/admin' && session?.role !== 'ADMIN') return json({ error: 'admin_required' }, 403);
-        const assets = { '/admin': 'admin.html', '/admin.js': 'admin.js', '/admin.css': 'admin.css', '/style.css': 'style.css' }; const name = assets[p] || (['/admin-library.js','/admin-organizer.js','/admin-books.js','/icons.js'].includes(p)||p.startsWith('/vendor/morphicons/')?p.slice(1):null);
+        const assets = { '/admin': 'admin.html', '/admin.js': 'admin.js', '/admin.css': 'admin.css', '/style.css': 'style.css' }; const name = assets[p] || (['/admin-series.js','/admin-library.js','/admin-organizer.js','/admin-books.js','/icons.js'].includes(p)||p.startsWith('/vendor/morphicons/')?p.slice(1):null);
         if (!name) return json({ error: 'not_found' }, 404); res.writeHead(200, { 'Content-Type': name.endsWith('.html') ? 'text/html' : name.endsWith('.css') ? 'text/css' : 'text/javascript', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'" }); res.end(fs.readFileSync(path.join(frontend, name)));
       });
       await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
@@ -114,6 +119,10 @@ async function main() {
     await page.locator('[data-remove-book="'+configured.id+'"]').click();await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('已移除推荐'));
     assert.equal((await page.request.get(base+'/api/documents/'+doc.id)).status(),200);
     assert.equal((await(await page.request.get(base+'/api/learning/books/'+configured.id)).json()).available,false);
+    await page.locator('[data-view="series"]').click();await page.locator('#as-nav button').first().waitFor();assert.equal(await page.locator('#as-nav button').count(),6);
+    await page.locator('#as-document').selectOption(String(doc.id));await page.locator('#as-book-add').click();await page.locator('#as-books .series-book').waitFor();assert.equal(await page.locator('#as-books h3').textContent(),(await(await page.request.get(base+'/api/documents/'+doc.id)).json()).title);
+    await page.screenshot({path:path.join(shots,'admin-series.png'),fullPage:true});await page.locator('#as-books input').fill('5');await page.getByRole('button',{name:'保存顺序',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#as-books input')?.value==='5');
+    await page.locator('#as-books').getByRole('button',{name:'移除',exact:true}).click();await page.locator('#as-books .admin-empty').waitFor();assert.equal((await page.request.get(base+'/api/documents/'+doc.id)).status(),200);
     await page.locator('[data-view="ai"]').click(); await page.locator('#admin-ai-form').waitFor(); await page.locator('#admin-ai-enabled').check(); await page.locator('#admin-ai-url').fill('https://api.openai.com/v1'); await page.locator('#admin-ai-model').fill('math-model'); await page.locator('#admin-ai-key').fill('default-test-secret'); await page.locator('#admin-ai-limit').fill('30'); await page.locator('#admin-ai-form button[type=submit]').click();
     await page.waitForFunction(()=>document.getElementById('admin-message').textContent.includes('API 设置已保存'));
     assert.equal(await page.locator('#admin-ai-key').inputValue(),''); assert.match(await page.locator('#admin-ai-key-state').textContent(),/密钥已保存/); await page.reload(); await page.waitForFunction(()=>document.getElementById('admin-ai-model').value==='math-model'); assert.equal(await page.locator('#admin-ai-limit').inputValue(),'30'); assert.equal(await page.locator('#admin-ai-enabled').isChecked(),true);

@@ -1,6 +1,7 @@
 import { mountIcons } from './icons.js';
 import { createLearning } from './learning.js';
 import { createLibrary } from './library.js';
+import { createSeries } from './series.js';
 const $ = id => document.getElementById(id);
 const state = { generation: 0, user: null, ready: false, returnTo: '#/', authBusy: false };
 mountIcons();
@@ -9,7 +10,7 @@ async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
   if (!response.ok) {
     if (body.error === 'login_required') { state.user = null; accountDisplay(); state.returnTo = location.hash; location.hash = '#/login'; route(); }
-    throw new Error(accountErrors[body.error] || '请求失败，请稍后重试。');
+    const failure=new Error(accountErrors[body.error] || '请求失败，请稍后重试。');failure.code=body.error;throw failure;
   }
   return body;
 }
@@ -25,24 +26,26 @@ function accountDisplay() {
 function friendly(error) { return error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message; }
 const learning = createLearning({ api, write: authPost });
 const library = createLibrary({ api, write: authPost });
+const series = createSeries({ api, write: authPost });
 function route() {
-  if (!state.ready) { document.body.classList.add('auth-page'); $('library-view').hidden = true; $('home-view').hidden = true; $('module-view').hidden = true; $('auth-view').hidden = true; $('reader-view').hidden = true; return; }
+  if (!state.ready) { document.body.classList.add('auth-page'); $('series-view').hidden=true; $('library-view').hidden = true; $('home-view').hidden = true; $('module-view').hidden = true; $('auth-view').hidden = true; $('reader-view').hidden = true; return; }
   ++state.generation;
   const inApp = location.hash.startsWith('#/apps/mathematics'); const inLibrary = location.hash.startsWith('#/library');
+  const inSeries=location.hash.startsWith('#/series');
   if (!state.user && !['#/login', '#/register'].includes(location.hash)) { state.returnTo = location.hash || '#/'; location.replace('#/login'); route(); return; }
   if (location.hash === '#/admin' && state.user) { if (state.user.role === 'ADMIN') { location.replace('/admin'); return; } $('notice').textContent = '此账号没有管理员权限。'; $('notice').hidden = false; location.replace('#/'); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
   document.body.classList.toggle('auth-page', inAuth);
-  $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inLibrary || inAuth; $('library-view').hidden = !inLibrary || inAuth; $('module-view').hidden = !inApp;
+  $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inLibrary || inSeries || inAuth; $('library-view').hidden = !inLibrary || inAuth; $('module-view').hidden = !inApp;$('series-view').hidden=!inSeries;
   $('auth-title').textContent = registering ? '注册公理账号' : '登录公理'; $('account-submit').textContent = registering ? '注册账号' : '登录';
   $('invitation-label').hidden = !registering; $('account-invitation').hidden = !registering; $('account-invitation').required = registering;
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
   $('account-password').autocomplete = registering ? 'new-password' : 'current-password'; $('account-password').minLength = registering ? 12 : 1;
   $('login-tab').classList.toggle('active', !registering); $('register-tab').classList.toggle('active', registering);
-  $('breadcrumb').textContent = inLibrary ? '文档库' : inApp ? '数学与应用数学' : '应用工作台';
-  for (const [id, active] of [['home-link', !inApp && !inLibrary], ['library-link', inLibrary], ['math-app-link', inApp]]) { $(id).classList.toggle('active', active); if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); }
+  $('breadcrumb').textContent = inSeries?'系列书籍':inLibrary ? '文档库' : inApp ? '数学与应用数学' : '应用工作台';
+  for (const [id, active] of [['home-link', !inApp && !inLibrary&&!inSeries], ['library-link', inLibrary], ['math-app-link', inApp],['series-link',inSeries]]) { $(id).classList.toggle('active', active); if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); }
   document.title = inAuth ? `${registering ? '注册' : '登录'} · 公理` : inLibrary ? '文档库 · 公理' : inApp ? '数学与应用数学 · 公理' : '公理 · 数学研究平台';
-  if (inLibrary && state.user) { learning.close(); library.navigate(location.hash); } else { library.close(); if (inApp && state.user) learning.navigate(location.hash); else learning.close(); }
+  if(inSeries&&state.user){learning.close();library.close();document.title='系列书籍 · 公理';series.navigate(location.hash);}else{series.close();if (inLibrary && state.user) { learning.close(); library.navigate(location.hash); } else { library.close(); if (inApp && state.user) learning.navigate(location.hash); else learning.close(); }}
   window.scrollTo(0, 0);
 }
 async function init() {
