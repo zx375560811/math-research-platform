@@ -76,6 +76,8 @@ with tempfile.TemporaryDirectory() as directory:
                 assert request(path) == (403, {'error': 'admin_required'})
             assert write('/api/admin/documents?title=Test&subject_id=1', b'%PDF-1.4\n%%EOF', pdf=True)[0] == 403
             assert write('/api/admin/invitations', {'days': 7})[0] == 403
+            assert write('/api/admin/books/7', {}, 'DELETE')[0] == 403
+            assert write('/api/admin/books/order', {'ids':[7]})[0] == 403
             assert write('/api/admin/collections', {'name':'Forbidden','parent_id':None})[0] == 403
             assert write('/api/admin/documents/move', {'document_ids':[1], 'collection_id':None})[0] == 403
             assert write('/api/admin/documents/batch-delete', {'document_ids':[1]})[0] == 403
@@ -341,6 +343,30 @@ with tempfile.TemporaryDirectory() as directory:
                 assert db.execute('SELECT id,title,file_path FROM documents ORDER BY id').fetchall()==records_before
             assert set((root/'data/files').iterdir())==files_before
             assert write('/api/admin/collections/'+str(created_folder),{},'DELETE')[0]==404
+            # Course association removal and atomic mixed-language ordering preserve document data.
+            metadata=request('/api/documents/'+str(managed))[1]
+            association={'direction':'algebra','stage':'进阶学习','language':'zh','title':metadata['title'],'authors':metadata['authors'],'source_url':'','prerequisites':'','sort_order':50,'document_id':managed}
+            status,created=write('/api/admin/books',association); assert status==201
+            recommendation=created['id']
+            assert write('/api/admin/books',association)[0]==409
+            native_metadata=request('/api/documents/'+str(native_id))[1]
+            status,other=write('/api/admin/books',{**association,'language':'en','document_id':native_id,'title':native_metadata['title'],'authors':native_metadata['authors']});assert status==201
+            ordered=[b['id'] for b in request('/api/admin/books')[1]['books'] if b['direction']=='algebra' and b['stage']=='进阶学习' and b['document_id']]
+            assert write('/api/admin/books/order',{'ids':list(reversed(ordered))})[0]==200
+            found=[b['id'] for b in request('/api/admin/books')[1]['books'] if b['direction']=='algebra' and b['stage']=='进阶学习' and b['document_id']]
+            assert found==list(reversed(ordered))
+            assert write('/api/admin/books/order',{'ids':[recommendation,recommendation]})[0]==400
+            assert write('/api/admin/books/order',{'ids':ordered[:-1]})[0]==409
+            before=[(b['id'],b['sort_order']) for b in request('/api/admin/books')[1]['books']]
+            assert write('/api/admin/books/order',{'ids':[recommendation,999999]})[0]==409
+            assert before==[(b['id'],b['sort_order']) for b in request('/api/admin/books')[1]['books']]
+            assert write('/api/learning/books/'+str(recommendation)+'/selection',{'document_id':managed},'PUT')[0]==200
+            assert write('/api/admin/books/'+str(recommendation),{},'DELETE')[0]==200
+            assert request('/api/learning/books/'+str(recommendation))[1]['available'] is False
+            assert request(managed_path)[1]['progress']==position
+            assert request(managed_path+'/annotations')[1]['annotations'][0]['id']==kept_mark
+            assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
+            assert write('/api/admin/books/'+str(recommendation),{},'DELETE')[0]==404
             with sqlite3.connect(database) as db:
                 assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 2
                 assert db.execute('PRAGMA foreign_key_check').fetchall() == []

@@ -127,3 +127,19 @@
 .admin-page .book-course-nav .button[aria-pressed=true] { border-color:#d9e2f4;background:#e9eefb;color:var(--accent-ink); }
 .book-course-heading h2 { font-weight:650;letter-spacing:-.025em; }
 .book-recommendation h4 { font-weight:600; }
+.book-association-list { display:grid;gap:0; }
+.book-association-list .book-recommendation { display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:16px 0; }
+.book-association-list .book-recommendation h3 { margin:0;font-size:16px;line-height:1.5;overflow-wrap:anywhere; }
+.book-association-list .book-recommendation p { margin:4px 0 0;font-size:14px;line-height:1.5; }
+.book-order-number { color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums; }
+.book-row-actions { display:flex;gap:6px;align-items:center;flex-wrap:wrap; }
+.book-row-actions .button { padding:6px 9px;min-height:36px;font-size:14px; }
+.book-row-actions .icon { width:16px;height:16px; }
+.book-selected-preview { padding:12px;background:var(--soft-blue);border-radius:12px;font-size:15px;line-height:1.6;overflow-wrap:anywhere; }
+.book-editor-dialog .book-document-pager { margin:12px 0 20px;justify-content:flex-end; }
+@media(max-width:800px) {
+  .book-association-list .book-recommendation { grid-template-columns:24px minmax(0,1fr);gap:8px; }
+  .book-row-actions { grid-column:2; }
+  .book-course-heading { align-items:center; }
+  .book-course-heading>.button { white-space:nowrap;padding:8px 10px;font-size:14px; }
+}

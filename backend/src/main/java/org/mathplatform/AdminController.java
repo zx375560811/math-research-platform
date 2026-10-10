@@ -150,6 +150,46 @@ public class AdminController {
     public ResponseEntity<Map<String,Long>> createBook(Authentication user, @RequestBody Book value) throws SQLException {
         authorize(user); return ResponseEntity.status(201).body(Map.of("id",saveBook(0,value,true)));
     }
+    @DeleteMapping("/books/{id}")
+    public Map<String,String> removeBook(Authentication user, @PathVariable long id) throws SQLException {
+        authorize(user);
+        try (var db = library.connect(false); var transaction = db.createStatement()) {
+            transaction.execute("BEGIN IMMEDIATE");
+            try {
+                try (var update = db.prepareStatement("UPDATE learning_books SET document_id=NULL WHERE id=? AND document_id IS NOT NULL")) {
+                    update.setLong(1,id); if (update.executeUpdate() == 0) throw new ApiProblem(404,"not_found");
+                }
+                try (var delete = db.prepareStatement("DELETE FROM learning_selections WHERE book_id=?")) { delete.setLong(1,id); delete.executeUpdate(); }
+                transaction.execute("COMMIT");
+            } catch (SQLException | RuntimeException failure) { transaction.execute("ROLLBACK"); throw failure; }
+        }
+        return Map.of("status","ok");
+    }
+    public record BookOrder(List<Long> ids) {}
+    @PostMapping("/books/order")
+    public Map<String,String> orderBooks(Authentication user, @RequestBody BookOrder value) throws SQLException {
+        authorize(user);
+        if (value.ids == null || value.ids.isEmpty() || value.ids.size() > 1000 || value.ids.stream().anyMatch(id -> id == null || id <= 0) || new java.util.HashSet<>(value.ids).size() != value.ids.size()) throw new ApiProblem(400,"invalid_book");
+        try (var db = library.connect(false); var transaction = db.createStatement()) {
+            transaction.execute("BEGIN IMMEDIATE");
+            try {
+                String direction, stage;
+                try (var query = db.prepareStatement("SELECT direction,stage FROM learning_books WHERE id=? AND document_id IS NOT NULL")) {
+                    query.setLong(1,value.ids.get(0)); try (var row = query.executeQuery()) { if (!row.next()) throw new ApiProblem(409,"recommendations_changed"); direction=row.getString(1); stage=row.getString(2); }
+                }
+                var attached = new java.util.HashSet<Long>();
+                try (var query = db.prepareStatement("SELECT id FROM learning_books WHERE direction=? AND stage=? AND document_id IS NOT NULL")) {
+                    query.setString(1,direction); query.setString(2,stage); try (var rows = query.executeQuery()) { while (rows.next()) attached.add(rows.getLong(1)); }
+                }
+                if (!attached.equals(new java.util.HashSet<>(value.ids))) throw new ApiProblem(409,"recommendations_changed");
+                try (var update = db.prepareStatement("UPDATE learning_books SET sort_order=? WHERE id=?")) {
+                    for (int index=0; index<value.ids.size(); index++) { update.setInt(1,index*10); update.setLong(2,value.ids.get(index)); update.addBatch(); } update.executeBatch();
+                }
+                transaction.execute("COMMIT");
+            } catch (SQLException | RuntimeException failure) { transaction.execute("ROLLBACK"); throw failure; }
+        }
+        return Map.of("status","ok");
+    }
     private long saveBook(long id, Book value, boolean create) throws SQLException {
         if (value.stage == null || value.sort_order == null || value.sort_order < 0 || value.sort_order > 10000) throw new ApiProblem(400,"invalid_book");
         String prerequisites = text(value.prerequisites,false);
@@ -175,6 +215,9 @@ public class AdminController {
                 try (var query = db.prepareStatement("SELECT 1 FROM learning_directions WHERE slug=?")) { query.setString(1,direction); try (var row = query.executeQuery()) { if (!row.next()) throw new ApiProblem(400,"invalid_book"); } }
                 if (value.document_id != null) CatalogRepository.checkBookDocument(db,value.document_id,direction,language);
                 if (create && value.document_id == null) throw new ApiProblem(400,"document_required");
+                if (create) try (var query = db.prepareStatement("SELECT 1 FROM learning_books WHERE direction=? AND stage=? AND document_id=?")) {
+                    query.setString(1,direction); query.setString(2,value.stage); query.setLong(3,value.document_id); try (var row = query.executeQuery()) { if (row.next()) throw new ApiProblem(409,"recommendation_exists"); }
+                }
                 String sql = create ? "INSERT INTO learning_books(stage,prerequisites,sort_order,document_id,direction,title,authors,source_url) VALUES(?,?,?,?,?,?,?,?)" : "UPDATE learning_books SET stage=?,prerequisites=?,sort_order=?,document_id=?,direction=?,title=?,authors=?,source_url=? WHERE id=?";
                 try (var update = db.prepareStatement(sql)) {
                     update.setString(1,value.stage); update.setString(2,prerequisites); update.setInt(3,value.sort_order); update.setObject(4,value.document_id); update.setString(5,direction); update.setString(6,title); update.setString(7,authors); update.setString(8,source); if (!create) update.setLong(9,id); update.executeUpdate();

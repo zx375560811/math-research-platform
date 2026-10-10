@@ -159,14 +159,14 @@ def run():
                         assert {d['slug'] for d in request('/api/learning/directions')['directions']} == {'analysis','algebra'}
                         detail = request('/api/learning/directions/analysis')
                         assert detail['custom_courses'] is True
-                        assert detail['courses'] == importer.ORDER[:6]
+                        assert detail['courses'] == ['分析','复分析','测度论','实分析','常微分方程','泛函分析','偏微分方程']
                         assert all(b['available'] for b in detail['books'])
                         assert {b['stage'] for b in detail['books']} == set(importer.ORDER[:6])
                         with closing(sqlite3.connect('data/math.db')) as db:
                             db.execute("INSERT INTO administrators VALUES('folder_reader')"); db.commit()
                         request('/api/auth/login', {'username':'folder_reader','password':'FolderTestPass123!'})
                         configured = request('/api/admin/books')
-                        assert configured['courses']['analysis'] == importer.ORDER[:6]
+                        assert configured['courses']['analysis'] == detail['courses']
                         assert configured['courses']['algebra'] == importer.ORDER[6:]
                         book = next(b for b in configured['books'] if b['stage'] == '测度论')
                         body = {k:book[k] for k in ('direction','language','stage','prerequisites','sort_order','document_id','title','authors','source_url')}
