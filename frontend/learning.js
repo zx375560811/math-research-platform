@@ -10,7 +10,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、测度论和常微分方程；测度论指向第三列的实分析；高等代数通向抽象代数及泛函分析；抽象代数以虚线关联泛函分析，作为补充知识；实分析通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、实分析和常微分方程；测度论指向第三列的实分析；高等代数通向抽象代数及泛函分析；抽象代数以虚线关联泛函分析，作为补充知识；实分析通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
   const defs=make('defs', {});
   const gradient=(id, colors) => {
     const value=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
@@ -27,7 +27,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   svg.append(make('rect',{x:0,y:0,width:940,height:170,rx:12,fill:'url(#analysis-map-dots)',opacity:'.4'}));
   const customEdges = [
     ['分析','复分析','M172 85 H180 Q188 85 188 77 V37 Q188 29 196 29 H204'],
-    ['分析','测度论','M172 85 H364 Q376 85 376 97 V129 Q376 141 388 141 H392'],
+    ['分析','实分析','M172 85 H392'],
     ['分析','常微分方程','M172 85 H180 Q188 85 188 93 V133 Q188 141 196 141 H204'],
     ['测度论','实分析','M470 120 V106'],
     ['实分析','泛函分析','M548 85 H580'],
