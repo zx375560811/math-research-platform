@@ -113,7 +113,7 @@ def run():
                             assert db.execute('SELECT COUNT(*) FROM learning_books').fetchone()[0] == 10
                             assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 9
                             assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 1
-                            invitation = 'folder-import-test-invitation'
+                            invitation = 'T' * 43
                             db.execute('INSERT INTO invitations(code_hash) VALUES(?)', (hashlib.sha256(invitation.encode()).hexdigest(),))
                             db.commit()
                         client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
