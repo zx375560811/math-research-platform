@@ -10,7 +10,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
     if (text !== undefined) node.textContent = text;
     return node;
   };
-  const svg = make('svg', {viewBox:'0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、实分析和常微分方程；测度论指向第三列的实分析；高等代数通向抽象代数及泛函分析；抽象代数以虚线关联泛函分析，作为补充知识；实分析通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
+  const svg = make('svg', {viewBox:custom ? '0 0 940 226' : '0 0 940 170',role:'group','aria-label':custom ? '分析学习路线：数学分析通向复分析、实分析和常微分方程；测度论指向第三列的实分析；高等代数通向抽象代数及泛函分析；抽象代数以虚线关联泛函分析，作为补充知识；实分析通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。' : '分析学习路线：数学分析通向复分析、实分析与测度论及常微分方程；实分析与测度论和高等代数通向泛函分析，再到偏微分方程。常微分方程建议先于偏微分方程学习。'});
   const defs=make('defs', {});
   const gradient=(id, colors) => {
     const value=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});
@@ -24,18 +24,18 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   pattern.append(make('circle',{cx:2,cy:2,r:.8,fill:'#b5c5e6'}));defs.append(pattern);
   const marker=make('marker',{id:'analysis-route-arrow',viewBox:'0 0 8 8',refX:'7',refY:'4',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});
   marker.append(make('path',{d:'M1 1 L7 4 L1 7',fill:'none',stroke:'#8298c6','stroke-width':'1.4'}));defs.append(marker);svg.append(defs);
-  svg.append(make('rect',{x:0,y:0,width:940,height:170,rx:12,fill:'url(#analysis-map-dots)',opacity:'.4'}));
+  svg.append(make('rect',{x:0,y:0,width:940,height:custom ? 226 : 170,rx:12,fill:'url(#analysis-map-dots)',opacity:'.4'}));
   const customEdges = [
     ['分析','复分析','M172 85 H180 Q188 85 188 77 V37 Q188 29 196 29 H204'],
     ['分析','实分析','M172 85 H392'],
-    ['分析','常微分方程','M172 85 H180 Q188 85 188 93 V133 Q188 141 196 141 H204'],
+    ['分析','常微分方程','M172 85 H188 V197 H204'],
     ['测度论','实分析','M470 120 V106'],
     ['实分析','泛函分析','M548 85 H580'],
     ['高等代数','泛函分析','M548 29 H552 Q564 29 564 41 V73 Q564 85 576 85 H580'],
     ['高等代数','抽象代数','M548 29 H580'],
     ['抽象代数','泛函分析','M658 50 V64',true],
     ['泛函分析','偏微分方程','M736 85 H768'],
-    ['常微分方程','偏微分方程','M360 141 H362 Q370 141 370 149 V154 Q370 164 380 164 H834 Q846 164 846 152 V106',true]
+    ['常微分方程','偏微分方程','M360 197 H846 V106',true]
   ];
   const edges=custom ? customEdges.map(([from,to,d,optional=false])=>[d,optional,from,to]) : [
     ['M208 85 C242 85 236 22 270 22',false],['M208 85 H270',false],['M208 85 C242 85 236 148 270 148',false],
@@ -45,7 +45,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   const nodes = custom ? [
     ['分析','∫',16,64,156,'foundation'],['复分析','ℂ',204,8,156,'complex'],
     ['测度论','μ',392,120,156,'real'],['实分析','ℝ',392,64,156,'real'],
-    ['常微分方程','y′',204,120,156,'ode'],['高等代数','ℝⁿ',392,8,156,'support'],
+    ['常微分方程','y′',204,176,156,'ode'],['高等代数','ℝⁿ',392,8,156,'support'],
     ['抽象代数','𝔾',580,8,156,'complex'],['泛函分析','‖f‖',580,64,156,'functional'],['偏微分方程','∂',768,64,156,'pde']
   ] : [
     ['数学分析','∫',28,64,180,'foundation'],['复分析','ℂ',270,1,215,'complex'],['实分析与测度论','μ',270,64,215,'real'],
