@@ -919,7 +919,9 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 #direction-detail #textbook-list.compact-recommendations .textbook-actions .button { white-space:nowrap;min-height:36px;padding:7px 10px;font-size:14px; }
 #direction-detail #textbook-list.compact-recommendations .recommendation-empty { min-height:54px;padding:12px;display:block;grid-column:1 / -1;font-size:14px;border-radius:12px; }
 .compact-recommendations .recommendation-columns>.button { justify-self:start; }
+#direction-detail>.direction-heading h1 { font:650 26px/1.4 var(--display);letter-spacing:-.025em;margin:0; }
 @media(max-width:767px) {
+  #direction-detail>.direction-heading h1 { font-size:24px; }
   #direction-detail #textbook-list.compact-recommendations .recommendation-columns { grid-template-columns:minmax(0,1fr); }
   .compact-recommendations .textbook-course-nav { flex-wrap:nowrap; }
   #direction-detail #textbook-list.compact-recommendations .textbook-row { padding:10px;gap:8px; }

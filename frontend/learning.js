@@ -1,32 +1,7 @@
 const $ = id => document.getElementById(id);
 const analysisCourses = ['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'];
 const folderAnalysisCourses = ['分析','复分析','测度论','实分析','常微分方程','高等代数','抽象代数','泛函分析','偏微分方程'];
-const symbols = { analysis: '∫', 'geometry-topology': '𝒮', algebra: '𝔾' };
 function el(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
-// Each illustration describes its subject: a function, a torus, and group symmetries.
-function diagram(slug) {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 300 170'); svg.setAttribute('aria-hidden', 'true');
-  const line = (points, kind = '') => { const path = document.createElementNS(ns, 'polyline'); path.setAttribute('points', points.map(p => p.map(v => v.toFixed(2)).join(',')).join(' ')); if (kind) path.setAttribute('class', kind); svg.append(path); };
-  if (slug === 'analysis') {
-    for (let x = 30; x <= 270; x += 30) line([[x,20],[x,150]], 'diagram-grid');
-    for (let y = 30; y <= 150; y += 30) line([[25,y],[275,y]], 'diagram-grid');
-    line([[25,125],[275,125]], 'diagram-axis'); line([[50,150],[50,20]], 'diagram-axis');
-    const f = x => 100 - 48 * Math.sin((x-45)/55);
-    for (let x = 60; x <= 230; x += 10) line([[x,125],[x,f(x)]], 'diagram-area');
-    line(Array.from({length:101}, (_,i) => [25+i*2.5,f(25+i*2.5)]), 'diagram-focus');
-  } else if (slug === 'geometry-topology') {
-    const point = (u,v) => { const r = 55 + 22*Math.cos(v); return [150+r*Math.cos(u)*1.35,85+r*Math.sin(u)*.55+22*Math.sin(v)]; };
-    for(let j=0;j<16;j++) line(Array.from({length:81},(_,i)=>point(i*Math.PI/40,j*Math.PI/8)));
-    for(let j=0;j<24;j++) line(Array.from({length:41},(_,i)=>point(j*Math.PI/12,i*Math.PI/20)));
-  } else {
-    const points=Array.from({length:6},(_,i)=>[150+63*Math.cos(i*Math.PI/3-Math.PI/2),85+63*Math.sin(i*Math.PI/3-Math.PI/2)]);
-    line([...points,points[0]],'diagram-focus');
-    for(let i=0;i<6;i++) {line([points[i],points[(i+2)%6]]);line([points[i],[150,85]],'diagram-grid');}
-    for(const [x,y] of points) {const node=document.createElementNS(ns,'circle');node.setAttribute('cx',x);node.setAttribute('cy',y);node.setAttribute('r','4');svg.append(node);}
-  }
-  const art = el('div', 'direction-art'); art.append(svg); return art;
-}
 function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   const ns = 'http://www.w3.org/2000/svg';
   const make = (tag, attrs, text) => {
@@ -92,29 +67,16 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   const layout=el('div','analysis-route-layout');layout.append(box,help);return layout;
 }
 export function createLearning({ api, write }) {
-  let directions = [], generation = 0, stopReader = null, current = '', ownsReader = false;
+  let generation = 0, stopReader = null, current = '', ownsReader = false;
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
-  async function loadDirections() {
-    directions = (await api('/api/learning/directions')).directions.filter(direction => ['analysis','geometry-topology','algebra'].includes(direction.slug) && direction.document_count > 0).map(direction=>({...direction,name:direction.slug==='geometry-topology'?'几何':direction.name}));
-    $('featured-directions').replaceChildren(); $('more-directions').replaceChildren();
-    for (const direction of directions) {
-      const link = el('a', direction.featured ? 'direction-card' : 'direction-small', ''); link.href = `#/apps/mathematics/directions/${direction.slug}`; link.dataset.direction = direction.slug;
-      if (direction.featured) { link.append(diagram(direction.slug), el('h3', '', direction.name), el('p', '', direction.description), el('span', 'direction-enter', '进入方向')); }
-      else link.append(el('strong', '', direction.name));
-      $(direction.featured ? 'featured-directions' : 'more-directions').append(link);
-    }
-    $('featured-directions').previousElementSibling.hidden = !directions.some(direction => direction.featured);
-    $('more-directions').previousElementSibling.hidden = !directions.some(direction => !direction.featured);
-    $('learning-status').textContent = directions.length ? '' : '研究方向的文献正在准备中，可先前往文档库阅读。';
-  }
   async function navigate(hash) {
     close(); current = hash; const version = generation;
     $('learning-status').textContent = ''; $('retry-learning').hidden = true;
     const reading = hash.match(/^#\/apps\/mathematics\/read\/(\d+)$/);
     ownsReader = !!reading;
-    const detail = hash.match(/^#\/apps\/mathematics\/directions\/([a-z-]+)$/);
+    const detail = hash.match(/^#\/apps\/mathematics\/directions\/([a-z-]+)$/) || (/^#\/apps\/mathematics\/?$/.test(hash) ? ['', 'analysis'] : null);
     $('reader-view').hidden = !reading; $('module-view').hidden = !!reading;
-    $('direction-overview').hidden = !!detail; $('direction-detail').hidden = !detail;
+    $('direction-detail').hidden = !detail;
     try {
       if (reading) {
         document.body.classList.add('reading-page');
@@ -135,7 +97,7 @@ export function createLearning({ api, write }) {
             direction.books.push(...algebra.books.filter(book=>book.available && ['高等代数','抽象代数'].includes(book.stage)));
           } catch { if (version !== generation) return; /* The empty panel retains its algebra entry point. */ }
         }
-        $('direction-title').textContent = direction.name;
+        $('direction-title').textContent = direction.slug === 'analysis' ? '数学与应用数学' : direction.name;
         const analysisFlow = direction.slug === 'analysis';
         const configuredCourses = direction.courses || (analysisFlow ? analysisCourses : ['基础入门','核心理论','进阶学习']);
         const courses = analysisFlow && direction.custom_courses ? [...new Set([...folderAnalysisCourses,...configuredCourses])] : configuredCourses;
@@ -232,7 +194,7 @@ export function createLearning({ api, write }) {
           let remembered; try { remembered = sessionStorage.getItem(storageKey); } catch {}
           selectCourse(groups.includes(remembered) ? remembered : groups[0]);
 
-      } else if (!directions.length) await loadDirections();
+      }
     } catch (error) {
       if (version !== generation) return;
       const message = error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message;
@@ -241,5 +203,5 @@ export function createLearning({ api, write }) {
     }
   }
   $('retry-learning').addEventListener('click', () => navigate(current));
-  return { loadDirections, navigate, close };
+  return { navigate, close };
 }

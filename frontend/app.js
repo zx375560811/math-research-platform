@@ -45,11 +45,9 @@ function route() {
   if (inLibrary && state.user) { learning.close(); library.navigate(location.hash); } else { library.close(); if (inApp && state.user) learning.navigate(location.hash); else learning.close(); }
   window.scrollTo(0, 0);
 }
-async function loadDirections() { try { await learning.loadDirections(); } catch { $('notice').textContent = '研究方向加载失败，请进入模块后重试。'; $('notice').hidden = false; } }
 async function init() {
   try { const me = await api('/api/auth/me'); state.user = me.authenticated ? me.user : null; }
   catch { state.user = null; }
-  if (state.user) await loadDirections();
   state.ready = true; accountDisplay(); route();
 }
 function authMessage(text, error = false) { $('account-message').textContent = text; $('account-message').classList.toggle('error', error); }
@@ -63,7 +61,7 @@ $('account-form').addEventListener('submit', async event => {
     const body = await authPost(registering ? '/api/auth/register' : '/api/auth/login', { username, password, ...(registering ? { invitation: $('account-invitation').value.trim() } : {}) });
     $('account-password').value = ''; $('account-confirm').value = '';
     if (registering) { $('account-invitation').value = ''; authMessage('注册成功，请登录。'); location.hash = '#/login'; }
-    else { state.user = body.user; accountDisplay(); await loadDirections(); authMessage(''); location.hash = state.returnTo; }
+    else { state.user = body.user; accountDisplay(); authMessage(''); location.hash = state.returnTo; }
   } catch (error) { authMessage(friendly(error), true); }
   finally { state.authBusy = false; $('account-form').setAttribute('aria-busy', 'false'); for (const field of $('account-form').elements) field.disabled = false; }
 });
