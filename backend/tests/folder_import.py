@@ -27,7 +27,7 @@ def run():
         try:
             (root / 'data/files').mkdir(parents=True)
             old_file = root / 'data/files/old.pdf'; old_file.write_bytes(b'%PDF-1.4 old')
-            (root / 'data/ai-secret.key').write_text('existing-key', encoding='utf-8')
+            (root / 'data/ai-secret.key').write_bytes(b'k' * 32)
             with closing(sqlite3.connect('data/math.db')) as db:
                 for name in ('schema.sql', 'learning.sql', 'learning-courses.sql'):
                     db.executescript((backend / 'src/main/resources' / name).read_text(encoding='utf-8'))
@@ -79,7 +79,7 @@ def run():
             assert not old_file.exists() and changed.exists()
             backup = Path(result['backup'])
             assert (backup / 'files/old.pdf').exists()
-            assert (backup / 'ai-secret.key').read_text() == 'existing-key'
+            assert (backup / 'ai-secret.key').read_bytes() == b'k' * 32
             with closing(sqlite3.connect(str(backup / 'math.db'))) as db:
                 assert db.execute('SELECT COUNT(*) FROM learning_books').fetchone()[0] == 56
                 assert db.execute('SELECT title FROM documents WHERE id=81').fetchone()[0] == 'Old library'
