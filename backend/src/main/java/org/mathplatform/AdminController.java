@@ -141,7 +141,7 @@ public class AdminController {
         }
         return Map.of("books", values, "analysis_courses", LearningCourses.ANALYSIS, "courses", courses);
     }
-    public record Book(String stage, String prerequisites, Integer sort_order, Long document_id, String direction, String language, String title, String authors, String source_url) {}
+    public record Book(String stage, String prerequisites, Integer sort_order, Long document_id, String direction, String language, String title, String authors, String source_url, Boolean attach_direction) {}
     @PutMapping("/books/{id}")
     public Map<String,String> editBook(Authentication user, @PathVariable long id, @RequestBody Book value) throws SQLException {
         authorize(user); saveBook(id, value, false); return Map.of("status","ok");
@@ -213,6 +213,7 @@ public class AdminController {
                     catch (IllegalArgumentException failure) { throw new ApiProblem(400,"invalid_source"); }
                 }
                 try (var query = db.prepareStatement("SELECT 1 FROM learning_directions WHERE slug=?")) { query.setString(1,direction); try (var row = query.executeQuery()) { if (!row.next()) throw new ApiProblem(400,"invalid_book"); } }
+                if (create && value.document_id != null && Boolean.TRUE.equals(value.attach_direction)) CatalogRepository.attachBookDirection(db,value.document_id,direction,language);
                 if (value.document_id != null) CatalogRepository.checkBookDocument(db,value.document_id,direction,language);
                 if (create && value.document_id == null) throw new ApiProblem(400,"document_required");
                 if (create) try (var query = db.prepareStatement("SELECT 1 FROM learning_books WHERE direction=? AND stage=? AND document_id=?")) {

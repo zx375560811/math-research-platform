@@ -375,6 +375,17 @@ with tempfile.TemporaryDirectory() as directory:
                 db.execute("INSERT INTO learning_course_config(direction,name,sort_order) VALUES('analysis','分析',0),('analysis','泛函分析',10)")
             configured=request('/api/admin/books')[1]['courses']['analysis']
             assert configured == ['分析','常微分方程','泛函分析']
+            # Folder membership is independent of direction classification.
+            ode={**association,'direction':'analysis','stage':'常微分方程'}
+            assert write('/api/admin/books',ode)[0] == 400
+            folders_before=request('/api/admin/collections')[1]
+            assert write('/api/admin/books',{**ode,'language':'en','attach_direction':True})[0] == 400
+            assert request('/api/documents/'+str(managed))[1]['directions'] == ['algebra']
+            status,created=write('/api/admin/books',{**ode,'attach_direction':True}); assert status == 201
+            assert request('/api/documents/'+str(managed))[1]['directions'] == ['algebra','analysis']
+            assert request('/api/admin/collections')[1] == folders_before
+            assert request('/api/learning/books/'+str(created['id']))[1]['available'] is True
+            assert request(managed_path)[1]['progress'] == position
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')

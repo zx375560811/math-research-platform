@@ -60,6 +60,17 @@ public class CatalogRepository {
         try (var delete = db.prepareStatement("DELETE FROM document_directions WHERE document_id=?")) { delete.setLong(1, id); delete.executeUpdate(); }
         try (var insert = db.prepareStatement("INSERT INTO document_directions VALUES(?,?)")) { for (String direction : directions) { insert.setLong(1, id); insert.setString(2, direction); insert.executeUpdate(); } }
     }
+    static void attachBookDirection(Connection db, long document, String direction, String language) throws SQLException {
+        try (var query = db.prepareStatement("SELECT coalesce(c.module,'mathematics'),coalesce(c.language,'und') FROM documents d LEFT JOIN document_catalog c ON c.document_id=d.id WHERE d.id=?")) {
+            query.setLong(1,document); try (var row = query.executeQuery()) {
+                if (!row.next()) throw new ApiProblem(404,"not_found");
+                if (!row.getString(1).equals("mathematics") || (!row.getString(2).equals("und") && !row.getString(2).equals(language))) throw new ApiProblem(400,"document_direction_mismatch");
+            }
+        }
+        // The caller's transaction also saves the recommendation. Preserve
+        // existing directions and folder membership when adding a course link.
+        try (var insert = db.prepareStatement("INSERT OR IGNORE INTO document_directions(document_id,direction) VALUES(?,?)")) { insert.setLong(1,document); insert.setString(2,direction); insert.executeUpdate(); }
+    }
     static void checkBookDocument(Connection db, long document, String direction, String language) throws SQLException {
         try (var query = db.prepareStatement("SELECT coalesce(c.language,'und'),EXISTS(SELECT 1 FROM document_directions x WHERE x.document_id=d.id AND x.direction=?) FROM documents d LEFT JOIN document_catalog c ON c.document_id=d.id WHERE d.id=?")) {
             query.setString(1, direction); query.setLong(2, document); try (var row = query.executeQuery()) {

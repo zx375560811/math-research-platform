@@ -32,7 +32,7 @@ export function createAdminBooks({api,write,message,directions}) {
   async function loadDocuments(){
     const version=++generation;loading=true;failed=false;syncSave();$('book-editor-error').textContent='';$('book-document').disabled=true;$('book-doc-prev').disabled=$('book-doc-next').disabled=true;
     try{
-      const body=await api('/api/admin/documents?'+new URLSearchParams({module:'mathematics',direction:targetDirection,q:$('book-document-query').value.trim(),collection:$('book-folder').value,offset}));if(version!==generation)return;
+      const body=await api('/api/admin/documents?'+new URLSearchParams({module:'mathematics',q:$('book-document-query').value.trim(),collection:$('book-folder').value,offset}));if(version!==generation)return;
       const attached=new Set(books.filter(b=>b.direction===targetDirection&&b.stage===targetCourse).map(b=>b.document_id));let selected=documents.find(d=>String(d.id)===chosen);documents=body.documents.filter(d=>!attached.has(d.id));
       if(chosen&&!documents.some(d=>String(d.id)===chosen)&&selected)documents.unshift(selected);
       if(chosen&&!documents.some(d=>String(d.id)===chosen))chosen='';
@@ -56,7 +56,7 @@ export function createAdminBooks({api,write,message,directions}) {
   $('book-form').addEventListener('submit',async event=>{
     event.preventDefault();if(loading||saving||failed||!chosen)return;const doc=documents.find(d=>String(d.id)===chosen);if(!doc)return;
     const current=books.filter(b=>b.direction===targetDirection&&b.stage===targetCourse),order=Math.min(10000,Math.max(-10,...current.map(b=>b.sort_order))+10);
-    const body={direction:targetDirection,stage:targetCourse,language:doc.language==='zh'?'zh':'en',title:doc.title,authors:doc.authors||'',source_url:'',prerequisites:'',sort_order:order,document_id:doc.id};
+    const body={direction:targetDirection,stage:targetCourse,language:doc.language==='zh'?'zh':'en',title:doc.title,authors:doc.authors||'',source_url:'',prerequisites:'',sort_order:order,document_id:doc.id,attach_direction:true};
     saving=true;syncSave();const fields=[...$('book-form').querySelectorAll('input,select,button')],disabled=fields.map(f=>f.disabled);fields.forEach(f=>f.disabled=true);$('book-editor-error').textContent='';
     try{await write('/api/admin/books',body);direction=targetDirection;course=targetCourse;dialog.close();await load();message('教材已添加，用户端已同步更新。');}
     catch(error){$('book-editor-error').textContent=error instanceof TypeError?'连接失败，请重试。':error.message;}

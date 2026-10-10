@@ -45,7 +45,7 @@ async function main() {
           if (p === '/api/admin/documents' && req.method === 'POST') { const id = docs.length + 1; docs.unshift({ id, title: url.searchParams.get('title'), authors: url.searchParams.get('authors'), subject_ids: [1], module:'mathematics', directions:url.searchParams.getAll('directions'), language:url.searchParams.get('language')||'und', file_size: bytes.length, format: req.headers['content-type']==='image/vnd.djvu'?'djvu':'pdf', file_url: `/api/documents/${id}/file` }); return json({ id }, 201); }
           if (p === '/api/admin/documents') return json({ documents: docs.filter(d => d.title.includes(url.searchParams.get('q') || '') && (!url.searchParams.get('collection') || url.searchParams.get('collection')==='unfiled'&&!(memberships.get(d.id)||[]).length || (memberships.get(d.id)||[]).includes(Number(url.searchParams.get('collection'))))), offset: 0, limit: 20 });
           if (/^\/api\/admin\/documents\/\d+$/.test(p)) { Object.assign(docs.find(d => d.id === Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
-          if (p === '/api/admin/books' && req.method === 'POST') {const id=Math.max(...books.map(b=>b.id))+1;books.push({...body,id,direction_name:'代数'});return json({id},201);}
+          if (p === '/api/admin/books' && req.method === 'POST') {const id=Math.max(...books.map(b=>b.id))+1;if(body.attach_direction){const doc=docs.find(d=>d.id===body.document_id);doc.directions=[...new Set([...doc.directions,body.direction])];}books.push({...body,id,direction_name:'代数'});return json({id},201);}
           if (p === '/api/admin/books') return json({ analysis_courses:['数学分析','高等代数','复分析','实分析与测度论','常微分方程','泛函分析','偏微分方程'],books:books.map(b=>{const doc=docs.find(d=>d.id===b.document_id);return doc?{...b,title:doc.title,authors:doc.authors}:b;}) });
           if(p==='/api/admin/books/order'){for(const [i,id]of body.ids.entries())books.find(b=>b.id===id).sort_order=i*10;return json({status:'ok'});}
           if (/^\/api\/admin\/books\/\d+$/.test(p)) { if(req.method==='DELETE'){books.find(b=>b.id===Number(p.split('/').pop())).document_id=null;return json({status:'ok'});}Object.assign(books.find(b=>b.id===Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
@@ -99,6 +99,13 @@ async function main() {
     await page.screenshot({path:path.join(shots,'admin-books-editor.png'),fullPage:true});await page.locator('#book-editor-close').click();
     assert.equal((await(await page.request.get(base+'/api/learning/books/'+configuredId)).json()).available,true);
     await page.locator('#books-direction-filter').selectOption('analysis');assert.equal(await page.locator('#book-courses [data-course="常微分方程"]').count(),1);
+    await page.locator('#book-courses [data-course="常微分方程"]').click();
+    const lookup=page.waitForRequest(r=>r.url().includes('/api/admin/documents?'));
+    await page.locator('#book-add').click();const lookupUrl=new URL((await lookup).url());assert.equal(lookupUrl.searchParams.has('direction'),false);
+    await page.locator('#book-document').selectOption(String(secondDoc));await page.locator('#book-save').click();
+    await page.waitForFunction(()=>!document.getElementById('book-editor').open&&document.querySelectorAll('#book-list [data-book-id]').length===1);
+    assert.match(await page.locator('#book-list').textContent(),/Ordinary Differential Equations/);
+    const odeMetadata=await(await page.request.get(base+'/api/documents/'+secondDoc)).json();assert.ok(odeMetadata.directions.includes('analysis'));assert.ok(odeMetadata.directions.includes('algebra'));
     await page.locator('#books-direction-filter').selectOption('algebra');await page.locator('#book-courses [data-course="核心理论"]').click();await page.locator('#book-add').click();
     await page.locator('#book-document').selectOption(String(doc.id));await page.locator('#book-save').click();
     await page.waitForFunction(()=>!document.getElementById('book-editor').open&&document.getElementById('book-course-title').textContent==='核心理论');
