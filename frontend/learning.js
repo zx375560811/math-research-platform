@@ -20,11 +20,21 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   gradient('analysis-foundation-fill',['#7186f1','#4355c8']);
   gradient('analysis-course-fill',['#ffffff','#f7f9ff']);
   gradient('analysis-edge-fill',['#8495e1','#8ebcb5']);
+  gradient('analysis-map-night',['#152a52','#121d3c','#24395d']);
+  const palettes={foundation:['#4867da','#2942aa'],complex:['#7545b2','#493076'],real:['#147b7c','#105054'],ode:['#97602b','#68421f'],support:['#395b9a','#243c6b'],functional:['#5156b3','#34356f'],pde:['#23789b','#16455e']};
+  for(const [kind,colors] of Object.entries(palettes))gradient('analysis-node-'+kind,colors);
+  const glow=make('radialGradient',{id:'analysis-map-light'});glow.append(make('stop',{offset:'0%','stop-color':'#7097ff','stop-opacity':'.25'}),make('stop',{offset:'100%','stop-color':'#7097ff','stop-opacity':'0'}));defs.append(glow);
   const pattern=make('pattern',{id:'analysis-map-dots',width:18,height:18,patternUnits:'userSpaceOnUse'});
   pattern.append(make('circle',{cx:2,cy:2,r:.8,fill:'#b5c5e6'}));defs.append(pattern);
   const marker=make('marker',{id:'analysis-route-arrow',viewBox:'0 0 8 8',refX:'7',refY:'4',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'});
   marker.append(make('path',{d:'M1 1 L7 4 L1 7',fill:'none',stroke:'#8298c6','stroke-width':'1.4'}));defs.append(marker);svg.append(defs);
-  svg.append(make('rect',{x:0,y:0,width:940,height:custom ? 226 : 170,rx:12,fill:'url(#analysis-map-dots)',opacity:'.4'}));
+  const mapHeight=custom ? 226 : 170;
+  svg.classList.add('analysis-map-canvas');
+  const backdrop=make('g',{'aria-hidden':'true'});
+  backdrop.append(make('rect',{x:0,y:0,width:940,height:mapHeight,rx:14,fill:'url(#analysis-map-night)'}),make('ellipse',{cx:180,cy:85,rx:180,ry:80,fill:'url(#analysis-map-light)'}),make('ellipse',{cx:730,cy:90,rx:220,ry:80,fill:'url(#analysis-map-light)'}));
+  for(let i=0;i<48;i++)backdrop.append(make('circle',{cx:12+(i*137)%916,cy:8+(i*47)%(mapHeight-16),r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));
+  for(const [x,y]of [[380,20],[752,157],[903,30]])if(y<mapHeight)backdrop.append(make('path',{d:`M${x-3} ${y}h6 M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));
+  svg.append(backdrop);
   const customEdges = [
     ['分析','复分析','M172 85 H180 Q188 85 188 77 V37 Q188 29 196 29 H204'],
     ['分析','实分析','M172 85 H392'],
@@ -41,7 +51,10 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
     ['M208 85 C242 85 236 22 270 22',false],['M208 85 H270',false],['M208 85 C242 85 236 148 270 148',false],
     ['M485 85 H550',false],['M630 43 V64',false],['M710 85 H760',false],['M485 148 H825 Q845 148 845 128 V106',true]
   ];
-  for (const [d,optional,from,to] of edges) svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(from ? {'data-from':from,'data-to':to} : {}),...(optional ? {'stroke-dasharray':'5 5'} : {})}));
+  for (const [index,[d,optional,from,to]] of edges.entries()) {
+    svg.append(make('path',{class:'analysis-route-edge',d,fill:'none',stroke:'url(#analysis-edge-fill)','stroke-width':'2','marker-end':'url(#analysis-route-arrow)',...(from ? {'data-from':from,'data-to':to} : {}),...(optional ? {'stroke-dasharray':'5 5'} : {})}));
+    const spark=make('circle',{class:'analysis-route-spark',r:1.8,fill:'#d7f1ff','aria-hidden':'true'});spark.append(make('animateMotion',{path:d,dur:'6s',begin:(-index*.7)+'s',repeatCount:'indefinite'}));svg.append(spark);
+  }
   const nodes = custom ? [
     ['分析','∫',16,64,156,'foundation'],['复分析','ℂ',204,8,156,'complex'],
     ['测度论','μ',392,120,156,'real'],['实分析','ℝ',392,64,156,'real'],
@@ -53,10 +66,13 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   ];
   for (const [name,symbol,x,y,width,kind] of nodes) {
     const group=make('g',{'class':'analysis-course '+kind,'data-course':name,role:'button',tabindex:0,'aria-pressed':'false','aria-controls':'textbook-list'});
-    group.append(make('title',{},name),make('rect',{class:'analysis-course-card',x,y,width,height:42,rx:11}),
-      make('circle',{class:'analysis-course-icon',cx:x+28,cy:y+21,r:14}),
+    group.append(make('title',{},name),make('rect',{class:'analysis-course-card',x,y,width,height:42,rx:11,style:'fill:url(#analysis-node-'+kind+')'}),
+      make('path',{class:'analysis-course-shine',d:`M${x+11} ${y+1}H${x+width-11} M${x+width-5} ${y+12}V${y+30}`}),
+      make('circle',{class:'analysis-course-orbit',cx:x+28,cy:y+21,r:15.5}),
+      make('circle',{class:'analysis-course-icon',cx:x+28,cy:y+21,r:12}),
       make('text',{class:'analysis-course-symbol',x:x+28,y:y+21,'text-anchor':'middle','dominant-baseline':'central'},symbol),
-      make('text',{class:'analysis-course-title',x:x+53,y:y+21,'dominant-baseline':'central'},custom && name==='分析' ? '数学分析' : name));
+      make('text',{class:'analysis-course-title',x:x+53,y:y+21,'dominant-baseline':'central'},custom && name==='分析' ? '数学分析' : name),
+      make('path',{class:'analysis-course-picked',d:`M${x+width-10} ${y+6}l3 3-3 3-3-3Z`}));
     group.addEventListener('click',()=>onChoose(name));
     group.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onChoose(name);}});
     svg.append(group);

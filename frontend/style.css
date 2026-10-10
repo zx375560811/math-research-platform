@@ -452,6 +452,30 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 .analysis-course.selected .analysis-course-title { fill:var(--route-accent); }
 .analysis-course.foundation.selected .analysis-course-title { fill:white; }
 .analysis-course:focus-visible { filter:drop-shadow(0 0 3px #4261df55); }
+
+/* The course map is a luminous mathematical constellation within the paper UI. */
+.analysis-map-canvas .analysis-route-edge { stroke:#9db7e7;opacity:.65;stroke-width:1.4; }
+.analysis-map-canvas .analysis-course { filter:drop-shadow(0 3px 5px #050f2633); }
+.analysis-map-canvas .analysis-course-card { stroke-opacity:0; }
+.analysis-map-canvas .analysis-course.support .analysis-course-card { stroke-dasharray:none; }
+.analysis-map-canvas .analysis-course-title { fill:#fff;font-weight:650;font-size:14px; }
+.analysis-map-canvas .analysis-course-symbol { fill:#fff;font-size:19px; }
+.analysis-map-canvas .analysis-course-icon { fill:#fff;fill-opacity:.08; }
+.analysis-course-orbit { fill:none;stroke:#d3e6ff;stroke-width:.7;stroke-opacity:.55; }
+.analysis-course-shine { fill:none;stroke:#fff;stroke-width:.8;stroke-opacity:.35; }
+.analysis-course-picked { fill:#fff;opacity:0;transition:opacity .18s ease; }
+.analysis-map-canvas .analysis-course:hover { transform:translateY(-2px);filter:drop-shadow(0 5px 7px #050f2670); }
+.analysis-map-canvas .analysis-course:hover .analysis-course-card { stroke:#d4e8ff;stroke-opacity:.8;stroke-width:1; }
+.analysis-map-canvas .analysis-course.selected .analysis-course-title { fill:#fff; }
+.analysis-map-canvas .analysis-course.selected .analysis-course-card,.analysis-map-canvas .analysis-course:focus-visible .analysis-course-card { stroke:#e3efff;stroke-opacity:1;stroke-width:1.8; }
+.analysis-map-canvas .analysis-course.selected .analysis-course-picked { opacity:1; }
+.analysis-map-canvas .analysis-course:focus-visible { filter:drop-shadow(0 4px 7px #050f2680); }
+.analysis-route-spark { pointer-events:none;opacity:.85; }
+@media(prefers-reduced-motion:reduce) {
+ .analysis-route-spark { display:none; }
+ .analysis-course-picked { transition:none; }
+ .analysis-map-canvas .analysis-course:hover { transform:none; }
+}
 .unclassified-books { margin-top:8px; }
 
 /* A compact overview occupies the textbook area while one course is expanded. */
