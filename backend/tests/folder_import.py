@@ -126,6 +126,7 @@ def run():
                             with client.open(urllib.request.Request(base + path, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method), timeout=5) as response:
                                 return json.load(response)
                         request('/api/auth/register', {'username':'folder_reader','password':'FolderTestPass123!','invitation':invitation})
+                        request('/api/auth/login', {'username':'folder_reader','password':'FolderTestPass123!'})
                         assert {d['slug'] for d in request('/api/learning/directions')['directions']} == {'analysis','algebra'}
                         detail = request('/api/learning/directions/analysis')
                         assert detail['custom_courses'] is True
