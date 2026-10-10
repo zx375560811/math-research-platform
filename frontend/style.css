@@ -417,7 +417,7 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 
 /* The analysis introduction is a branching course roadmap, not three text cards. */
 .analysis-roadmap { overflow-x:auto;scrollbar-width:thin;padding:4px 0; }
-.analysis-roadmap svg { display:block;width:100%;max-width:940px;min-width:760px;height:auto;margin:0 auto; }
+.analysis-roadmap svg { display:block;width:100%;min-width:760px;height:auto;margin:0 auto; }
 .analysis-course { --route-accent:#6478d3;transition:transform .18s ease,filter .18s ease;transform-box:fill-box;transform-origin:center; }
 .analysis-course-card { fill:url(#analysis-course-fill);stroke:var(--route-accent);stroke-opacity:.25;stroke-width:1; }
 .analysis-course-icon { fill:var(--route-accent);fill-opacity:.12; }
@@ -474,10 +474,8 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 }
 @media(max-width:650px) { .course-book-preview { grid-template-columns:1fr;gap:3px; } }
 
-.analysis-route-layout { display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:16px;align-items:center; }
+.analysis-route-layout { display:grid;grid-template-columns:minmax(0,1fr);align-items:center; }
 .analysis-route-layout .analysis-roadmap { min-width:0; }
-.analysis-route-help { margin:0;color:var(--muted);font-size:14px;line-height:1.8; }
-@media(max-width:1100px) { .analysis-route-layout { grid-template-columns:minmax(0,1fr);gap:8px; }.analysis-route-help { text-align:right; } }
 
 /* Taste detail pass: preserve the paper-and-blue brand and existing page geometry.
    Radius scale: fields/buttons 8px, content 12–16px, entrance/hero 22px.

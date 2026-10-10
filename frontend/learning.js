@@ -62,9 +62,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
     svg.append(group);
   }
   const box=el('div','analysis-roadmap');box.append(svg);
-  const help=el('p','analysis-route-help','点击流程图中的课程节点，查看对应教材。');
-  help.id='analysis-route-help';svg.setAttribute('aria-describedby',help.id);
-  const layout=el('div','analysis-route-layout');layout.append(box,help);return layout;
+  const layout=el('div','analysis-route-layout');layout.append(box);return layout;
 }
 export function createLearning({ api, write }) {
   let generation = 0, stopReader = null, current = '', ownsReader = false;
