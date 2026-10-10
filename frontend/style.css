@@ -948,3 +948,66 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
   .compact-recommendations .textbook-course-nav { flex-wrap:nowrap; }
   #direction-detail #textbook-list.compact-recommendations .textbook-row { padding:10px;gap:8px; }
 }
+
+/* A colorful entrance to the research workspace; all other surfaces keep their theme. */
+#home-view .hero { position:relative;isolation:isolate;overflow:hidden;border:0;background:radial-gradient(ellipse at 76% 16%,#68429a66,transparent 56%),radial-gradient(ellipse at 93% 90%,#127f9466,transparent 54%),linear-gradient(125deg,#13244b,#192140 55%,#243454);box-shadow:0 14px 32px #23335118;min-height:370px;padding:38px 42px; }
+#home-view .hero::after { content:'';position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,#8198ff,#a698ff 40%,#75d9d1);opacity:.7; }
+#home-view .hero-content { position:relative;z-index:2; }
+#home-view .hero h1 { color:#fff;font-size:clamp(36px,3.6vw,52px);line-height:1.35;letter-spacing:0;text-shadow:0 3px 18px #0002; }
+#home-view .hero .primary { color:#203970;background:#edf2ff;border:0;box-shadow:0 5px 18px #070f2533; }
+#home-view .hero .primary:hover { background:#fff;transform:translateY(-2px); }
+#home-view .math-art { background:transparent;border-radius:0;z-index:1; }
+#home-view .math-art svg { filter:drop-shadow(0 5px 14px #07162a80); }
+#home-view .surface-grid { stroke:#a9bdff;opacity:.7;stroke-width:1; }
+#home-view .surface-section { stroke:#89ffe1; }
+#home-view .surface-caption { fill:#c5d7ff; }
+.workbench-orbits { position:absolute;right:-1%;top:-9%;width:58%;height:118%;pointer-events:none;z-index:0; }
+.workbench-orbits svg { width:100%;height:100%;overflow:visible; }
+.workbench-orbit { fill:none;stroke:#b6b8ff;stroke-width:.7;stroke-opacity:.24;transform-origin:300px 210px;animation:workbench-orbit-drift 48s linear infinite; }
+.workbench-orbit circle { fill:#b5fff2;stroke:none; }
+.workbench-stars { fill:#b5e6ff;stroke:#b5e6ff;stroke-width:1;opacity:.65; }
+#home-view .section-heading { margin-top:30px; }
+#home-view .application-grid { grid-template-columns:1fr 1fr;gap:18px; }
+#home-view .application-card { isolation:isolate;min-height:185px;padding:28px;border:0;box-shadow:0 8px 22px #203d5510;transition:transform .24s ease,box-shadow .24s ease; }
+#home-view .application-card.library-application { background:linear-gradient(125deg,#d7f1ed,#edf9f5);color:#164f50; }
+#home-view .application-card:not(.library-application) { background:radial-gradient(ellipse at 100% 0,#7351b9aa,transparent 70%),linear-gradient(125deg,#343c86,#393062);color:#fff; }
+#home-view .application-card h2 { position:relative;z-index:1;font-size:22px; }
+#home-view .application-card>[data-icon] { color:inherit;position:relative;z-index:1; }
+#home-view .application-action { position:relative;z-index:1;margin-top:40px;font-size:15px;padding:7px 12px;background:#ffffff99;border-radius:8px;color:#164f50; }
+#home-view .application-card:not(.library-application) .application-action { color:#fff;background:#ffffff17; }
+#home-view .application-card .application-notation { right:16px;bottom:-16px;font-size:110px;opacity:.12;color:inherit; }
+.application-art { position:absolute;right:-8px;top:5px;width:190px;height:160px;z-index:0;transition:transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none; }
+.library-art rect { fill:#e8fff6;stroke:#4b9b92;stroke-width:1; }
+.library-art rect:first-child { fill:#80c9b5; }
+.library-art rect:nth-child(2) { fill:#b0e6d6; }
+.library-art path,.library-art circle { fill:none;stroke:#4b9b92;stroke-width:1.4; }
+.mathematics-art { fill:none;stroke:#cbb8ff;stroke-width:1.2;opacity:.5; }
+.mathematics-art circle:last-child { fill:#aeffeb;stroke:none; }
+#home-view .application-card:hover { transform:translateY(-4px);box-shadow:0 14px 28px #203d5522; }
+#home-view .application-card:hover .application-art { transform:translateY(-5px) rotate(-5deg); }
+#home-view .application-card:focus-visible { outline:3px solid #496bea;outline-offset:4px; }
+#home-view .application-planned { background:linear-gradient(90deg,#eef0ff,#eaf6f5);border:0;padding:18px 22px;color:#465578; }
+@keyframes workbench-orbit-drift { to { transform:rotate(360deg); } }
+@media(max-width:1000px) {
+ #home-view .hero { padding:32px;min-height:320px; }
+ #home-view .application-card h2 { font-size:19px; }
+ .application-art { right:-40px;opacity:.45; }
+}
+@media(max-width:650px) {
+ #home-view .hero { padding:26px;min-height:0;gap:12px; }
+ #home-view .hero h1 { font-size:36px;margin-bottom:22px; }
+ #home-view .hero .primary { font-size:14px;padding:12px;white-space:normal; }
+ #home-view .math-art { height:170px; }
+ .workbench-orbits { top:auto;bottom:-8%;right:-10%;width:120%;height:60%; }
+ #home-view .application-grid { grid-template-columns:minmax(0,1fr); }
+ #home-view .application-card { min-height:164px;padding:24px; }
+ #home-view .application-card h2 { font-size:21px; }
+ #home-view .application-action { margin-top:28px; }
+ .application-art { width:170px;height:145px;right:0;opacity:.7; }
+ #home-view .application-planned { padding:16px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .workbench-orbit { animation:none; }
+ #home-view .application-card,.application-art { transition:none; }
+ #home-view .application-card:hover,#home-view .hero .primary:hover,#home-view .application-card:hover .application-art { transform:none; }
+}
