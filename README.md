@@ -84,6 +84,16 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 ## 管理员维护文献库
 
+### 六个系列批量追加导入
+
+上传目录 `/opt/math-platform/imports/series` 下保留 GSM、GTM、Lecture Notes in Mathematics、London Mathematical Society Student Texts、SMM、UTM 六个目录及原有子目录。进入 `backend` 后预览：
+
+```bash
+sudo -u math-platform python3 admin/import_series.py /opt/math-platform/imports/series
+```
+
+确认后停止服务，执行同一命令加 `--apply`，无论导入成功或失败都重新启动服务。先更新并启动一次 Java 后端以初始化系列数据表。工具自动备份数据库及 AI 加密密钥，追加 PDF/DJVU、保留子目录并关联系列；按内容 SHA-256 复用现有文件，重复执行不会重复入库。不修改旧文献、阅读进度、笔记或推荐教材。非 PDF/DJVU 文件在预览中计入 skipped，不导入。
+
 见 [本地入库命令](backend/README.md#管理员入库)。不要将后台管理写入功能接入公共应用。管理界面位于独立 `/admin`，管理员身份由服务器所有者授权，后端逐次校验管理权限。
 
 ## 用户注册与登录

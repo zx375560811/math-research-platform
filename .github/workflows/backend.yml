@@ -16,6 +16,8 @@ jobs:
           python-version: '3.8'
       - name: Check Zotero importer on older Python
         run: python backend/tests/zotero.py
+      - name: Check additive series import on older Python
+        run: python backend/tests/series_import.py
   backend:
     runs-on: ubuntu-22.04
     steps:
