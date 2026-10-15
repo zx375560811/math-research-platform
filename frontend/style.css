@@ -975,64 +975,89 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 @media(max-width:1000px) { .series-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.admin-series-layout { grid-template-columns:210px minmax(0,1fr); } }
 @media(max-width:650px) { .series-grid { grid-template-columns:1fr; }.series-heading { flex-wrap:wrap; }.series-heading h1 { font-size:26px; }.series-recommender { padding:18px; }.series-ai-actions select { max-width:100%;width:100%; }.series-ai-heading>div { flex-wrap:wrap; }.series-book { align-items:flex-start;flex-wrap:wrap; }.admin-series-layout { grid-template-columns:1fr; }.admin-series-layout nav { display:flex;overflow-x:auto; }.admin-series-layout nav button { flex:0 0 180px; }.series-admin-associate { flex-wrap:wrap; }.series-admin-associate select { flex:1 1 100%;width:100%; } }
 @media(prefers-reduced-motion:reduce) { .series-card { transition:none; }.series-card:hover { transform:none; } }
-#home-view .hero { position:relative;isolation:isolate;overflow:hidden;border:0;background:radial-gradient(ellipse at 76% 16%,#68429a66,transparent 56%),radial-gradient(ellipse at 93% 90%,#127f9466,transparent 54%),linear-gradient(125deg,#13244b,#192140 55%,#243454);box-shadow:0 14px 32px #23335118;min-height:370px;padding:38px 42px; }
-#home-view .hero::after { content:'';position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,#8198ff,#a698ff 40%,#75d9d1);opacity:.7; }
-#home-view .hero-content { position:relative;z-index:2; }
-#home-view .hero h1 { color:#fff;font-size:clamp(36px,3.6vw,52px);line-height:1.35;letter-spacing:0;text-shadow:0 3px 18px #0002; }
-#home-view .hero .primary { color:#203970;background:#edf2ff;border:0;box-shadow:0 5px 18px #070f2533; }
-#home-view .hero .primary:hover { background:#fff;transform:translateY(-2px); }
-#home-view .math-art { background:transparent;border-radius:0;z-index:1; }
-#home-view .math-art svg { filter:drop-shadow(0 5px 14px #07162a80); }
-#home-view .surface-grid { stroke:#a9bdff;opacity:.7;stroke-width:1; }
-#home-view .surface-section { stroke:#89ffe1; }
-#home-view .surface-caption { fill:#c5d7ff; }
-.workbench-orbits { position:absolute;right:-1%;top:-9%;width:58%;height:118%;pointer-events:none;z-index:0; }
-.workbench-orbits svg { width:100%;height:100%;overflow:visible; }
-.workbench-orbit { fill:none;stroke:#b6b8ff;stroke-width:.7;stroke-opacity:.24;transform-origin:300px 210px;animation:workbench-orbit-drift 48s linear infinite; }
-.workbench-orbit circle { fill:#b5fff2;stroke:none; }
-.workbench-stars { fill:#b5e6ff;stroke:#b5e6ff;stroke-width:1;opacity:.65; }
-#home-view .section-heading { margin-top:30px; }
-#home-view .application-grid { grid-template-columns:1fr 1fr;gap:18px; }
-#home-view .application-card { isolation:isolate;min-height:185px;padding:28px;border:0;box-shadow:0 8px 22px #203d5510;transition:transform .24s ease,box-shadow .24s ease; }
-#home-view .application-card.library-application { background:linear-gradient(125deg,#d7f1ed,#edf9f5);color:#164f50; }
-#home-view .application-card:not(.library-application) { background:radial-gradient(ellipse at 100% 0,#7351b9aa,transparent 70%),linear-gradient(125deg,#343c86,#393062);color:#fff; }
-#home-view .application-card h2 { position:relative;z-index:1;font-size:22px; }
-#home-view .application-card>[data-icon] { color:inherit;position:relative;z-index:1; }
-#home-view .application-action { position:relative;z-index:1;margin-top:40px;font-size:15px;padding:7px 12px;background:#ffffff99;border-radius:8px;color:#164f50; }
-#home-view .application-card:not(.library-application) .application-action { color:#fff;background:#ffffff17; }
-#home-view .application-card .application-notation { right:16px;bottom:-16px;font-size:110px;opacity:.12;color:inherit; }
-.application-art { position:absolute;right:-8px;top:5px;width:190px;height:160px;z-index:0;transition:transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none; }
-.library-art rect { fill:#e8fff6;stroke:#4b9b92;stroke-width:1; }
-.library-art rect:first-child { fill:#80c9b5; }
-.library-art rect:nth-child(2) { fill:#b0e6d6; }
-.library-art path,.library-art circle { fill:none;stroke:#4b9b92;stroke-width:1.4; }
-.mathematics-art { fill:none;stroke:#cbb8ff;stroke-width:1.2;opacity:.5; }
-.mathematics-art circle:last-child { fill:#aeffeb;stroke:none; }
-#home-view .application-card:hover { transform:translateY(-4px);box-shadow:0 14px 28px #203d5522; }
-#home-view .application-card:hover .application-art { transform:translateY(-5px) rotate(-5deg); }
-#home-view .application-card:focus-visible { outline:3px solid #496bea;outline-offset:4px; }
-#home-view .application-planned { background:linear-gradient(90deg,#eef0ff,#eaf6f5);border:0;padding:18px 22px;color:#465578; }
-@keyframes workbench-orbit-drift { to { transform:rotate(360deg); } }
-@media(max-width:1000px) {
- #home-view .hero { padding:32px;min-height:320px; }
- #home-view .application-card h2 { font-size:19px; }
- .application-art { right:-40px;opacity:.45; }
+
+/* Workbench: three illuminated mathematical objects, no hero or promotional copy. */
+.workbench-page { background:#090c19;color:#eef0ff; }
+.workbench-page .workspace { background:radial-gradient(ellipse at 35% 30%,#28204c55,transparent 65%),#090c19;min-height:100svh; }
+.workbench-page .sidebar { background:#0e1120;border-color:#ffffff0d;color:#f1edff; }
+.workbench-page .brand { color:#f1edff; }
+.workbench-page .brand-wordmark { color:#f1edff; }
+.workbench-page .brand small { color:#b2b8d2; }
+.workbench-page .nav-heading { display:none; }
+.workbench-page .subject-nav { margin-top:22px; }
+.workbench-page .workspace-link,.workbench-page .subject-nav a { color:#b6bed6; }
+.workbench-page .workspace-link.active { background:#24293e;color:#f2eaff; }
+.workbench-page .workspace-link:hover,.workbench-page .subject-nav a:hover { background:#24293e;color:white; }
+.workbench-page .topbar { justify-content:flex-end;background:transparent;border:0;padding:0 32px;color:#b7bed5; }
+.workbench-page #breadcrumb { display:none; }
+.workbench-page #account-name { color:#c6cde4; }
+.workbench-page #logout-button { color:#dce1f7;background:#ffffff07;border-color:#ffffff1a; }
+.workbench-page #logout-button:hover { background:#ffffff15; }
+.workbench-page main { padding:16px 32px 32px;max-width:none;min-height:calc(100svh - 68px);display:grid;align-content:center; }
+.workbench-page #home-view { width:100%;max-width:1280px;margin:0 auto; }
+#home-view .portal-grid { display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);grid-template-rows:1fr 1fr;grid-template-areas:'math library' 'math series';gap:18px;height:clamp(540px,calc(100svh - 132px),760px); }
+#home-view .portal-grid .portal { --portal-x:50%;--portal-y:30%;position:relative;display:flex;align-items:flex-end;isolation:isolate;overflow:hidden;min-width:0;min-height:0;padding:32px;border:0;border-radius:16px;color:#fff;box-shadow:0 18px 40px #0003;transform:none;transition:box-shadow .35s ease,translate .35s ease; }
+#home-view .portal-grid .math-application { grid-area:math;background:radial-gradient(ellipse at 50% 38%,#7154af66,transparent 65%),linear-gradient(155deg,#29203e,#201834 62%,#171728); }
+#home-view .portal-grid .library-application { grid-area:library;background:radial-gradient(ellipse at 86% 32%,#2b83774d,transparent 70%),linear-gradient(135deg,#10383d,#10292f); }
+#home-view .portal-grid .series-application { grid-area:series;grid-column:auto;background:radial-gradient(ellipse at 80% 10%,#9f6c3938,transparent 65%),linear-gradient(140deg,#36273e,#37292d); }
+#home-view .portal::after { content:'';position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none;box-shadow:inset 0 1px #ffffff25,inset 0 -1px #0005; }
+#home-view .portal-light { position:absolute;inset:0;z-index:0;background:radial-gradient(circle at var(--portal-x) var(--portal-y),#ffffff12,transparent 58%);pointer-events:none; }
+#home-view .portal-art { position:absolute;display:block;pointer-events:none;width:95%;height:auto;right:-4%;top:-4%;z-index:1;transition:translate .6s cubic-bezier(.16,1,.3,1); }
+#home-view .math-application .portal-art { width:120%;max-width:none;right:-10%;top:4%;filter:drop-shadow(0 12px 24px #0005); }
+#home-view .series-application .portal-art { top:4%; }
+#home-view .portal-torus { transform-origin:300px 240px;animation:portal-float 12s ease-in-out infinite; }
+@keyframes portal-float { 0%,100% { transform:translateY(0) rotate(-1deg); } 50% { transform:translateY(-8px) rotate(1deg); } }
+#home-view .portal-copy { width:100%;position:relative;z-index:2; }
+#home-view .portal-title { display:flex;align-items:center;gap:12px; }
+#home-view .portal-title>[data-icon] { display:grid;place-items:center;width:24px;height:28px;color:#dbcbff;flex-shrink:0; }
+#home-view .library-application .portal-title>[data-icon] { color:#a1ffe3; }
+#home-view .series-application .portal-title>[data-icon] { color:#ffe0b9; }
+#home-view .portal h2 { margin:0;font:600 clamp(23px,2.1vw,32px)/1.4 system-ui,'Microsoft YaHei',sans-serif;letter-spacing:0;color:#fff;text-shadow:0 2px 12px #0005; }
+#home-view .math-application h2 { font-size:clamp(25px,2.3vw,36px); }
+#home-view .portal .application-action { display:inline-flex;align-items:center;justify-content:space-between;gap:24px;margin-top:18px;padding:0;color:#d6c8f2;background:transparent;font-size:15px;font-weight:500; }
+#home-view .library-application .application-action { color:#a9e9da; }
+#home-view .series-application .application-action { color:#edcbb3; }
+#home-view .portal .application-action>[data-icon] { display:grid;place-items:center;width:36px;height:36px;background:#ffffff0d;border-radius:50%;transition:background .25s ease; }
+#home-view .portal .application-action .icon { width:19px;height:19px; }
+#home-view .portal:hover { translate:0 -4px;box-shadow:0 24px 44px #0005; }
+#home-view .portal:hover .portal-art { translate:0 -8px; }
+#home-view .portal:hover .application-action>[data-icon] { background:#ffffff20; }
+#home-view .portal:focus-visible { outline:3px solid #dccbff;outline-offset:5px; }
+.workbench-page ::selection { color:white;background:#61548f; }
+@media(min-width:901px) and (max-width:1150px) {
+ .workbench-page main { padding:12px 24px 24px; }
+ #home-view .portal-grid { gap:14px; }
+ #home-view .portal-grid .portal { padding:24px; }
+ #home-view .math-application .portal-art { top:14%; }
+}
+@media(max-width:900px) {
+ .workbench-page .sidebar { position:relative;padding:20px 24px 4px;border:0; }
+ .workbench-page .sidebar .brand { width:150px;padding:0; }
+ .workbench-page .sidebar .brand small,.workbench-page .sidebar nav { display:none; }
+ .workbench-page #admin-link { position:absolute;top:20px;right:20px; }
+ .workbench-page .topbar { position:absolute;right:0;top:24px;height:40px;padding:0 24px; }
+ .workbench-page:has(#admin-link:not([hidden])) .topbar { position:static; }
+ .workbench-page .workspace { min-height:calc(100svh - 80px); }
+ .workbench-page main { min-height:calc(100svh - 80px);padding:24px; }
+ #home-view .portal-grid { height:clamp(540px,calc(100svh - 128px),760px); }
 }
 @media(max-width:650px) {
- #home-view .hero { padding:26px;min-height:0;gap:12px; }
- #home-view .hero h1 { font-size:36px;margin-bottom:22px; }
- #home-view .hero .primary { font-size:14px;padding:12px;white-space:normal; }
- #home-view .math-art { height:170px; }
- .workbench-orbits { top:auto;bottom:-8%;right:-10%;width:120%;height:60%; }
- #home-view .application-grid { grid-template-columns:minmax(0,1fr); }
- #home-view .application-card { min-height:164px;padding:24px; }
- #home-view .application-card h2 { font-size:21px; }
- #home-view .application-action { margin-top:28px; }
- .application-art { width:170px;height:145px;right:0;opacity:.7; }
- #home-view .application-planned { padding:16px; }
+ .workbench-page .sidebar { padding:20px 20px 0; }
+ .workbench-page .sidebar .brand { width:115px; }
+ .workbench-page .topbar { padding:0 20px;top:16px; }
+ .workbench-page #account-name { max-width:100px; }
+ .workbench-page main { padding:20px;align-content:start;min-height:0; }
+ #home-view .portal-grid { grid-template-columns:minmax(0,1fr);grid-template-rows:340px 220px 220px;grid-template-areas:'math' 'library' 'series';height:auto;gap:16px; }
+ #home-view .portal-grid .portal { padding:24px; }
+ #home-view .math-application .portal-art { width:96%;right:-2%;top:-12%; }
+ #home-view .portal-art { width:84%;right:-8%;top:-18%; }
+ #home-view .series-application .portal-art { width:82%;right:-5%;top:4%; }
+ #home-view .portal h2,#home-view .math-application h2 { font-size:24px; }
+ #home-view .portal .application-action { margin-top:10px; }
+ #home-view .portal-title { gap:10px; }
 }
 @media(prefers-reduced-motion:reduce) {
- .workbench-orbit { animation:none; }
- #home-view .application-card,.application-art { transition:none; }
- #home-view .application-card:hover,#home-view .hero .primary:hover,#home-view .application-card:hover .application-art { transform:none; }
+ #home-view .portal-grid .portal,#home-view .portal-art,#home-view .portal .application-action>[data-icon] { transition:none; }
+ #home-view .portal-torus { animation:none; }
+ #home-view .portal:hover,#home-view .portal:hover .portal-art { translate:none; }
 }
