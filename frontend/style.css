@@ -978,21 +978,13 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 
 .ai-study-heading { display:flex;align-items:center;gap:24px;margin:0 0 20px; }
 .ai-study-heading h1 { margin:0;font-size:28px; }
-.ai-study-map { background:white;border:1px solid var(--line);border-radius:16px;padding:20px 24px;margin-bottom:24px; }
-.ai-path-label { font-size:14px;color:var(--muted);margin:0 0 10px; }
-.ai-study-foundations { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px; }
-.ai-course-node { display:flex;align-items:center;justify-content:center;padding:12px 10px;background:#f1f4ff;border:1px solid #d9e0f7;border-radius:8px;font-size:15px;font-weight:600;color:#304b99;min-height:48px;text-align:center; }
-.ai-study-foundations .ai-course-node { background:#edf8f5;border-color:#cce5df;color:#235c55; }
-.ai-course-node[aria-current] { background:#405acb;color:white;border-color:#405acb; }
-.ai-course-node:hover { border-color:#4969db; }
-.ai-course-node:focus-visible { outline:3px solid #7289e6;outline-offset:3px; }
-.ai-path-join { text-align:center;color:#8496cf;line-height:32px;font-size:22px; }
-.ai-study-path-scroll { overflow-x:auto;padding:4px 2px;scrollbar-width:thin; }
-.ai-study-main { display:grid;grid-template-columns:repeat(6,minmax(112px,1fr));gap:22px;min-width:780px; }
-.ai-study-main .ai-course-node { position:relative; }
-.ai-study-main .ai-course-node:not(:last-child)::after { content:'→';position:absolute;right:-21px;color:#8091c1;font-weight:400; }
-.ai-study-support { display:flex;gap:14px;align-items:center;margin-top:16px;font-size:14px; }
-.ai-study-support .ai-course-node { min-height:38px;padding:6px 14px; }
+/* Same constellation canvas and node treatments as the mathematics roadmap. */
+.ai-study-map { background:white;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin-bottom:20px;overflow-x:auto;scrollbar-width:thin; }
+.ai-study-map svg { display:block;width:100%;min-width:1000px;height:auto; }
+.ai-map-canvas .analysis-course-title { font-size:13px; }
+.ai-map-canvas .analysis-course-symbol { font-size:18px; }
+.ai-map-canvas .ai-course-node { text-decoration:none;cursor:pointer;outline:none; }
+.ai-map-canvas .ai-course-node:focus-visible .analysis-course-card { stroke:#fff;stroke-width:2;stroke-opacity:1; }
 .ai-study-detail { background:white;border:1px solid var(--line);border-radius:16px;padding:24px; }
 .ai-study-detail h2 { margin:0 0 18px;font-size:23px; }.ai-study-detail h3 { font-size:16px;margin:0 0 10px; }
 .ai-study-context { display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--line); }
@@ -1003,7 +995,7 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .admin-page #ai-learning-view .series-admin-associate select { flex:1 1 220px;width:0; }
 .admin-page #ai-learning-view .series-member-actions input { width:80px; }
 #home-view .application-card.ai-learning-application { background:linear-gradient(125deg,#264f67,#21736c);grid-column:1/-1; }
-@media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-map,.ai-study-detail { padding:18px; }.ai-study-foundations { grid-template-columns:1fr 1fr;gap:10px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; }.ai-study-support { flex-wrap:wrap; } }
+@media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-detail { padding:18px; }.ai-study-map { padding:8px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; } }
 #home-view .hero { position:relative;isolation:isolate;overflow:hidden;border:0;background:radial-gradient(ellipse at 76% 16%,#68429a66,transparent 56%),radial-gradient(ellipse at 93% 90%,#127f9466,transparent 54%),linear-gradient(125deg,#13244b,#192140 55%,#243454);box-shadow:0 14px 32px #23335118;min-height:370px;padding:38px 42px; }
 #home-view .hero::after { content:'';position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,#8198ff,#a698ff 40%,#75d9d1);opacity:.7; }
 #home-view .hero-content { position:relative;z-index:2; }

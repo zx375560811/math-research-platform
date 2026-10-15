@@ -1,7 +1,6 @@
 import { mountIcons } from './icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
-const core=['optimization','machine-learning','deep-learning','nlp','transformer','llm'];
 function bookRow(book,href){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;row.append(info,link);return row;}
 export function createAiLearning({api,write}){
  const root=document.getElementById('ai-learning-view');let version=0,stop=null,reading=false;
@@ -11,11 +10,7 @@ export function createAiLearning({api,write}){
   root.replaceChildren(el('p','正在加载学习路线…','muted'));
   try{const {courses}=await api('/api/ai-learning');if(mine!==version)return;root.replaceChildren();const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1','数学到人工智能'));root.append(header);
    const chosen=courses.find(c=>c.slug===course)||courses[0];if(!chosen){root.append(el('p','课程暂不可用','muted'));return;}
-   const map=el('nav',null,'ai-study-map');map.setAttribute('aria-label','数学到人工智能学习路线');
-   function node(c){const b=el('a',c.name,'ai-course-node');b.href='#/apps/math-to-ai?course='+c.slug;b.dataset.aiCourse=c.slug;if(c.slug===chosen.slug)b.setAttribute('aria-current','step');return b;}
-   map.append(el('p','并行基础','ai-path-label'));const foundations=el('div',null,'ai-study-foundations');for(const c of courses.filter(c=>c.phase==='foundation'))foundations.append(node(c));map.append(foundations,el('div','↓','ai-path-join'));
-   const scroll=el('div',null,'ai-study-path-scroll'),main=el('div',null,'ai-study-main');for(const slug of core){const c=courses.find(c=>c.slug===slug);if(c)main.append(node(c));}scroll.append(main);map.append(scroll);
-   const support=el('div',null,'ai-study-support'),pytorch=courses.find(c=>c.slug==='pytorch');if(pytorch)support.append(node(pytorch),el('span','与深度学习并行','muted'));map.append(support);root.append(map);
+   root.append(aiRoadmap(courses,chosen.slug));
    const detail=el('section',null,'ai-study-detail');detail.append(el('h2',chosen.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of chosen.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',chosen.practice));context.append(topics,practice);detail.append(context,el('h3','课程教材'));for(const book of chosen.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${chosen.slug}`));if(!chosen.books.length)detail.append(el('p','暂无关联教材','muted'));root.append(detail);mountIcons();
   }catch(error){if(mine===version)root.replaceChildren(el('p',error.message||'加载失败，请刷新重试。','notice error'));}
  }
@@ -32,4 +27,51 @@ export function createAdminAiLearning({api,write,message}){
  async function action(work){if(busy)return;busy=true;root.querySelectorAll('button').forEach(b=>b.disabled=true);try{await work();message('课程教材已保存。');}catch(error){message(error.message,true);}finally{busy=false;root.querySelectorAll('button').forEach(b=>b.disabled=false);await load().catch(error=>message(error.message,true));}}
  $('ai-study-search').onsubmit=e=>{e.preventDefault();offset=0;documents().catch(e=>message(e.message,true));};$('ai-study-folder').onchange=()=>{offset=0;documents().catch(e=>message(e.message,true));};$('ai-study-document').onchange=()=>$('ai-study-add').disabled=busy||!$('ai-study-document').value;$('ai-study-add').onclick=()=>action(()=>write(`/api/admin/ai-learning/${selected}/books`,{document_id:Number($('ai-study-document').value)}));for(const [id,delta]of [['ai-study-prev',-20],['ai-study-next',20]])$(id).onclick=()=>{offset=Math.max(0,offset+delta);documents().catch(e=>message(e.message,true));};
  return {load};
+}
+
+// Keep the AI route in the same visual language as the analysis course map.
+function aiRoadmap(courses, chosen) {
+ const ns='http://www.w3.org/2000/svg';
+ const make=(tag,attrs={},text)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};
+ const box=document.createElement('nav');box.className='ai-study-map';box.setAttribute('aria-label','数学到人工智能学习路线');
+ const svg=make('svg',{viewBox:'0 0 1140 278',class:'analysis-map-canvas ai-map-canvas',role:'group','aria-label':'数学分析、高等代数和概率统计汇入优化基础，再学习机器学习、深度学习、自然语言处理、Transformer 和 LLM。Python 支持机器学习和 PyTorch 实践，PyTorch 与深度学习配合学习。'});
+ const defs=make('defs');
+ const gradient=(id,colors)=>{const node=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});colors.forEach((color,index)=>node.append(make('stop',{offset:index/(colors.length-1)*100+'%','stop-color':color})));defs.append(node);};
+ gradient('ai-map-night',['#152a52','#121d3c','#24395d']);
+ const palettes={math:['#4867da','#2942aa'],algebra:['#7545b2','#493076'],probability:['#147b7c','#105054'],code:['#23789b','#16455e'],optimization:['#97602b','#68421f'],learning:['#5156b3','#34356f'],deep:['#7545b2','#493076'],language:['#147b7c','#105054'],model:['#395b9a','#243c6b']};
+ for(const [kind,colors]of Object.entries(palettes))gradient('ai-node-'+kind,colors);
+ const light=make('radialGradient',{id:'ai-map-light'});light.append(make('stop',{offset:'0%','stop-color':'#7097ff','stop-opacity':'.25'}),make('stop',{offset:'100%','stop-color':'#7097ff','stop-opacity':0}));defs.append(light);
+ const marker=make('marker',{id:'ai-route-arrow',viewBox:'0 0 8 8',refX:7,refY:4,markerWidth:6,markerHeight:6,orient:'auto'});marker.append(make('path',{d:'M1 1L7 4L1 7',fill:'none',stroke:'#9db7e7','stroke-width':1.4}));defs.append(marker);svg.append(defs);
+ const backdrop=make('g',{'aria-hidden':'true'});backdrop.append(make('rect',{width:1140,height:278,rx:14,fill:'url(#ai-map-night)'}),make('ellipse',{cx:230,cy:100,rx:280,ry:180,fill:'url(#ai-map-light)'}),make('ellipse',{cx:950,cy:190,rx:290,ry:160,fill:'url(#ai-map-light)'}));
+ for(let i=0;i<68;i++)backdrop.append(make('circle',{cx:12+(i*137)%1116,cy:8+(i*47)%262,r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));
+ for(const [x,y]of [[374,35],[735,204],[1090,47]])backdrop.append(make('path',{d:`M${x-3} ${y}h6M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));svg.append(backdrop);
+ const nodes=[
+  ['calculus','∫',24,22,'math','foundation'],['linear-algebra','ℝⁿ',24,84,'algebra','foundation'],['probability','ℙ',24,146,'probability','foundation'],
+  ['python','Py',212,208,'code','foundation'],['optimization','∇',212,84,'optimization','core'],['machine-learning','ƒ',400,84,'learning','core'],
+  ['deep-learning','⊗',588,84,'deep','core'],['pytorch','Py',588,208,'code','support'],['nlp','文',776,84,'language','core'],
+  ['transformer','QK',964,84,'model','core'],['llm','✦',964,208,'deep','core']
+ ];
+ const available=new Set(courses.map(course=>course.slug));
+ const edges=[
+  ['calculus','optimization','M178 43H186Q194 43 194 51V97Q194 105 202 105H212'],
+  ['linear-algebra','optimization','M178 105H212'],
+  ['probability','optimization','M178 167H186Q194 167 194 159V113Q194 105 202 105H212'],
+  ['optimization','machine-learning','M366 105H400'],['machine-learning','deep-learning','M554 105H588'],
+  ['deep-learning','nlp','M742 105H776'],['nlp','transformer','M930 105H964'],['transformer','llm','M1041 126V208'],
+  ['python','machine-learning','M366 229H374Q382 229 382 221V113Q382 105 390 105H400'],
+  ['python','pytorch','M366 229H588'],['pytorch','deep-learning','M665 208V126',true]
+ ];
+ for(const [index,[from,to,d,optional]]of edges.entries())if(available.has(from)&&available.has(to)){
+  svg.append(make('path',{class:'analysis-route-edge',d,fill:'none','marker-end':'url(#ai-route-arrow)','data-from':from,'data-to':to,...(optional?{'stroke-dasharray':'5 5'}:{})}));
+  const spark=make('circle',{class:'analysis-route-spark',r:1.8,fill:'#d7f1ff','aria-hidden':'true'});spark.append(make('animateMotion',{path:d,dur:'6s',begin:-index*.7+'s',repeatCount:'indefinite'}));svg.append(spark);
+ }
+ const groups={foundation:make('g',{class:'ai-study-foundations'}),core:make('g',{class:'ai-study-main'}),support:make('g',{class:'ai-study-support'})};
+ for(const [slug,symbol,x,y,kind,phase]of nodes){
+  const course=courses.find(item=>item.slug===slug);if(!course)continue;
+  const node=make('a',{class:'analysis-course ai-course-node'+(slug===chosen?' selected':''),href:'#/apps/math-to-ai?course='+slug,'data-ai-course':slug,'aria-label':course.name,tabindex:0,...(slug===chosen?{'aria-current':'step'}:{})});
+  node.append(make('title',{},course.name),make('rect',{class:'analysis-course-card',x,y,width:154,height:42,rx:11,style:'fill:url(#ai-node-'+kind+')'}),make('path',{class:'analysis-course-shine',d:`M${x+11} ${y+1}H${x+143}M${x+149} ${y+12}V${y+30}`}),make('circle',{class:'analysis-course-orbit',cx:x+25,cy:y+21,r:15.5}),make('circle',{class:'analysis-course-icon',cx:x+25,cy:y+21,r:12}),make('text',{class:'analysis-course-symbol',x:x+25,y:y+21,'text-anchor':'middle','dominant-baseline':'central'},symbol),make('text',{class:'analysis-course-title',x:x+48,y:y+21,'dominant-baseline':'central',...(slug==='python'?{textLength:96,lengthAdjust:'spacingAndGlyphs'}:{})},course.name),make('path',{class:'analysis-course-picked',d:`M${x+144} ${y+6}l3 3-3 3-3-3Z`}));
+  node.addEventListener('keydown',event=>{if(event.key===' '){event.preventDefault();node.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}});
+  groups[phase].append(node);
+ }
+ svg.append(...Object.values(groups));box.append(svg);return box;
 }
