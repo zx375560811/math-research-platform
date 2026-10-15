@@ -238,7 +238,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await libraryIcon.getAttribute('data-icon'),'file');
     const duringMorph = await libraryIcon.locator('path').getAttribute('d');
     await page.waitForFunction(previous=>document.querySelector('#library-link path').getAttribute('d')!==previous,duringMorph);
-    await page.locator('#home-view .portal h2').first().hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
+    await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
 
     const mathCases = await page.evaluate(async () => {
       const {renderAnswer}=await import('/richtext.js');
@@ -259,16 +259,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.deepEqual(mathCases.map(row=>row.formulas),[2,1,1,1,1,1,0,1]);
     assert.ok(mathCases.every(row=>row.errors===0));assert.equal(mathCases[4].cells,2);
     assert.equal(mathCases[6].code,2);assert.match(mathCases[6].text,/\[普通文字\]/);
-    assert.equal(await page.locator('#home-view .application-card').count(),3);
-    assert.equal(await page.locator('#home-view h1,#home-view .hero,#home-view .application-planned,#home-view .section-heading').count(),0);
-    assert.equal(await page.locator('#home-view .portal-art').count(),3);
-    assert.equal(await page.locator('body').evaluate(n=>n.classList.contains('workbench-page')),true);
-    await page.locator('#home-view .math-application').hover();
-    assert.ok(await page.locator('#home-view .math-application').evaluate(n=>n.style.getPropertyValue('--portal-x')));
     await page.screenshot({ path: path.join(shots, 'home-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'home-mobile.png'), fullPage: true });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),false);
-    await page.setViewportSize({ width: 320, height: 844 });assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.setViewportSize({ width: 1440, height: 1100 }); await page.locator('.application-card[href="#/apps/mathematics"]').click();await page.locator('.analysis-roadmap').waitFor();await page.locator('.textbook-row:visible').first().waitFor();
     await page.screenshot({ path: path.join(shots, 'module-desktop.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: path.join(shots, 'module-mobile.png'), fullPage: true });

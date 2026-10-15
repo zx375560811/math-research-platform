@@ -36,7 +36,6 @@ function route() {
   if (location.hash === '#/admin' && state.user) { if (state.user.role === 'ADMIN') { location.replace('/admin'); return; } $('notice').textContent = '此账号没有管理员权限。'; $('notice').hidden = false; location.replace('#/'); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
   document.body.classList.toggle('auth-page', inAuth);
-  document.body.classList.toggle('workbench-page', !inAuth && !inApp && !inLibrary && !inSeries && !!state.user);
   $('auth-view').hidden = !inAuth; $('home-view').hidden = inApp || inLibrary || inSeries || inAuth; $('library-view').hidden = !inLibrary || inAuth; $('module-view').hidden = !inApp;$('series-view').hidden=!inSeries;
   $('auth-title').textContent = registering ? '注册公理账号' : '登录公理'; $('account-submit').textContent = registering ? '注册账号' : '登录';
   $('invitation-label').hidden = !registering; $('account-invitation').hidden = !registering; $('account-invitation').required = registering;
@@ -77,14 +76,3 @@ $('logout-button').addEventListener('click', async () => {
 });
 window.addEventListener('hashchange', route);
 route(); init();
-
-// The spotlight follows the pointer without changing Morphicons' existing controls.
-for (const portal of document.querySelectorAll('#home-view .portal')) {
-  portal.addEventListener('pointermove', event => {
-    if (event.pointerType !== 'mouse' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const bounds = portal.getBoundingClientRect();
-    portal.style.setProperty('--portal-x', ((event.clientX - bounds.left) / bounds.width * 100) + '%');
-    portal.style.setProperty('--portal-y', ((event.clientY - bounds.top) / bounds.height * 100) + '%');
-  });
-  portal.addEventListener('pointerleave', () => { portal.style.removeProperty('--portal-x'); portal.style.removeProperty('--portal-y'); });
-}
