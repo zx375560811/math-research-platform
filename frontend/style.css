@@ -417,7 +417,7 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 
 /* The analysis introduction is a branching course roadmap, not three text cards. */
 .analysis-roadmap { overflow-x:auto;scrollbar-width:thin;padding:4px 0; }
-.analysis-roadmap svg { display:block;width:100%;min-width:760px;height:auto;margin:0 auto; }
+.analysis-roadmap svg { display:block;width:100%;max-width:940px;min-width:760px;height:auto;margin:0 auto; }
 .analysis-course { --route-accent:#6478d3;transition:transform .18s ease,filter .18s ease;transform-box:fill-box;transform-origin:center; }
 .analysis-course-card { fill:url(#analysis-course-fill);stroke:var(--route-accent);stroke-opacity:.25;stroke-width:1; }
 .analysis-course-icon { fill:var(--route-accent);fill-opacity:.12; }
