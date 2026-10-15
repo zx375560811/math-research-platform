@@ -30,6 +30,16 @@ async function assertTransparentSelection(page, selector) {
   const channels=style.background.match(/[\d.]+/g).map(Number);assert.equal(channels.length,4);assert.ok(channels[3]>0&&channels[3]<1,'The selection tint must leave the document visible');
 }
 
+async function assertStableRoadmapHover(page, selector) {
+  await page.evaluate(()=>document.fonts.ready);await page.mouse.move(0,0);
+  const node=page.locator(selector),before=await node.evaluate(n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};});
+  await node.evaluate(n=>{const state={enter:0,leave:0};state.onEnter=()=>state.enter++;state.onLeave=()=>state.leave++;n.addEventListener('mouseenter',state.onEnter);n.addEventListener('mouseleave',state.onLeave);n._hoverCheck=state;});
+  await page.mouse.move(before.x+before.width/2,before.y+before.height-.5);
+  const result=await node.evaluate(async n=>{for(let i=0;i<30;i++)await new Promise(requestAnimationFrame);const state=n._hoverCheck,rect=n.getBoundingClientRect();n.removeEventListener('mouseenter',state.onEnter);n.removeEventListener('mouseleave',state.onLeave);delete n._hoverCheck;return {enter:state.enter,leave:state.leave,y:rect.y,cursor:getComputedStyle(n).cursor};});
+  assert.equal(result.enter,1,'A stationary pointer must enter the course only once');assert.equal(result.leave,0,'Hover must not move the node away from the pointer');assert.ok(Math.abs(result.y-before.y)<.1,`The clickable course must stay in place: ${before.y} -> ${result.y}`);assert.equal(result.cursor,'pointer');
+  await page.mouse.move(0,0);
+}
+
 async function scrollToPage(page, number) {
   await page.locator('#reader-scroll').evaluate((node,n)=>{const frame=document.querySelector(`.pdf-page[data-page="${n}"]`);node.scrollTop=document.getElementById('pdf-pages').offsetTop+frame.offsetTop;node.dispatchEvent(new Event('scroll'));},number);
   await page.waitForFunction(n=>document.getElementById('reader-scroll').dataset.page===String(n)&&document.querySelector(`.pdf-page[data-page="${n}"][data-loaded]`),number);
@@ -239,6 +249,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.reload();await page.locator('.recommendation-empty:visible').waitFor();
     assert.equal(await page.locator('.textbook-row').count(),0);
     assert.equal(await page.locator('.analysis-course').count(),7);
+    await assertStableRoadmapHover(page,'.analysis-course[data-course="数学分析"]');
     await page.unroute(directionEndpoint);
     await page.reload();await page.locator('.textbook-row:visible').first().waitFor();
     await page.locator('#home-link').click(); await page.locator('#home-view').waitFor();
@@ -283,6 +294,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.analysis-roadmap').waitFor();
     await page.locator('.analysis-roadmap svg').waitFor();
     assert.equal(await page.locator('.analysis-course').count(),7);
+    await assertStableRoadmapHover(page,'.analysis-course[data-course="数学分析"]');
     assert.equal(await page.locator('.analysis-textbooks .textbook-stage:visible').count(),1);
     assert.equal(await page.locator('.textbook-course-nav button,.textbook-course-nav a,.textbook-course-nav [tabindex]').count(),0);
     assert.equal(await page.locator('.textbook-course-nav li').count(),7);
@@ -645,6 +657,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     let aiCourseFetches=0;await page.route('**/api/ai-learning',route=>{aiCourseFetches++;return route.fulfill({json:{courses:aiCourseNames.map(([slug,name,phase])=>({slug,name,phase,topics:'概念；方法',practice:'完成一个可复现练习。',books:slug==='machine-learning'?[seriesDoc]:[]}))}});});
     await page.locator('.ai-learning-application').click();await page.locator('.ai-study-map').waitFor();
     assert.equal(await page.locator('.ai-study-foundations .ai-course-node').count(),4);assert.equal(await page.locator('.ai-study-main .ai-course-node').count(),6);
+    await assertStableRoadmapHover(page,'[data-ai-course="calculus"]');
     const aiMapBefore=await page.locator('.ai-study-map svg').elementHandle(),courseFetchesBefore=aiCourseFetches;
     await page.locator('[data-ai-course="machine-learning"]').click();await page.locator('.ai-study-book').waitFor();
     assert.equal(aiCourseFetches,courseFetchesBefore,'Course selection must reuse the loaded catalog');

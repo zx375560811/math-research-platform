@@ -418,7 +418,7 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 /* The analysis introduction is a branching course roadmap, not three text cards. */
 .analysis-roadmap { overflow-x:auto;scrollbar-width:thin;padding:4px 0; }
 .analysis-roadmap svg { display:block;width:100%;max-width:940px;min-width:760px;height:auto;margin:0 auto; }
-.analysis-course { --route-accent:#6478d3;transition:transform .18s ease,filter .18s ease;transform-box:fill-box;transform-origin:center; }
+.analysis-course { --route-accent:#6478d3;transition:filter .18s ease;transform-box:fill-box;transform-origin:center; }
 .analysis-course-card { fill:url(#analysis-course-fill);stroke:var(--route-accent);stroke-opacity:.25;stroke-width:1; }
 .analysis-course-icon { fill:var(--route-accent);fill-opacity:.12; }
 .analysis-course-title { fill:var(--ink);font:600 15px system-ui,'Microsoft YaHei',sans-serif; }
@@ -432,7 +432,7 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 .analysis-course.functional { --route-accent:#6478d3; }
 .analysis-course.pde { --route-accent:#398ea6; }
 .analysis-course.support .analysis-course-card { fill:#ffffffc9;stroke-dasharray:4 3; }
-.analysis-course:hover { transform:translateY(-2px);filter:drop-shadow(0 4px 5px #3447751a); }
+.analysis-course:hover { filter:drop-shadow(0 4px 5px #3447751a); }
 .analysis-course:hover .analysis-course-card { stroke-opacity:.6; }
 .analysis-route-edge { opacity:.8;transition:opacity .18s ease; }
 .analysis-roadmap:hover .analysis-route-edge { opacity:1; }
@@ -464,7 +464,7 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 .analysis-course-orbit { fill:none;stroke:#d3e6ff;stroke-width:.7;stroke-opacity:.55; }
 .analysis-course-shine { fill:none;stroke:#fff;stroke-width:.8;stroke-opacity:.35; }
 .analysis-course-picked { fill:#fff;opacity:0;transition:opacity .18s ease; }
-.analysis-map-canvas .analysis-course:hover { transform:translateY(-2px);filter:drop-shadow(0 5px 7px #050f2670); }
+.analysis-map-canvas .analysis-course:hover { filter:drop-shadow(0 5px 7px #050f2670); }
 .analysis-map-canvas .analysis-course:hover .analysis-course-card { stroke:#d4e8ff;stroke-opacity:.8;stroke-width:1; }
 .analysis-map-canvas .analysis-course.selected .analysis-course-title { fill:#fff; }
 .analysis-map-canvas .analysis-course.selected .analysis-course-card,.analysis-map-canvas .analysis-course:focus-visible .analysis-course-card { stroke:#e3efff;stroke-opacity:1;stroke-width:1.8; }
