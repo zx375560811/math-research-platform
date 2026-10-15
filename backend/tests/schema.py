@@ -50,6 +50,9 @@ with sqlite3.connect(':memory:') as db:
     db.execute("INSERT INTO users(username,password_hash) VALUES('reader','test')")
     db.execute("INSERT INTO document_progress(username,document_id,page,total_pages) VALUES('reader',1,4,10)")
     db.execute("UPDATE ai_study_courses SET practice='推导线性回归损失的梯度，用有限差分核对结果。' WHERE slug='calculus'")
+    db.execute("UPDATE ai_study_courses SET topics='极限与连续；多元微积分；偏导数与梯度；链式法则；Taylor 展开' WHERE slug='calculus'")
+    db.execute("UPDATE ai_study_courses SET practice='用 NumPy 读入小数据集，完成清洗、划分和可视化。' WHERE slug='python'")
+    db.execute("UPDATE ai_study_courses SET topics='管理员编写的学习重点',practice='管理员编写的练习' WHERE slug='deep-learning'")
     db.commit()
     db.executescript(sql)
     assert db.execute("SELECT COUNT(*) FROM ai_study_courses WHERE slug='optimization'").fetchone()[0] == 0
@@ -58,6 +61,12 @@ with sqlite3.connect(':memory:') as db:
     assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 1
     assert db.execute('SELECT page FROM document_progress').fetchone()[0] == 4
     assert '自动求导' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='calculus'").fetchone()[0]
+    assert '极值与下降方向：' in db.execute("SELECT topics FROM ai_study_courses WHERE slug='calculus'").fetchone()[0]
+    assert '随机漫步' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='python'").fetchone()[0]
+    assert db.execute("SELECT topics,practice FROM ai_study_courses WHERE slug='deep-learning'").fetchone() == ('管理员编写的学习重点','管理员编写的练习')
+    course_copy = db.execute('SELECT slug,topics,practice FROM ai_study_courses ORDER BY slug').fetchall()
+    db.executescript(sql)
+    assert db.execute('SELECT slug,topics,practice FROM ai_study_courses ORDER BY slug').fetchall() == course_copy
     assert db.execute('PRAGMA foreign_key_check').fetchall() == []
     try:
         db.execute('INSERT INTO document_subjects VALUES (1,999)')
