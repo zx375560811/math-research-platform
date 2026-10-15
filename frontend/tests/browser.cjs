@@ -63,7 +63,7 @@ async function main() {
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : index === 0 ? 'Test textbook' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length, module:'mathematics', language:index === 0 ? 'en' : 'und', directions:['algebra'], file_url:`/api/documents/${index+1}/file` }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
       nativeId = 22; const nativeDocument = {id:nativeId,title:'Native DjVu',authors:'Test',subject_ids:[1],file_size:djvu.length,module:'mathematics',language:'en',directions:['algebra'],format:'djvu',file_url:'/api/documents/22/file'};
-      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0; const plans=new Map();
+      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0; const plans=new Map();const labProgress=new Map();
       const bookValue = (book,user) => {
         const selected = selections.get(user+':'+book.id), doc = documents.find(doc=>doc.id===(selected||book.document_id||(book.id===7?1:null)));
         return {...book,...(doc ? {title:doc.title,authors:doc.authors,source_url:'',available:true,file_url:doc.file_url} : {}),selected_document_id:selected||null,progress:progress.get(user+':doc:'+(selected||1))||null};
@@ -85,6 +85,20 @@ async function main() {
           if (url.pathname.endsWith('/logout')) { delete session.user; return json({ status: 'ok' }); }
           if (users.get(name) !== body.password) return json({ error: 'invalid_credentials' }, 401);
           session.user = { username: name, role: 'USER' }; return json({ user: session.user });
+        }
+        if(url.pathname.startsWith('/api/learning-labs')){
+          if(!session?.user)return json({error:'login_required'},401);
+          const key=session.user.username+':',labs=['calculus','linear-algebra','python','machine-learning','deep-learning','pytorch','nlp','llm'];
+          if(req.method==='GET'&&url.pathname==='/api/learning-labs/progress')return json({progress:Object.fromEntries([...labProgress].filter(([name])=>name.startsWith(key)).map(([name,value])=>[name.slice(key.length),value]))});
+          const match=url.pathname.match(/^\/api\/learning-labs\/([a-z-]+)\/(progress|notebook)$/);
+          if(!match||!labs.includes(match[1]))return json({error:'not_found'},404);
+          if(req.method==='GET'&&match[2]==='notebook'){res.writeHead(200,{'Content-Type':'application/x-ipynb+json','Content-Disposition':'attachment; filename="axiom-'+match[1]+'.ipynb"'});return res.end(fs.readFileSync(path.join(frontend,'labs',match[1]+'.ipynb')));}
+          if(req.method==='PUT'&&match[2]==='progress'){
+            if(req.headers['x-csrf-token']!==session.token)return json({error:'invalid_csrf'},403);
+            const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks)),id=key+match[1],saved=new Set(labProgress.get(id)||[]);
+            if(body.completed)saved.add(body.stage);else saved.delete(body.stage);
+            const completed=['follow','fill','independent'].filter(stage=>saved.has(stage));labProgress.set(id,completed);return json({completed_stages:completed});
+          }
         }
         if(url.pathname.startsWith('/api/study-plan')){
           if(!session?.user)return json({error:'login_required'},401);
@@ -159,7 +173,7 @@ async function main() {
           res.writeHead(200,headers);return res.end(content);
         }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
-        for (const name of ['study-plan.js','ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        for (const name of ['learning-labs.js','study-plan.js','ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -666,35 +680,36 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true,'Course selection must preserve the roadmap and its animations');
     assert.equal(await page.locator('[data-ai-course="machine-learning"][aria-current="step"]').count(),1);
     assert.match(await page.url(),/course=machine-learning/);
-    assert.equal(await page.locator('.ai-project-card[data-project="iris"]').count(),1);
-    assert.match(await page.locator('.ai-project-book').textContent(),/Python 机器学习基础教程.*第 1 章/);
-    assert.match(await page.locator('.ai-project-task').textContent(),/测试准确率/);
-    assert.equal(await page.locator('.ai-project-details').getAttribute('open'),null);
-    await page.locator('.ai-project-details summary').click();
-    assert.equal(await page.locator('.ai-project-details').evaluate(node=>node.open),true);
-    assert.match(await page.locator('.ai-project-details').textContent(),/运行条件.*CPU|运行条件.*无 GPU/);
-    const expectedProjects={calculus:['forward-ad'],'linear-algebra':['matrix'],probability:[],python:['random-walk'],'machine-learning':['iris'],'deep-learning':['two-layer'],pytorch:['torch-regression'],nlp:['tfidf'],llm:['prompt-lab']};
-    const linkedProjects=new Set();
+    assert.equal(await page.locator('.learning-lab[data-lab="machine-learning"]').count(),1);
+    assert.match(await page.locator('.lab-book').textContent(),/Python 机器学习基础教程.*第 1 章/);
+    assert.equal(await page.locator('.lab-stages input').count(),3);
+    await page.getByRole('button',{name:'实验指导',exact:true}).click();assert.equal(await page.locator('#lab-machine-learning-guide').isVisible(),true);assert.match(await page.locator('#lab-machine-learning-guide .lab-commands').first().textContent(),/py -m venv/);
+    await page.getByRole('button',{name:'查看提示',exact:true}).click();assert.equal(await page.locator('#lab-machine-learning-guide').isVisible(),false);assert.match(await page.locator('#lab-machine-learning-hints').textContent(),/训练集/);
+    await page.getByRole('button',{name:'核对结果',exact:true}).click();assert.match(await page.locator('#lab-machine-learning-results').textContent(),/112.*38/);
+    const downloaded=page.waitForEvent('download');await page.getByRole('link',{name:'下载练习文件',exact:true}).click();const file=await downloaded;
+    assert.equal(file.suggestedFilename(),'axiom-machine-learning.ipynb');assert.equal(JSON.parse(fs.readFileSync(await file.path(),'utf8')).metadata.axiom.lab,'machine-learning');
+    await page.locator('[data-lab-stage="follow"]').check();await page.waitForFunction(()=>document.querySelector('.lab-status')?.textContent==='实验进度已保存。');
+    assert.match(await page.locator('.lab-count').textContent(),/1 \/ 3/);
+    const experimentSlugs=new Set();
     for(const [slug]of aiCourseNames.filter(([slug])=>slug!=='transformer')){
       await page.locator(`[data-ai-course="${slug}"]`).click();
-      assert.deepEqual(await page.locator('.ai-project-card').evaluateAll(cards=>cards.map(c=>c.dataset.project)),expectedProjects[slug],`Projects must correspond to ${slug}`);
-      if(slug==='probability'){assert.equal(await page.locator('.ai-study-projects').count(),0);assert.equal(await page.locator('.ai-study-detail').textContent().then(text=>text.includes('null')),false);}
-      for(const card of await page.locator('.ai-project-card').all()){
-        linkedProjects.add(await card.getAttribute('data-project'));
-        assert.ok((await card.locator('.ai-project-prerequisites').textContent()).length>10,'Programming prerequisites must be visible');
-        const task=card.getByRole('link',{name:/项目任务/});assert.match(await task.getAttribute('href'),/math-research-platform\/blob\/main\/docs\/ai-course-projects\.md#/);
-        for(const link of await card.locator('a').all()){assert.match(await link.getAttribute('href'),/^https:\/\/github\.com\//);assert.equal(await link.getAttribute('target'),'_blank');assert.equal(await link.getAttribute('rel'),'noopener noreferrer');}
-      }
+      if(slug==='probability'){assert.equal(await page.locator('.learning-labs').count(),0);continue;}
+      assert.equal(await page.locator(`.learning-lab[data-lab="${slug}"]`).count(),1);
+      assert.equal(await page.locator('.lab-stages input').count(),3);
+      assert.ok((await page.locator('.lab-prior').textContent()).length>10);
+      assert.equal(await page.getByRole('link',{name:'下载练习文件',exact:true}).getAttribute('href'),'/api/learning-labs/'+slug+'/notebook');
+      experimentSlugs.add(slug);
     }
-    assert.equal(linkedProjects.size,8);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
+    assert.equal(experimentSlugs.size,8);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
     await page.locator('[data-ai-course="machine-learning"]').click();
 
     await page.locator('[data-ai-course="machine-learning"]').click();assert.equal(aiCourseFetches,courseFetchesBefore);
 
     await page.screenshot({path:path.join(shots,'ai-learning-desktop.png'),fullPage:true});
     await page.locator('.ai-study-map').screenshot({path:path.join(shots,'ai-roadmap-desktop.png'),animations:'disabled'});
-    await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
+    await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'实验指导',exact:true}).click();await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.getByRole('button',{name:'实验指导',exact:true}).click();await page.setViewportSize({width:1440,height:900});
     await page.locator('.ai-study-book a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/数学到人工智能/);await readerControl(page,'reader-back');await page.locator('[data-ai-course="machine-learning"][aria-current]').waitFor();
+    assert.equal(await page.locator('[data-lab-stage="follow"]').isChecked(),true);
     await page.locator('[data-ai-course="pytorch"]').click();await page.waitForFunction(()=>document.querySelector('.ai-study-detail h2')?.textContent==='PyTorch 实践');
     await page.unroute('**/api/ai-learning');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     let planDocument=2;

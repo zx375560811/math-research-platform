@@ -1,131 +1,22 @@
 import { mountIcons } from './icons.js';
+import { createLearningLabs } from './learning-labs.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
-// Each task stops at the named textbook material. Later courses are not implicit prerequisites.
-const guide='https://github.com/zx375560811/math-research-platform/blob/main/docs/ai-course-projects.md#';
-export const aiCourseProjects={
- calculus:[{
-  id:'forward-ad',name:'用链式法则做自动求导',level:'基础实践',
-  book:'数学分析：导数、乘积法则与复合函数求导。',
-  prerequisites:'先会 Python 的函数、元组和循环；完成 Python 基础后再编程。',
-  description:'把函数值与导数成对传递，实现单变量的前向自动微分。',
-  task:'实现加法、乘法、整数幂和 sin，核对复合函数的手算导数。',
-  completion:'四组函数同时通过手算值和中心差分检查；任务页给出输入、答案和容差。',
-  environment:'Python 标准库，普通 CPU，无外部数据。',
-  boundary:'只做单变量前向求导；计算图遍历、反向传播和神经网络留到后续课程。',
-  guide:guide+'calculus'
- }],
- 'linear-algebra':[{
-  id:'matrix',name:'矩阵分解与低秩重建',level:'基础实践',
-  book:'Strang《线性代数导论》第 2、4、6、7 章，做到奇异值分解。',
-  prerequisites:'Python 基础与 NumPy 数组、索引和矩阵乘法。',
-  description:'对小型二维数值矩阵做 SVD，用不同秩重建并比较误差。',
-  task:'输出 U、奇异值和 Vh 的形状，验证完整重建，再比较秩 1、2、3 的近似。',
-  completion:'完整重建误差小于 1e-10；秩增加时 Frobenius 误差不增，并解释原因。',
-  environment:'Python + NumPy，普通 CPU，无图片或额外数据集。',
-  boundary:'教程中的图像处理、SciPy 数据下载不属于本次任务。',
-  source:'numpy/numpy-tutorials/blob/main/content/tutorial-svd.md',guide:guide+'linear-algebra'
- }],
- python:[{
-  id:'random-walk',name:'随机漫步可视化',level:'基础实践',
-  book:'《Python 编程：从入门到实践》第一版，基础部分与第 15 章随机漫步。',
-  prerequisites:'列表、循环、函数、类与模块导入；绘图库用法随第 15 章学习。',
-  description:'生成一条二维轨迹，绘图并标出起点和终点。',
-  task:'用 random 生成非零步长，保留每一步坐标，再用 Matplotlib 绘制轨迹。',
-  completion:'得到包含起点的 5,000 个点；坐标数一致、没有零步长，并保存一张轨迹图。',
-  environment:'Python + Matplotlib，普通 CPU，无数据下载。',
-  boundary:'这里只练习 Python 和绘图，不要求随机过程、机器学习或网页开发。',
-  source:'ehmatthes/pcc/tree/master/chapter_15',guide:guide+'python'
- }],
- 'machine-learning':[{
-  id:'iris',name:'鸢尾花分类完整小项目',level:'基础实践',
-  book:'Müller、Guido《Python 机器学习基础教程》第 1 章鸢尾花案例。',
-  prerequisites:'Python、NumPy 基础；按本章学习训练集、测试集和 k 近邻。',
-  description:'使用库内置的小数据集，完成数据划分、k 近邻训练和留出集评估。',
-  task:'固定划分随机种子，只在训练集拟合，输出测试准确率和一个新样本的预测。',
-  completion:'脚本可重复运行；报告划分数量、准确率，以及为何不能用测试集训练。',
-  environment:'Python + NumPy + scikit-learn；iris 数据随库提供，无 GPU。',
-  boundary:'只做第 1 章案例；调参流水线、神经网络与深度学习不在范围内。',
-  source:'amueller/introduction_to_ml_with_python/blob/main/01-introduction.ipynb',guide:guide+'machine-learning'
- }],
- 'deep-learning':[{
-  id:'two-layer',name:'NumPy 两层网络识别手写数字',level:'课程实践',
-  book:'斋藤康毅《深度学习入门：基于 Python 的理论与实现》第 1—5 章。',
-  prerequisites:'Python、NumPy、矩阵乘法、链式法则；按本书学习损失函数与反向传播。',
-  description:'用书中两层全连接网络完成 MNIST 训练，理解梯度怎样更新权重。',
-  task:'完成 Affine、ReLU、SoftmaxWithLoss 的正反向计算与小批量训练。',
-  completion:'先做小规模梯度检查，再记录训练损失和独立测试集准确率；能解释四组参数的形状。',
-  environment:'Python + NumPy，普通 CPU；首次需下载 MNIST，训练时间取决于电脑。',
-  boundary:'只实现第 5 章两层网络；不要求 CNN、PyTorch、注意力或迁移学习。',
-  source:'oreilly-japan/deep-learning-from-scratch/tree/master/ch05',guide:guide+'deep-learning'
- }],
- pytorch:[{
-  id:'torch-regression',name:'用 PyTorch 完成线性回归',level:'基础实践',
-  book:'《动手学深度学习》PyTorch 版：第 2 章、3.1—3.3 节。',
-  prerequisites:'Python、线性回归和梯度下降；Tensor、自动微分随指定章节学习。',
-  description:'用合成数据串起 DataLoader、模型、损失、优化器与训练循环。',
-  task:'恢复两个已知权重和一个偏置，比较训练前后的均方误差。',
-  completion:'固定随机种子；参数最大绝对误差小于 0.1，测试 MSE 小于 0.01。',
-  environment:'Python + PyTorch，CPU；数据自己生成，无模型权重下载。',
-  boundary:'选择教材的 PyTorch 分支；任务页给出数据生成办法，无需安装整套 d2l 或学习 CNN。',
-  source:'d2l-ai/d2l-zh/blob/master/chapter_linear-networks/linear-regression-concise.md',guide:guide+'pytorch'
- }],
- nlp:[{
-  id:'tfidf',name:'用 TF-IDF 检索短文',level:'基础实践',
-  book:'《Natural Language Processing in Action》第二版，第 2—3 章。',
-  prerequisites:'Python 的字符串、字典、循环；词袋、TF-IDF 与余弦相似度随章节学习。',
-  description:'给少量英文短文建立词袋，用 TF-IDF 和余弦相似度返回相关文本。',
-  task:'按任务页提供的语料实现分词、词频、逆文档频率和排序。',
-  completion:'三组指定查询返回对应短文；空查询和词表外查询返回空结果。',
-  environment:'Python 标准库，普通 CPU；语料在任务页，无外部下载。',
-  boundary:'这是本平台按教材知识编写的练习；不需要词向量模型、Transformer 或向量数据库。',
-  guide:guide+'nlp'
- }],
- llm:[{
-  id:'prompt-lab',name:'提示词效果对照实验',level:'应用实践',
-  book:'《Hands-On Large Language Models》中的 Prompt Engineering 一章。',
-  prerequisites:'理解模型输入输出与示例提示；需要一个可用的管理员默认 API 或个人 API。',
-  description:'用同一组文本比较直接提问、明确输出格式和提供示例三种提示。',
-  task:'让模型将 6 条课程描述分类为分析、代数或概率，逐项核对标签和 JSON 格式。',
-  completion:'记录同一模型的 18 次独立回答，分别统计分类正确数与格式合格数。',
-  environment:'可直接使用平台 AI 对话；需联网和可用模型额度，无本地 GPU。',
-  boundary:'本平台的应用实验；不要求训练 GPT、微调、RAG、LangChain 或部署模型。',
-  guide:guide+'llm'
- }]
-};
-
-function projectSection(slug){
- const projects=aiCourseProjects[slug];if(!projects?.length)return null;
- const section=el('section',null,'ai-study-projects'),heading=el('div',null,'ai-study-projects-heading');heading.append(el('h3','配套实践项目'));section.append(heading);
- const grid=el('div',null,'ai-project-grid');
- for(const project of projects){
-  const card=el('article',null,'ai-project-card'),head=el('div',null,'ai-project-card-heading');card.dataset.project=project.id;head.append(el('h4',project.name),el('span',project.level,'ai-project-level'));
-  const book=el('p',null,'ai-project-book'),prior=el('p',null,'ai-project-prerequisites');book.append(el('strong','教材：'),document.createTextNode(project.book));prior.append(el('strong','先修：'),document.createTextNode(project.prerequisites));
-  const details=el('details',null,'ai-project-details');details.append(el('summary','范围与验收'));
-  for(const [label,text]of [['完成标准：',project.completion],['运行条件：',project.environment],['项目范围：',project.boundary]]){const line=el('p');line.append(el('strong',label),document.createTextNode(text));details.append(line);}
-  const actions=el('div',null,'ai-project-actions');
-  for(const [label,href]of [['项目任务',project.guide],...(project.source?[['配套源码','https://github.com/'+project.source]]:[])]){
-   const link=el('a',label,'button compact');link.href=href;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','在新标签页打开 '+project.name+' · '+label);const glyph=el('span');glyph.dataset.icon='forward';glyph.setAttribute('aria-hidden','true');link.append(glyph);actions.append(link);
-  }
-  card.append(head,el('p',project.description,'ai-project-description'),book,prior,el('p',project.task,'ai-project-task'),details,actions);grid.append(card);
- }
- section.append(grid);return section;
-}
 export function createAiLearning({api,write,planButton}){
- const root=document.getElementById('ai-learning-view');let version=0,stop=null,reading=false;
+ const root=document.getElementById('ai-learning-view'),labs=createLearningLabs({api,write});let version=0,stop=null,reading=false;
  function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
  async function navigate(hash){close();root.hidden=false;const mine=version,params=new URLSearchParams(hash.split('?')[1]||''),course=params.get('course')||'calculus',match=hash.match(/^#\/apps\/math-to-ai\/read\/(\d+)/);
   if(match){root.hidden=true;reading=true;document.getElementById('reader-view').hidden=false;document.body.classList.add('reading-page');const {openReader}=await import('./reader.js');if(mine!==version)return;const control=openReader(Number(match[1]),{api,write,basePath:'/api/library/documents',backHref:'#/apps/math-to-ai?course='+encodeURIComponent(course),backLabel:'← 返回数学到人工智能'});stop=control.close;await control.ready;return;}
   root.replaceChildren(el('p','正在加载学习路线…','muted'));
-  try{const {courses}=await api('/api/ai-learning');if(mine!==version)return;root.replaceChildren();const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1','数学到人工智能'));root.append(header);
+  try{const [{courses}]=await Promise.all([api('/api/ai-learning'),labs.load()]);if(mine!==version)return;root.replaceChildren();const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1','数学到人工智能'));root.append(header);
    const chosen=courses.find(c=>c.slug===course)||courses[0];if(!chosen){root.append(el('p','课程暂不可用','muted'));return;}
    const detail=el('section',null,'ai-study-detail');let selected='';
    function selectCourse(slug,updateUrl=false){const course=courses.find(c=>c.slug===slug);if(!course||selected===slug)return;selected=slug;
     for(const node of root.querySelectorAll('[data-ai-course]')){const active=node.dataset.aiCourse===slug;node.classList.toggle('selected',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
     detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context);
     detail.append(el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
-    const projects=projectSection(course.slug);if(projects)detail.append(projects);
+    const experiments=labs.section(course.slug);if(experiments)detail.append(experiments);
     if(updateUrl)history.replaceState(history.state,'','#/apps/math-to-ai?course='+encodeURIComponent(slug));mountIcons();
    }
    root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);

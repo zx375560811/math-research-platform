@@ -69,6 +69,8 @@ with tempfile.TemporaryDirectory() as directory:
             for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations', '/api/admin/collections', '/api/library/documents']:
                 assert request(path)[0] == 401
             assert request('/api/ai-learning')[0]==401
+            assert request('/api/learning-labs/progress')[0]==401
+            assert request('/api/learning-labs/machine-learning/notebook')[0]==401
             assert request('/api/study-plan')[0]==401
             assert request('/api/study-plan/members')[0]==401
             assert b'account-form' in request('/admin')[1]  # anonymous redirect to login shell
@@ -139,7 +141,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert write(query + '&direction=invalid', large, pdf=True)[0] == 400
             assert set((root / 'data/files').iterdir()) == before
             # Remove only these disposable fixtures so the original catalog count assertions remain valid.
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 db.execute('PRAGMA foreign_keys=ON')
                 for doc_id in big_ids:
                     stored = db.execute('SELECT file_path FROM documents WHERE id=?', (doc_id,)).fetchone()[0]
@@ -263,7 +265,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/admin/books') == (403, {'error': 'admin_required'})
             assert write('/api/admin/invitations', {'days': 7})[0] == 403
             # Legacy source paths recover on restart, without copying or reimporting files.
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 db.execute('CREATE TABLE zotero_import_sources(document_id INTEGER,source TEXT,attachment TEXT,collections_json TEXT,imported_at TEXT)')
                 db.executemany('INSERT INTO zotero_import_sources VALUES(?,?,?,?,?)',[(document,'Original.rdf','one',json.dumps(['分析 / 复分析','代数']),'2026'),(document,'Original.rdf','duplicate',json.dumps(['分析 / 复分析']),'2026'),(native_id,'Original.rdf','native',json.dumps(['分析 / 复分析']),'2026')])
                 db.commit()
@@ -317,7 +319,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/library/documents/'+str(managed))[1]['title']=='改名文献'
             csrf=request('/api/auth/csrf')[1]
             disposal=request('/api/admin/documents?title=Disposable&subject_id=1','POST',djvu,{'Content-Type':'image/vnd.djvu',csrf['header']:csrf['token']})[1]['id']
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 disposal_file=root / db.execute('SELECT file_path FROM documents WHERE id=?',(disposal,)).fetchone()[0]
                 bound_file=root / db.execute('SELECT file_path FROM documents WHERE id=?',(document,)).fetchone()[0]
             assert write('/api/admin/documents/batch-delete',{'document_ids':[disposal,document]})[0]==409
@@ -328,14 +330,14 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents/'+str(document))[0]==404
             assert request('/api/learning/books/7')[1]['available'] is False
             assert request('/api/library/documents/'+str(managed))[1]['progress']==position
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 assert db.execute('SELECT count(*) FROM zotero_import_sources WHERE document_id=?',(document,)).fetchone()[0]==0
                 assert db.execute('SELECT count(*) FROM library_file_cleanup').fetchone()[0]==0
             # Delete a populated directory tree without deleting library records or personal data.
             managed_path='/api/library/documents/'+str(managed)
             kept_mark=write(managed_path+'/annotations',{'page':1,'quote':'Keep highlight','note':'Keep note','color':'yellow','rects':[{'x':.1,'y':.1,'width':.2,'height':.03}]})[1]['id']
             other_folder=write('/api/admin/collections',{'name':'保留目录','parent_id':None})[1]['id']
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 db.execute('INSERT INTO document_collections VALUES(?,?)',(native_id,folder_b))
                 db.execute('INSERT INTO document_collections VALUES(?,?)',(native_id,other_folder))
                 records_before=db.execute('SELECT id,title,file_path FROM documents ORDER BY id').fetchall()
@@ -348,7 +350,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
             assert {d['id'] for d in request('/api/library/documents?collection=unfiled')[1]['documents']} >= {managed}
             assert {d['id'] for d in request('/api/library/documents?collection='+str(other_folder))[1]['documents']}=={native_id}
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 assert db.execute('SELECT id,title,file_path FROM documents ORDER BY id').fetchall()==records_before
             assert set((root/'data/files').iterdir())==files_before
             assert write('/api/admin/collections/'+str(created_folder),{},'DELETE')[0]==404
@@ -376,7 +378,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request(managed_path+'/annotations')[1]['annotations'][0]['id']==kept_mark
             assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
             assert write('/api/admin/books/'+str(recommendation),{},'DELETE')[0]==404
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 2
                 assert db.execute('PRAGMA foreign_key_check').fetchall() == []
                 # Older imported course lists must expose ODE before books exist.
@@ -420,7 +422,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents/'+str(managed)+'/file') == (200,pdf)
             assert request('/api/series/'+str(sid))[0] == 404
             # Counts use the same filters as the page, including recursive folders.
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 page_series = db.execute("INSERT INTO book_series(name) VALUES('Pagination test')").lastrowid
                 for index in range(40):
                     doc = db.execute('INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)',
@@ -437,13 +439,32 @@ with tempfile.TemporaryDirectory() as directory:
                         assert len(response.get('documents',response.get('books',[]))) == min(20,max(0,total-offset))
             result=request('/api/library/documents?collection='+str(sf)+'&q=Pagination')[1]
             assert result['total']==40 and result['total_pages']==2
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 invitation_count=db.execute('SELECT count(*) FROM invitations').fetchone()[0]
             response=request('/api/admin/invitations?offset=1000')[1]
             assert response['total']==invitation_count and response['total_pages']==max(1,(invitation_count+19)//20)
             ai_courses=request('/api/ai-learning')[1]['courses']
             assert len(ai_courses)==10 and len([c for c in ai_courses if c['phase']=='foundation'])==4
             assert all(c['slug']!='optimization' for c in ai_courses)
+            assert request('/learning-labs.js')[0]==200
+            for slug in ['calculus','linear-algebra','python','machine-learning','deep-learning','pytorch','nlp','llm']:
+                status,notebook=request('/api/learning-labs/'+slug+'/notebook')
+                assert status==200 and notebook['metadata']['axiom']['lab']==slug
+                assert len(notebook['cells'])>10
+            assert request('/api/learning-labs/unknown/notebook')[0]==404
+            lab='/api/learning-labs/machine-learning/progress'
+            assert request('/api/learning-labs/progress')[1]=={'progress':{}}
+            assert request(lab,'PUT',b'{"stage":"follow","completed":true}',{'Content-Type':'application/json'})[0]==403
+            assert write(lab,{'stage':'wrong','completed':True},'PUT')[0]==400
+            assert write(lab,{'stage':'follow'},'PUT')[0]==400
+            assert write(lab,{'stage':'follow','completed':True},'PUT')[1]=={'completed_stages':['follow']}
+            assert write(lab,{'stage':'fill','completed':True},'PUT')[1]=={'completed_stages':['follow','fill']}
+            assert write(lab,{'stage':'follow','completed':False},'PUT')[1]=={'completed_stages':['fill']}
+            assert write('/api/auth/login',{'username':'invited_reader','password':credentials['password']})[0]==200
+            assert request('/api/learning-labs/progress')[1]=={'progress':{}}
+            assert write(lab,{'stage':'independent','completed':True},'PUT')[1]=={'completed_stages':['independent']}
+            assert write('/api/auth/login',credentials)[0]==200
+            assert request('/api/learning-labs/progress')[1]=={'progress':{'machine-learning':['fill']}}
             assert all(c['slug']!='optimization' for c in request('/api/admin/ai-learning')[1]['courses'])
             ai_path='/api/admin/ai-learning/machine-learning/books'
             assert write(ai_path,{'document_id':managed})[1]['added']==1
@@ -496,12 +517,12 @@ with tempfile.TemporaryDirectory() as directory:
             assert request(managed_path+'/annotations')[1]['annotations'][0]['id']==kept_mark
             assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
             # Independent page totals and deletion cascades use the owner/document key.
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 db.execute('PRAGMA foreign_keys=ON')
                 db.executemany("INSERT OR IGNORE INTO study_plan(username,document_id,source) VALUES('owner_one',?,'library')",[(r[0],) for r in db.execute("SELECT id FROM documents WHERE title LIKE 'Pagination %'").fetchall()])
             result=request('/api/study-plan?scope=planned&offset=20')[1]
             assert result['total']==40 and result['total_pages']==2 and len(result['books'])==20
-            with sqlite3.connect(database) as db:
+            with closing(sqlite3.connect(database)) as db, db:
                 db.execute('PRAGMA foreign_keys=ON')
                 db.execute('DELETE FROM documents WHERE id=?',(doc,))
                 assert db.execute('SELECT count(*) FROM study_plan WHERE document_id=?',(doc,)).fetchone()[0]==0

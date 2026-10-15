@@ -68,6 +68,7 @@ with sqlite3.connect(':memory:') as db:
     db.execute("UPDATE ai_study_courses SET topics='极限与连续；多元微积分；偏导数与梯度；链式法则；Taylor 展开' WHERE slug='calculus'")
     db.execute("UPDATE ai_study_courses SET practice='用 NumPy 读入小数据集，完成清洗、划分和可视化。' WHERE slug='python'")
     db.execute("UPDATE ai_study_courses SET topics='管理员编写的学习重点',practice='管理员编写的练习' WHERE slug='deep-learning'")
+    db.execute("INSERT INTO learning_lab_progress(username,lab,stages) VALUES('reader','machine-learning',3)")
     db.commit()
     db.executescript(sql)
     assert db.execute("SELECT COUNT(*) FROM ai_study_courses WHERE slug='optimization'").fetchone()[0] == 0
@@ -75,9 +76,10 @@ with sqlite3.connect(':memory:') as db:
     assert db.execute("SELECT document_id FROM ai_study_books WHERE course='deep-learning'").fetchone()[0] == 1
     assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 1
     assert db.execute('SELECT page FROM document_progress').fetchone()[0] == 4
-    assert '自动求导' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='calculus'").fetchone()[0]
+    assert db.execute('SELECT stages FROM learning_lab_progress').fetchone()[0] == 3
+    assert '中心差分' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='calculus'").fetchone()[0]
     assert '极值与下降方向：' in db.execute("SELECT topics FROM ai_study_courses WHERE slug='calculus'").fetchone()[0]
-    assert '随机漫步' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='python'").fetchone()[0]
+    assert '学习记录' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='python'").fetchone()[0]
     assert db.execute("SELECT topics,practice FROM ai_study_courses WHERE slug='deep-learning'").fetchone() == ('管理员编写的学习重点','管理员编写的练习')
     course_copy = db.execute('SELECT slug,topics,practice FROM ai_study_courses ORDER BY slug').fetchall()
     db.executescript(sql)
