@@ -262,7 +262,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await libraryIcon.getAttribute('data-icon'),'file');
     const duringMorph = await libraryIcon.locator('path').getAttribute('d');
     await page.waitForFunction(previous=>document.querySelector('#library-link path').getAttribute('d')!==previous,duringMorph);
-    await page.locator('#home-view h1').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
+    await page.locator('#home-view .mathematics-application').hover(); assert.equal(await libraryIcon.getAttribute('data-icon'),'book');
 
     const mathCases = await page.evaluate(async () => {
       const {renderAnswer}=await import('/richtext.js');

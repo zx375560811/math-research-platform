@@ -950,7 +950,6 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 }
 
 /* A colorful entrance to the research workspace; all other surfaces keep their theme. */
-#home-view .application-card.series-application { background:linear-gradient(125deg,#166766,#26485e);grid-column:1/-1;min-height:140px; }
 .series-heading,.series-ai-heading,.series-ai-heading>div,.series-ai-actions,.series-detail-heading,.series-search,.series-pager,.series-admin-associate { display:flex;align-items:center;gap:12px; }
 .series-heading { margin-bottom:22px; }.series-heading h1 { margin:0;font-size:30px; }.series-heading>.back-link { font-size:14px; }
 .series-recommender { padding:24px;border-radius:16px;background:linear-gradient(120deg,#e9eefc,#f0ecfc 55%,#e9f7f5);margin-bottom:26px; }
@@ -991,7 +990,6 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .study-plan-position { margin-top:16px; }.study-plan-position>div { display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted); }.study-plan-position progress { display:block;width:100%;height:6px;border:0;border-radius:8px;overflow:hidden;margin-top:8px;appearance:none;background:#e9edf7;accent-color:#6575cd; }.study-plan-position progress::-webkit-progress-bar { background:#e9edf7; }.study-plan-position progress::-webkit-progress-value { background:linear-gradient(90deg,#6575cd,#5bb3ae);border-radius:8px; }.study-plan-position progress::-moz-progress-bar { background:#6575cd;border-radius:8px; }
 .study-plan-book-actions,.study-book-actions { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }.study-book-actions { flex-shrink:0;justify-content:flex-end; }.study-plan-book-actions { margin-top:18px; }.study-plan-remove { margin-left:auto;color:var(--muted); }.study-plan-empty { padding:38px 22px;text-align:center;color:var(--muted); }.study-plan-empty>.icon { width:30px;height:30px;color:#9aaac7; }.study-plan-empty p { font-size:16px;margin:14px 0 18px; }
 .study-plan-pager { display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 18px;border-top:1px solid var(--line);font-size:14px;flex-wrap:wrap; }.plan-add { white-space:nowrap; }.plan-add.in-plan { color:#327368;opacity:1;background:#eff8f5;border-color:#d4e8e2; }.library-document-actions { display:grid;grid-template-columns:1fr;gap:6px;width:100%;min-width:0; }.library-table .library-document-actions .button { width:100%;height:34px;min-height:34px;margin:0;padding:6px 10px;gap:6px;font-family:inherit;font-size:14px;font-weight:500;line-height:20px;box-sizing:border-box; }.library-document-actions .button .icon { display:block;width:16px;height:16px;flex-shrink:0; }.library-document-actions .button>span:last-child { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }.library-table th:last-child { width:140px; }
-#home-view .application-card.study-plan-application { background:linear-gradient(125deg,#325b7f,#30685f); }
 @media(max-width:1100px) { .study-plan-columns { grid-template-columns:1fr; }.study-book-actions { flex-shrink:1; } }
 @media(max-width:650px) { .study-plan-heading { flex-wrap:wrap;gap:10px; }.study-plan-heading h1 { width:100%;font-size:25px; }.study-plan-overview { grid-template-columns:repeat(3,minmax(0,1fr));padding:20px 16px;gap:18px 12px; }.study-plan-ring { grid-column:1/-1;justify-self:center; }.study-plan-metric { padding:0;border:0;text-align:center; }.study-plan-metric strong { font-size:28px; }.study-plan-metric span { font-size:15px; }.study-plan-columns { gap:16px; }.study-plan-book,.study-plan-panel-heading { padding:18px 16px; }.study-plan-book-actions .button { font-size:14px; }.study-plan-remove { margin-left:0; }.study-book-actions { justify-content:flex-start; } }
 .ai-study-heading h1 { margin:0;font-size:28px; }
@@ -1011,69 +1009,42 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .admin-page #ai-learning-view .series-admin-associate { display:flex;gap:12px;flex-wrap:wrap; }
 .admin-page #ai-learning-view .series-admin-associate select { flex:1 1 220px;width:0; }
 .admin-page #ai-learning-view .series-member-actions input { width:80px; }
-#home-view .application-card.ai-learning-application { background:linear-gradient(125deg,#264f67,#21736c);grid-column:1/-1; }
 @media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-detail { padding:18px; }.ai-study-map { padding:8px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; } }
-#home-view .hero { position:relative;isolation:isolate;overflow:hidden;border:0;background:radial-gradient(ellipse at 76% 16%,#68429a66,transparent 56%),radial-gradient(ellipse at 93% 90%,#127f9466,transparent 54%),linear-gradient(125deg,#13244b,#192140 55%,#243454);box-shadow:0 14px 32px #23335118;min-height:370px;padding:38px 42px; }
-#home-view .hero::after { content:'';position:absolute;inset:auto 0 0;height:2px;background:linear-gradient(90deg,#8198ff,#a698ff 40%,#75d9d1);opacity:.7; }
-#home-view .hero-content { position:relative;z-index:2; }
-#home-view .hero h1 { color:#fff;font-size:clamp(36px,3.6vw,52px);line-height:1.35;letter-spacing:0;text-shadow:0 3px 18px #0002; }
-#home-view .hero .primary { color:#203970;background:#edf2ff;border:0;box-shadow:0 5px 18px #070f2533; }
-#home-view .hero .primary:hover { background:#fff;transform:translateY(-2px); }
-#home-view .math-art { background:transparent;border-radius:0;z-index:1; }
-#home-view .math-art svg { filter:drop-shadow(0 5px 14px #07162a80); }
-#home-view .surface-grid { stroke:#a9bdff;opacity:.7;stroke-width:1; }
-#home-view .surface-section { stroke:#89ffe1; }
-#home-view .surface-caption { fill:#c5d7ff; }
-.workbench-orbits { position:absolute;right:-1%;top:-9%;width:58%;height:118%;pointer-events:none;z-index:0; }
-.workbench-orbits svg { width:100%;height:100%;overflow:visible; }
-.workbench-orbit { fill:none;stroke:#b6b8ff;stroke-width:.7;stroke-opacity:.24;transform-origin:300px 210px;animation:workbench-orbit-drift 48s linear infinite; }
-.workbench-orbit circle { fill:#b5fff2;stroke:none; }
-.workbench-stars { fill:#b5e6ff;stroke:#b5e6ff;stroke-width:1;opacity:.65; }
-#home-view .section-heading { margin-top:30px; }
-#home-view .application-grid { grid-template-columns:1fr 1fr;gap:18px; }
-#home-view .application-card { isolation:isolate;min-height:185px;padding:28px;border:0;box-shadow:0 8px 22px #203d5510;transition:transform .24s ease,box-shadow .24s ease; }
-#home-view .application-card.library-application { background:linear-gradient(125deg,#d7f1ed,#edf9f5);color:#164f50; }
-#home-view .application-card:not(.library-application) { background:radial-gradient(ellipse at 100% 0,#7351b9aa,transparent 70%),linear-gradient(125deg,#343c86,#393062);color:#fff; }
-#home-view .application-card h2 { position:relative;z-index:1;font-size:22px; }
-#home-view .application-card>[data-icon] { color:inherit;position:relative;z-index:1; }
-#home-view .application-action { position:relative;z-index:1;margin-top:40px;font-size:15px;padding:7px 12px;background:#ffffff99;border-radius:8px;color:#164f50; }
-#home-view .application-card:not(.library-application) .application-action { color:#fff;background:#ffffff17; }
-#home-view .application-card .application-notation { right:16px;bottom:-16px;font-size:110px;opacity:.12;color:inherit; }
-.application-art { position:absolute;right:-8px;top:5px;width:190px;height:160px;z-index:0;transition:transform .45s cubic-bezier(.2,.8,.2,1);pointer-events:none; }
-.library-art rect { fill:#e8fff6;stroke:#4b9b92;stroke-width:1; }
-.library-art rect:first-child { fill:#80c9b5; }
-.library-art rect:nth-child(2) { fill:#b0e6d6; }
-.library-art path,.library-art circle { fill:none;stroke:#4b9b92;stroke-width:1.4; }
-.mathematics-art { fill:none;stroke:#cbb8ff;stroke-width:1.2;opacity:.5; }
-.mathematics-art circle:last-child { fill:#aeffeb;stroke:none; }
-#home-view .application-card:hover { transform:translateY(-4px);box-shadow:0 14px 28px #203d5522; }
-#home-view .application-card:hover .application-art { transform:translateY(-5px) rotate(-5deg); }
+/* Workbench: the five applications are the entire page content. */
+#home-view { min-height:calc(100svh - 168px);display:grid;align-content:center;padding:8px 0; }
+#home-view .application-grid { display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px; }
+#home-view .application-card { --module-ink:#354278;position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;min-width:0;min-height:0;height:248px;margin:0;padding:24px;border:1px solid #dce3f2;border-radius:22px;background:#fff;color:var(--module-ink);box-shadow:0 4px 16px #223b5b04;transform:none;transition:border-color .22s ease,box-shadow .22s ease; }
+#home-view .application-card::after { content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 1px 0 #ffffffb0; }
+#home-view .application-card.mathematics-application { grid-column:span 7;height:278px;background:linear-gradient(115deg,#eef0ff,#e5eafb);--module-ink:#34417e; }
+#home-view .application-card.library-application { grid-column:span 5;height:278px;background:#eaf5ef;--module-ink:#2d6659;border-color:#d6e8df; }
+#home-view .application-card.series-application { grid-column:span 4;background:#f6f0e7;--module-ink:#765b38;border-color:#e9e0d2; }
+#home-view .application-card.study-plan-application { grid-column:span 3;background:#edf1f8;--module-ink:#4c6085; }
+#home-view .application-card.ai-learning-application { grid-column:span 5;background:radial-gradient(ellipse at 90% 10%,#31546a80,transparent 65%),#1c2d4a;--module-ink:#eff5ff;border-color:#263e59; }
+#home-view .module-icon { position:relative;z-index:2;float:none;display:grid;place-items:center;width:40px;height:40px;margin:0;border:1px solid #ffffffc0;background:#ffffff85;border-radius:12px;color:inherit;box-shadow:0 2px 5px #1c2c5104; }
+#home-view .module-icon .icon { width:21px;height:21px; }
+#home-view .ai-learning-application .module-icon { background:#ffffff0a;border-color:#d9e9ff30; }
+#home-view .module-caption { position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%; }
+#home-view .application-card h2 { margin:0;max-width:calc(100% - 44px);font-family:inherit;font-size:23px;font-weight:600;line-height:1.4;letter-spacing:0; }
+#home-view .mathematics-application h2 { font-size:27px; }
+#home-view .study-plan-application h2 { font-size:20px; }
+#home-view .application-action { display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;margin:0;padding:0;border:1px solid currentColor;border-color:color-mix(in srgb,currentColor 18%,transparent);border-radius:50%;background:#ffffff80;color:inherit;transition:background .2s ease;transform:none; }
+#home-view .application-action .icon { width:16px;height:16px; }
+#home-view .ai-learning-application .application-action { background:#ffffff0b; }
+#home-view .module-art { position:absolute;z-index:0;top:8px;right:0;width:80%;height:210px;pointer-events:none;transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+#home-view .module-math-art { width:74%;height:240px;right:-8px;top:-4px; }
+.module-mesh { fill:none;stroke:url(#module-math-ink);stroke-width:1.15;opacity:.8; }.module-math-orbit { fill:none;stroke:#8c9ad0;stroke-width:.8;stroke-dasharray:3 6;opacity:.45; }.module-point { fill:#5f71cd;stroke:#fff;stroke-width:3; }.module-cross { fill:none;stroke:#798ac7;stroke-width:1;opacity:.6; }
+.module-paper-stack { stroke:#609b88;stroke-width:1; }.module-paper-stack path { fill:none;stroke:#4e8f7d;stroke-width:1.4; }.module-paper-stack circle { fill:#73bba4;stroke:none; }
+#home-view .module-series-art { width:100%;height:186px;top:3px;right:-8px; }.module-series-art path { fill:none;stroke:#fff;stroke-opacity:.65;stroke-width:1; }.module-series-art .module-shelf { stroke:#b49f81;stroke-opacity:.4; }
+#home-view .module-plan-art { width:100%;height:180px;top:-4px; }.module-plan-orbit { fill:none;stroke:#a4b3ce;stroke-width:1;stroke-dasharray:2 6; }.module-plan-ring { fill:none;stroke:#d5deed;stroke-width:9; }.module-plan-progress { fill:none;stroke:#8195bf;stroke-width:9;stroke-linecap:round; }.module-plan-check rect { fill:#fdfefe;stroke:#dbe3f0; }.module-plan-check path { fill:none;stroke:#5e75a7;stroke-width:4;stroke-linecap:round;stroke-linejoin:round; }
+#home-view .module-ai-art { width:86%;height:190px;top:3px;right:-16px; }.module-neural-edges { fill:none;stroke:#7bbec5;stroke-opacity:.48;stroke-width:1; }.module-neural-nodes { fill:#96d8d4;stroke:#234d62;stroke-width:5; }.module-neural-orbit { fill:none;stroke:#a8d3e4;stroke-width:.6;stroke-opacity:.2;stroke-dasharray:2 6; }
+#home-view .application-card:hover { transform:none;border-color:#aab9d9;box-shadow:0 10px 26px #223b5b12; }
+#home-view .application-card:hover .module-art { transform:translateY(-5px) rotate(-2deg); }
+#home-view .application-card:hover .application-action { background:#fff;transform:none; }
+#home-view .ai-learning-application:hover .application-action { background:#ffffff20; }
 #home-view .application-card:focus-visible { outline:3px solid #496bea;outline-offset:4px; }
-#home-view .application-planned { background:linear-gradient(90deg,#eef0ff,#eaf6f5);border:0;padding:18px 22px;color:#465578; }
-@keyframes workbench-orbit-drift { to { transform:rotate(360deg); } }
-@media(max-width:1000px) {
- #home-view .hero { padding:32px;min-height:320px; }
- #home-view .application-card h2 { font-size:19px; }
- .application-art { right:-40px;opacity:.45; }
-}
-@media(max-width:650px) {
- #home-view .hero { padding:26px;min-height:0;gap:12px; }
- #home-view .hero h1 { font-size:36px;margin-bottom:22px; }
- #home-view .hero .primary { font-size:14px;padding:12px;white-space:normal; }
- #home-view .math-art { height:170px; }
- .workbench-orbits { top:auto;bottom:-8%;right:-10%;width:120%;height:60%; }
- #home-view .application-grid { grid-template-columns:minmax(0,1fr); }
- #home-view .application-card { min-height:164px;padding:24px; }
- #home-view .application-card h2 { font-size:21px; }
- #home-view .application-action { margin-top:28px; }
- .application-art { width:170px;height:145px;right:0;opacity:.7; }
- #home-view .application-planned { padding:16px; }
-}
-@media(prefers-reduced-motion:reduce) {
- .workbench-orbit { animation:none; }
- #home-view .application-card,.application-art { transition:none; }
- #home-view .application-card:hover,#home-view .hero .primary:hover,#home-view .application-card:hover .application-art { transform:none; }
-}
+@media(max-width:1100px) { #home-view { min-height:0; }#home-view .application-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }#home-view .application-card.mathematics-application { grid-column:span 6;height:240px; }#home-view .application-card.library-application,#home-view .application-card.series-application,#home-view .application-card.study-plan-application,#home-view .application-card.ai-learning-application { grid-column:span 3;height:220px; }#home-view .application-card h2 { font-size:21px; }#home-view .module-math-art { width:65%;height:230px; } }
+@media(max-width:650px) { #home-view { padding:0; }#home-view .application-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }#home-view .application-card { padding:18px;border-radius:18px; }#home-view .application-card.mathematics-application { grid-column:1/-1;height:220px; }#home-view .application-card.library-application,#home-view .application-card.series-application { grid-column:span 1;height:184px;padding:16px; }#home-view .application-card.study-plan-application { grid-column:1/-1;height:124px; }#home-view .application-card.ai-learning-application { grid-column:1/-1;height:188px; }#home-view .application-card h2 { font-size:18px;max-width:calc(100% - 32px); }#home-view .mathematics-application h2 { font-size:22px; }#home-view .application-action { width:28px;height:28px;flex-basis:28px; }#home-view .module-icon { width:34px;height:34px;border-radius:10px; }#home-view .module-icon .icon { width:18px;height:18px; }#home-view .module-math-art { width:100%;height:192px;right:-40px;top:-2px; }#home-view .module-library-art { width:150px;height:140px;top:5px;right:-19px; }#home-view .module-series-art { width:185px;height:140px;top:1px;right:-28px; }#home-view .module-plan-art { width:145px;height:144px;top:-15px;right:18px; }#home-view .study-plan-application .module-caption { max-width:68%; }#home-view .module-ai-art { width:82%;height:155px;right:-20px;top:-5px; } }
+@media(prefers-reduced-motion:reduce) { #home-view .application-card,#home-view .module-art,#home-view .application-action { transition:none; }#home-view .application-card:hover .module-art { transform:none; } }
 
 .ai-study-projects { margin:0 0 24px; }.ai-study-projects-heading { display:flex;align-items:center;margin-bottom:12px; }.ai-study-projects-heading h3 { margin:0; }.ai-project-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }.ai-project-card { min-width:0;padding:16px 18px;border:1px solid #dce4f3;border-radius:12px;background:linear-gradient(135deg,#f7f9ff,#fbfdfd);display:flex;flex-direction:column;align-items:flex-start;gap:10px; }.ai-project-card-heading { display:flex;align-items:center;gap:12px;width:100%; }.ai-project-card h4 { margin:0;font-size:17px;line-height:1.5; }.ai-project-level { margin-left:auto;flex-shrink:0;border-radius:5px;padding:2px 7px;background:#e9eefc;color:#4b60aa;font-size:13px; }.ai-project-card p { font-size:15px;line-height:1.65;margin:0; }.ai-project-description { color:var(--muted); }.ai-project-task { color:var(--ink); }.ai-project-card>.button { margin-top:auto; }.ai-project-card:focus-within { border-color:#9eafd9; }
 @media(max-width:650px) { .ai-project-grid { grid-template-columns:1fr; }.ai-project-card { padding:15px; } }
