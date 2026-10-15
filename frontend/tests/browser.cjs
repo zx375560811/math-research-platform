@@ -687,7 +687,43 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
       const source=practical.getByRole('link',{name:'GitHub 仓库',exact:true});assert.equal(await source.getAttribute('href'),'https://github.com/'+repo);assert.equal(await source.getAttribute('rel'),'noopener noreferrer');assert.equal(await source.getAttribute('target'),'_blank');
       assert.equal(await practical.locator('.practical-project-content h4').count(),3);assert.ok((await practical.locator('.practical-project-description').textContent()).length>30);
     }
-    await practical.locator('[data-practical-project="microsoft-ml"]').focus();await page.keyboard.press('Enter');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'microsoft-ml');assert.match(await practical.getByRole('link',{name:'开始学习',exact:true}).getAttribute('href'),/translations\/zh-CN\/README.md/);
+    const guidePagesBefore=page.context().pages().length;
+    for(const [id]of practicalSources){
+      await practical.locator(`[data-practical-project="${id}"]`).click();
+      const chosenGuideUrl=page.url();await practical.getByRole('button',{name:'开始学习',exact:true}).click();assert.equal(page.url(),chosenGuideUrl,'Starting a lesson stays on the current page');
+      const guide=practical.locator('.practical-beginner-guide'),steps=guide.locator('.practical-guide-steps button');
+      assert.equal(await steps.count(),4);assert.equal(await steps.first().getAttribute('aria-current'),'step');
+      assert.match(await guide.getByRole('link',{name:'下载课程 ZIP',exact:true}).getAttribute('href'),/\/archive\/[a-f0-9]{40}\.zip$/);
+      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('windows');
+      await guide.getByRole('button',{name:'下一步',exact:true}).click();
+      const version=id==='happy-llm'?'3.11':'3.12';assert.match(await guide.locator('.practical-command pre').nth(1).textContent(),new RegExp('py -'+version.replace('.','\\.')+' -m venv \\.venv'));
+      assert.match(await guide.locator('.practical-guide-panel').textContent(),/自己的电脑/);
+      if(id==='ailearning')assert.match(await guide.locator('.practical-guide-panel').textContent(),/numpy==1\.26\.4/);
+      if(id==='happy-llm')assert.match(await guide.locator('.practical-guide-panel').textContent(),/docs\/chapter2\/code\/requirements\.txt/);
+      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('linux');assert.match(await guide.locator('.practical-command pre').nth(1).textContent(),/python3\.1[12] -m venv/);assert.doesNotMatch(await guide.locator('.practical-guide-panel').textContent(),/Scripts/);
+      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('macos');if(['d2l','pytorch','happy-llm'].includes(id))assert.doesNotMatch(await guide.locator('.practical-guide-panel').textContent(),/--index-url/);
+      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('windows');
+      await guide.getByRole('button',{name:'下一步',exact:true}).click();assert.equal(await steps.nth(2).getAttribute('aria-current'),'step');const lessonHeadingBox=await guide.locator('.practical-guide-panel h4').boundingBox();assert.ok(lessonHeadingBox.y>=0&&lessonHeadingBox.y<900,'The new step heading must be brought into view');
+      const lessonText=await guide.locator('.practical-guide-panel').textContent();
+      assert.match(lessonText,({'python':/hello\.py/,'microsoft-ml':/2-Regression\/1-Tools\/solution\/notebook\.ipynb/,ailearning:/runpy\.run_path/,d2l:/chapter_preliminaries\/ndarray\.ipynb/,pytorch:/sum\(dim=1\)/,'happy-llm':/bert-base-chinese/})[id]);
+      await guide.getByRole('button',{name:'下一步',exact:true}).click();assert.equal(await guide.locator('.practical-guide-result').count(),1);assert.equal(await guide.getByRole('button',{name:'下一步',exact:true}).isDisabled(),true);
+      if(id==='happy-llm')assert.match(await guide.locator('.practical-guide-result').textContent(),/没有经过语言训练/);
+      await guide.getByRole('button',{name:'上一步',exact:true}).click();await guide.getByRole('button',{name:'返回项目介绍',exact:true}).click();
+      await practical.getByRole('button',{name:'开始学习',exact:true}).click();assert.equal(await practical.locator('.practical-guide-steps button').nth(2).getAttribute('aria-current'),'step','Reopening retains the current project step');
+      await practical.getByRole('button',{name:'返回项目介绍',exact:true}).click();
+    }
+    assert.equal(page.context().pages().length,guidePagesBefore,'Starting a lesson must not open GitHub');
+    await practical.locator('[data-practical-project="microsoft-ml"]').focus();await page.keyboard.press('Enter');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'microsoft-ml');
+    await practical.getByRole('button',{name:'开始学习',exact:true}).click();const firstGuide=practical.locator('.practical-beginner-guide');
+    await firstGuide.locator('.practical-guide-steps button').nth(1).click();
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__guideCopied=value;}}}));
+    await firstGuide.getByRole('button',{name:'复制创建本课环境',exact:true}).click();assert.equal(await page.evaluate(()=>window.__guideCopied),'py -3.12 -m venv .venv');
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('Clipboard denied');}}}));
+    await firstGuide.getByRole('button',{name:'复制创建本课环境',exact:true}).click();assert.equal(await page.evaluate(()=>getSelection().toString()),'py -3.12 -m venv .venv');assert.match(await firstGuide.locator('.practical-copy-status').nth(1).textContent(),/内容已选中/);await page.evaluate(()=>delete navigator.clipboard);
+    await firstGuide.locator('.practical-guide-steps button').nth(2).click();
+    await practical.locator('.practical-route-detail').screenshot({path:path.join(shots,'practical-first-lesson-desktop.png'),animations:'disabled'});
+    await page.setViewportSize({width:390,height:844});await practical.locator('.practical-route-detail').screenshot({path:path.join(shots,'practical-first-lesson-mobile.png'),animations:'disabled'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
+    await firstGuide.getByRole('button',{name:'返回项目介绍',exact:true}).click();
     await practical.locator('[data-practical-project="d2l"]').focus();await page.keyboard.press('Space');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'d2l');
     assert.equal(await practicalMap.evaluate(node=>node===document.querySelector('.practical-route-canvas')),true);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);assert.equal(aiCourseFetches,courseFetchesBefore);
     await practical.screenshot({path:path.join(shots,'practical-learning-desktop.png'),animations:'disabled'});
