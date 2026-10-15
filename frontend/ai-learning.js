@@ -123,7 +123,9 @@ export function createAiLearning({api,write,planButton}){
    const detail=el('section',null,'ai-study-detail');let selected='';
    function selectCourse(slug,updateUrl=false){const course=courses.find(c=>c.slug===slug);if(!course||selected===slug)return;selected=slug;
     for(const node of root.querySelectorAll('[data-ai-course]')){const active=node.dataset.aiCourse===slug;node.classList.toggle('selected',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
-    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context);const projects=projectSection(course.slug);if(projects)detail.append(projects);detail.append(el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
+    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context);
+    detail.append(el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
+    const projects=projectSection(course.slug);if(projects)detail.append(projects);
     if(updateUrl)history.replaceState(history.state,'','#/apps/math-to-ai?course='+encodeURIComponent(slug));mountIcons();
    }
    root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);
