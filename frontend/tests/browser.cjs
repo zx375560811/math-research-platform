@@ -666,12 +666,27 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true,'Course selection must preserve the roadmap and its animations');
     assert.equal(await page.locator('[data-ai-course="machine-learning"][aria-current="step"]').count(),1);
     assert.match(await page.url(),/course=machine-learning/);
-    assert.equal(await page.locator('.ai-project-card[data-project="handson"]').count(),1);
-    assert.match(await page.locator('.ai-project-card[data-project="handson"] .ai-project-description').textContent(),/数据清洗/);
-    assert.match(await page.locator('.ai-project-card[data-project="handson"] .ai-project-task').textContent(),/端到端项目/);
-    const expectedProjects={calculus:['micrograd'],'linear-algebra':['matrix'],probability:[],python:['numpy'],'machine-learning':['handson','homemade'],'deep-learning':['d2l'],pytorch:['torch','examples'],nlp:['nlp'],transformer:['transformer'],llm:['scratch','universe']};
-    const linkedProjects=new Set();for(const [slug]of aiCourseNames.filter(([slug])=>slug!=='transformer')){await page.locator(`[data-ai-course="${slug}"]`).click();assert.deepEqual(await page.locator('.ai-project-card').evaluateAll(cards=>cards.map(c=>c.dataset.project)),expectedProjects[slug],`Projects must correspond to ${slug}`);if(slug==='probability'){assert.equal(await page.locator('.ai-study-projects').count(),0);assert.equal(await page.locator('.ai-study-detail').textContent().then(text=>text.includes('null')),false);}for(const card of await page.locator('.ai-project-card').all()){linkedProjects.add(await card.getAttribute('data-project'));const link=card.locator('a');assert.match(await link.getAttribute('href'),/^https:\/\/github\.com\//);assert.equal(await link.getAttribute('target'),'_blank');assert.equal(await link.getAttribute('rel'),'noopener noreferrer');}}
-    assert.equal(linkedProjects.size,11);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
+    assert.equal(await page.locator('.ai-project-card[data-project="iris"]').count(),1);
+    assert.match(await page.locator('.ai-project-book').textContent(),/Python 机器学习基础教程.*第 1 章/);
+    assert.match(await page.locator('.ai-project-task').textContent(),/测试准确率/);
+    assert.equal(await page.locator('.ai-project-details').getAttribute('open'),null);
+    await page.locator('.ai-project-details summary').click();
+    assert.equal(await page.locator('.ai-project-details').evaluate(node=>node.open),true);
+    assert.match(await page.locator('.ai-project-details').textContent(),/运行条件.*CPU|运行条件.*无 GPU/);
+    const expectedProjects={calculus:['forward-ad'],'linear-algebra':['matrix'],probability:[],python:['random-walk'],'machine-learning':['iris'],'deep-learning':['two-layer'],pytorch:['torch-regression'],nlp:['tfidf'],llm:['prompt-lab']};
+    const linkedProjects=new Set();
+    for(const [slug]of aiCourseNames.filter(([slug])=>slug!=='transformer')){
+      await page.locator(`[data-ai-course="${slug}"]`).click();
+      assert.deepEqual(await page.locator('.ai-project-card').evaluateAll(cards=>cards.map(c=>c.dataset.project)),expectedProjects[slug],`Projects must correspond to ${slug}`);
+      if(slug==='probability'){assert.equal(await page.locator('.ai-study-projects').count(),0);assert.equal(await page.locator('.ai-study-detail').textContent().then(text=>text.includes('null')),false);}
+      for(const card of await page.locator('.ai-project-card').all()){
+        linkedProjects.add(await card.getAttribute('data-project'));
+        assert.ok((await card.locator('.ai-project-prerequisites').textContent()).length>10,'Programming prerequisites must be visible');
+        const task=card.getByRole('link',{name:/项目任务/});assert.match(await task.getAttribute('href'),/math-research-platform\/blob\/main\/docs\/ai-course-projects\.md#/);
+        for(const link of await card.locator('a').all()){assert.match(await link.getAttribute('href'),/^https:\/\/github\.com\//);assert.equal(await link.getAttribute('target'),'_blank');assert.equal(await link.getAttribute('rel'),'noopener noreferrer');}
+      }
+    }
+    assert.equal(linkedProjects.size,8);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
     await page.locator('[data-ai-course="machine-learning"]').click();
 
     await page.locator('[data-ai-course="machine-learning"]').click();assert.equal(aiCourseFetches,courseFetchesBefore);

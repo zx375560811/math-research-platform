@@ -2,32 +2,116 @@ import { mountIcons } from './icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
-const aiProjects={
- numpy:{name:'NumPy 100',repo:'rougier/numpy-100',description:'用数组创建、索引、切片、广播和向量化练习，熟悉 Python 数值计算的基本操作。'},
- matrix:{name:'NumPy 矩阵运算与 SVD',repo:'numpy/numpy-tutorials/blob/main/content/tutorial-svd.md',description:'NumPy 官方线性代数教程：用数组表示矩阵，练习转置、矩阵乘法、范数和奇异值分解，再用低秩矩阵重建图像。'},
- homemade:{name:'从零实现机器学习',repo:'trekhleb/homemade-machine-learning',description:'用 Python 从零实现回归、分类和聚类，配合数学说明与交互示例理解算法。'},
- handson:{name:'端到端机器学习项目',repo:'ageron/handson-ml3/blob/main/02_end_to_end_machine_learning_project.ipynb',description:'通过房价预测完成数据清洗、特征处理、模型训练、调参和评估，形成完整的机器学习流程。'},
- torch:{name:'PyTorch 从零到项目',repo:'mrdbourke/pytorch-deep-learning',description:'从 Tensor 和训练流程起步，逐步完成分类、计算机视觉和迁移学习项目。'},
- d2l:{name:'动手学深度学习',repo:'d2l-ai/d2l-zh',description:'中文教材与可运行代码相结合，通过回归、神经网络、注意力等例子学习深度学习。'},
- micrograd:{name:'micrograd 自动求导',repo:'karpathy/micrograd/blob/master/micrograd/engine.py',description:'从标量运算构建计算图，用链式法则计算复合函数的导数与偏导数。入口直接定位到自动微分引擎源码。'},
- examples:{name:'PyTorch 官方 MNIST 项目',repo:'pytorch/examples/tree/main/mnist',description:'用 PyTorch 完成手写数字识别，练习数据加载、训练循环、验证、设备选择及模型保存。'},
- nlp:{name:'自然语言处理：文本分类',repo:'practical-nlp/practical-nlp-code/tree/master/Ch4',description:'《Practical NLP》配套文本分类代码，将文本预处理、特征表示、分类器与评估串成一个自然语言处理项目。'},
- transformer:{name:'The Annotated Transformer',repo:'harvardnlp/annotated-transformer',description:'带逐步注释的 Transformer 实现，覆盖自注意力、多头注意力、位置编码、编码器与解码器，并用序列任务检验结构。'},
- scratch:{name:'从零构建大语言模型',repo:'rasbt/LLMs-from-scratch',description:'按章节实现分词、注意力、GPT、训练与微调，逐步理解语言模型内部结构。'},
- universe:{name:'LLM Universe 知识库问答',repo:'datawhalechina/llm-universe',description:'面向初学者的大模型应用教程，将文档处理、检索和回答组织成知识库问答应用。'}
+// Each task stops at the named textbook material. Later courses are not implicit prerequisites.
+const guide='https://github.com/zx375560811/math-research-platform/blob/main/docs/ai-course-projects.md#';
+export const aiCourseProjects={
+ calculus:[{
+  id:'forward-ad',name:'用链式法则做自动求导',level:'基础实践',
+  book:'数学分析：导数、乘积法则与复合函数求导。',
+  prerequisites:'先会 Python 的函数、元组和循环；完成 Python 基础后再编程。',
+  description:'把函数值与导数成对传递，实现单变量的前向自动微分。',
+  task:'实现加法、乘法、整数幂和 sin，核对复合函数的手算导数。',
+  completion:'四组函数同时通过手算值和中心差分检查；任务页给出输入、答案和容差。',
+  environment:'Python 标准库，普通 CPU，无外部数据。',
+  boundary:'只做单变量前向求导；计算图遍历、反向传播和神经网络留到后续课程。',
+  guide:guide+'calculus'
+ }],
+ 'linear-algebra':[{
+  id:'matrix',name:'矩阵分解与低秩重建',level:'基础实践',
+  book:'Strang《线性代数导论》第 2、4、6、7 章，做到奇异值分解。',
+  prerequisites:'Python 基础与 NumPy 数组、索引和矩阵乘法。',
+  description:'对小型二维数值矩阵做 SVD，用不同秩重建并比较误差。',
+  task:'输出 U、奇异值和 Vh 的形状，验证完整重建，再比较秩 1、2、3 的近似。',
+  completion:'完整重建误差小于 1e-10；秩增加时 Frobenius 误差不增，并解释原因。',
+  environment:'Python + NumPy，普通 CPU，无图片或额外数据集。',
+  boundary:'教程中的图像处理、SciPy 数据下载不属于本次任务。',
+  source:'numpy/numpy-tutorials/blob/main/content/tutorial-svd.md',guide:guide+'linear-algebra'
+ }],
+ python:[{
+  id:'random-walk',name:'随机漫步可视化',level:'基础实践',
+  book:'《Python 编程：从入门到实践》第一版，基础部分与第 15 章随机漫步。',
+  prerequisites:'列表、循环、函数、类与模块导入；绘图库用法随第 15 章学习。',
+  description:'生成一条二维轨迹，绘图并标出起点和终点。',
+  task:'用 random 生成非零步长，保留每一步坐标，再用 Matplotlib 绘制轨迹。',
+  completion:'得到包含起点的 5,000 个点；坐标数一致、没有零步长，并保存一张轨迹图。',
+  environment:'Python + Matplotlib，普通 CPU，无数据下载。',
+  boundary:'这里只练习 Python 和绘图，不要求随机过程、机器学习或网页开发。',
+  source:'ehmatthes/pcc/tree/master/chapter_15',guide:guide+'python'
+ }],
+ 'machine-learning':[{
+  id:'iris',name:'鸢尾花分类完整小项目',level:'基础实践',
+  book:'Müller、Guido《Python 机器学习基础教程》第 1 章鸢尾花案例。',
+  prerequisites:'Python、NumPy 基础；按本章学习训练集、测试集和 k 近邻。',
+  description:'使用库内置的小数据集，完成数据划分、k 近邻训练和留出集评估。',
+  task:'固定划分随机种子，只在训练集拟合，输出测试准确率和一个新样本的预测。',
+  completion:'脚本可重复运行；报告划分数量、准确率，以及为何不能用测试集训练。',
+  environment:'Python + NumPy + scikit-learn；iris 数据随库提供，无 GPU。',
+  boundary:'只做第 1 章案例；调参流水线、神经网络与深度学习不在范围内。',
+  source:'amueller/introduction_to_ml_with_python/blob/main/01-introduction.ipynb',guide:guide+'machine-learning'
+ }],
+ 'deep-learning':[{
+  id:'two-layer',name:'NumPy 两层网络识别手写数字',level:'课程实践',
+  book:'斋藤康毅《深度学习入门：基于 Python 的理论与实现》第 1—5 章。',
+  prerequisites:'Python、NumPy、矩阵乘法、链式法则；按本书学习损失函数与反向传播。',
+  description:'用书中两层全连接网络完成 MNIST 训练，理解梯度怎样更新权重。',
+  task:'完成 Affine、ReLU、SoftmaxWithLoss 的正反向计算与小批量训练。',
+  completion:'先做小规模梯度检查，再记录训练损失和独立测试集准确率；能解释四组参数的形状。',
+  environment:'Python + NumPy，普通 CPU；首次需下载 MNIST，训练时间取决于电脑。',
+  boundary:'只实现第 5 章两层网络；不要求 CNN、PyTorch、注意力或迁移学习。',
+  source:'oreilly-japan/deep-learning-from-scratch/tree/master/ch05',guide:guide+'deep-learning'
+ }],
+ pytorch:[{
+  id:'torch-regression',name:'用 PyTorch 完成线性回归',level:'基础实践',
+  book:'《动手学深度学习》PyTorch 版：第 2 章、3.1—3.3 节。',
+  prerequisites:'Python、线性回归和梯度下降；Tensor、自动微分随指定章节学习。',
+  description:'用合成数据串起 DataLoader、模型、损失、优化器与训练循环。',
+  task:'恢复两个已知权重和一个偏置，比较训练前后的均方误差。',
+  completion:'固定随机种子；参数最大绝对误差小于 0.1，测试 MSE 小于 0.01。',
+  environment:'Python + PyTorch，CPU；数据自己生成，无模型权重下载。',
+  boundary:'选择教材的 PyTorch 分支；任务页给出数据生成办法，无需安装整套 d2l 或学习 CNN。',
+  source:'d2l-ai/d2l-zh/blob/master/chapter_linear-networks/linear-regression-concise.md',guide:guide+'pytorch'
+ }],
+ nlp:[{
+  id:'tfidf',name:'用 TF-IDF 检索短文',level:'基础实践',
+  book:'《Natural Language Processing in Action》第二版，第 2—3 章。',
+  prerequisites:'Python 的字符串、字典、循环；词袋、TF-IDF 与余弦相似度随章节学习。',
+  description:'给少量英文短文建立词袋，用 TF-IDF 和余弦相似度返回相关文本。',
+  task:'按任务页提供的语料实现分词、词频、逆文档频率和排序。',
+  completion:'三组指定查询返回对应短文；空查询和词表外查询返回空结果。',
+  environment:'Python 标准库，普通 CPU；语料在任务页，无外部下载。',
+  boundary:'这是本平台按教材知识编写的练习；不需要词向量模型、Transformer 或向量数据库。',
+  guide:guide+'nlp'
+ }],
+ llm:[{
+  id:'prompt-lab',name:'提示词效果对照实验',level:'应用实践',
+  book:'《Hands-On Large Language Models》中的 Prompt Engineering 一章。',
+  prerequisites:'理解模型输入输出与示例提示；需要一个可用的管理员默认 API 或个人 API。',
+  description:'用同一组文本比较直接提问、明确输出格式和提供示例三种提示。',
+  task:'让模型将 6 条课程描述分类为分析、代数或概率，逐项核对标签和 JSON 格式。',
+  completion:'记录同一模型的 18 次独立回答，分别统计分类正确数与格式合格数。',
+  environment:'可直接使用平台 AI 对话；需联网和可用模型额度，无本地 GPU。',
+  boundary:'本平台的应用实验；不要求训练 GPT、微调、RAG、LangChain 或部署模型。',
+  guide:guide+'llm'
+ }]
 };
-const aiCourseProjects={
- calculus:[['micrograd','实践','从加法、乘法和幂函数开始，搭建复合函数的计算图；对比手算、自动求导与有限差分，验证链式法则。']],
- 'linear-algebra':[['matrix','实践','先用 Python 完成矩阵转置、乘法与范数计算，再做 SVD 分解、矩阵重建和低秩近似。']],
- python:[['numpy','入门','练习数组创建、索引、切片和广播，逐步用向量化操作替代循环。']],
- 'machine-learning':[['handson','入门','完成第 2 章端到端项目，记录数据处理、调参和评估结果。'],['homemade','进阶','自己实现回归或聚类，再与库函数的结果比较。']],
- 'deep-learning':[['d2l','实践','完成多层感知机与卷积神经网络实验，记录网络结构、损失、训练曲线及过拟合现象。']],
- pytorch:[['torch','入门','按 00—03 节完成 Tensor、训练流程和分类练习。'],['examples','进阶','独立运行 MNIST，练习模型保存、加载和预测。']],
- nlp:[['nlp','实践','完成文本预处理、特征向量化与文本分类，比较不同文本表示下的分类效果。']],
- transformer:[['transformer','实践','逐步实现缩放点积注意力、多头注意力、位置编码和编解码器，运行示例检验掩码与输出维度。']],
- llm:[['scratch','进阶','构建小型 GPT，完成文本生成、权重加载与指令微调，理解大语言模型的训练和推理。'],['universe','应用','用数学文档搭建带来源的知识库问答，检查检索证据与回答是否一致。']]
-};
-function projectSection(slug){const projects=aiCourseProjects[slug];if(!projects?.length)return null;const section=el('section',null,'ai-study-projects'),heading=el('div',null,'ai-study-projects-heading');heading.append(el('h3','配套实践项目'));section.append(heading);const grid=el('div',null,'ai-project-grid');for(const [key,level,task]of projects){const project=aiProjects[key],card=el('article',null,'ai-project-card'),head=el('div',null,'ai-project-card-heading');card.dataset.project=key;head.append(el('h4',project.name),el('span',level,'ai-project-level'));const link=el('a','打开项目','button compact');link.href='https://github.com/'+project.repo;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','在新标签页打开 '+project.name);const glyph=el('span');glyph.dataset.icon='forward';glyph.setAttribute('aria-hidden','true');link.append(glyph);card.append(head,el('p',project.description,'ai-project-description'),el('p',task,'ai-project-task'),link);grid.append(card);}section.append(grid);return section;}
+
+function projectSection(slug){
+ const projects=aiCourseProjects[slug];if(!projects?.length)return null;
+ const section=el('section',null,'ai-study-projects'),heading=el('div',null,'ai-study-projects-heading');heading.append(el('h3','配套实践项目'));section.append(heading);
+ const grid=el('div',null,'ai-project-grid');
+ for(const project of projects){
+  const card=el('article',null,'ai-project-card'),head=el('div',null,'ai-project-card-heading');card.dataset.project=project.id;head.append(el('h4',project.name),el('span',project.level,'ai-project-level'));
+  const book=el('p',null,'ai-project-book'),prior=el('p',null,'ai-project-prerequisites');book.append(el('strong','教材：'),document.createTextNode(project.book));prior.append(el('strong','先修：'),document.createTextNode(project.prerequisites));
+  const details=el('details',null,'ai-project-details');details.append(el('summary','范围与验收'));
+  for(const [label,text]of [['完成标准：',project.completion],['运行条件：',project.environment],['项目范围：',project.boundary]]){const line=el('p');line.append(el('strong',label),document.createTextNode(text));details.append(line);}
+  const actions=el('div',null,'ai-project-actions');
+  for(const [label,href]of [['项目任务',project.guide],...(project.source?[['配套源码','https://github.com/'+project.source]]:[])]){
+   const link=el('a',label,'button compact');link.href=href;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','在新标签页打开 '+project.name+' · '+label);const glyph=el('span');glyph.dataset.icon='forward';glyph.setAttribute('aria-hidden','true');link.append(glyph);actions.append(link);
+  }
+  card.append(head,el('p',project.description,'ai-project-description'),book,prior,el('p',project.task,'ai-project-task'),details,actions);grid.append(card);
+ }
+ section.append(grid);return section;
+}
 export function createAiLearning({api,write,planButton}){
  const root=document.getElementById('ai-learning-view');let version=0,stop=null,reading=false;
  function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
