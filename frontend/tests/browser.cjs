@@ -136,7 +136,7 @@ async function main() {
           res.writeHead(200,headers);return res.end(content);
         }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
-        for (const name of ['series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        for (const name of ['ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -628,6 +628,16 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.series-card').first().click();await page.locator('#series-catalog .series-book').waitFor();assert.equal(await page.locator('#series-catalog .series-book').count(),1);
     assert.match(await page.locator('#series-catalog .series-pager').textContent(),/第 1 \/ 1 页 · 共 1 本/);
     await page.unroute('**/api/series**');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
+    const aiCourseNames=[['calculus','数学分析重点','foundation'],['linear-algebra','高等代数重点','foundation'],['probability','概率与统计','foundation'],['python','Python 与 NumPy','foundation'],['optimization','优化基础','core'],['machine-learning','机器学习','core'],['deep-learning','深度学习','core'],['pytorch','PyTorch 实践','support'],['nlp','自然语言处理','core'],['transformer','Transformer','core'],['llm','LLM','core']];
+    await page.route('**/api/ai-learning',route=>route.fulfill({json:{courses:aiCourseNames.map(([slug,name,phase])=>({slug,name,phase,topics:'概念；方法',practice:'完成一个可复现练习。',books:slug==='machine-learning'?[seriesDoc]:[]}))}}));
+    await page.locator('.ai-learning-application').click();await page.locator('.ai-study-map').waitFor();
+    assert.equal(await page.locator('.ai-study-foundations .ai-course-node').count(),4);assert.equal(await page.locator('.ai-study-main .ai-course-node').count(),6);
+    await page.locator('[data-ai-course="machine-learning"]').click();await page.locator('.ai-study-book').waitFor();
+    await page.screenshot({path:path.join(shots,'ai-learning-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
+    await page.locator('.ai-study-book a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/数学到人工智能/);await readerControl(page,'reader-back');await page.locator('[data-ai-course="machine-learning"][aria-current]').waitFor();
+    await page.locator('[data-ai-course="pytorch"]').click();await page.waitForFunction(()=>document.querySelector('.ai-study-detail h2')?.textContent==='PyTorch 实践');
+    await page.unroute('**/api/ai-learning');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     await page.route('**/api/documents/1/file',route=>route.fulfill({status:500,contentType:'application/json',body:'{"error":"file_unavailable"}'}));
     await page.goto(base+'/#/library/read/1');
     await page.waitForFunction(()=>document.querySelector('#pdf-pages')?.textContent.includes('无法打开教材：'));

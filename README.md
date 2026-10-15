@@ -84,6 +84,16 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 浏览器访问 `http://127.0.0.1:18080/`。
 
+## 数学到人工智能
+
+第四个应用入口为 `/#/apps/math-to-ai`。路线为数学分析重点、高等代数重点、概率统计和 Python/NumPy 并行打基础，再经优化基础、机器学习、深度学习、自然语言处理、Transformer 到 LLM；PyTorch 与深度学习并行，优化入门也可与机器学习交叉学习。不要求先完成数学专业所有课程。
+
+每个节点展示学习重点、动手练习和实际关联教材。管理员在 `/admin#ai-learning` 按课程从文档库目录中搜索、选择并关联 PDF/DJVU，可排序或移除关联；不复制文件，也不影响原有数学教材配置。未关联时显示空教材状态，不生成虚假的教材或下载地址。阅读继续使用按用户和文献保存的进度、笔记及阅读器 AI。
+
+新接口：登录后 `GET /api/ai-learning`；管理员 `GET /api/admin/ai-learning`，以及 `POST /api/admin/ai-learning/{course}/books`（document_id、可选 sort_order）、`PATCH /api/admin/ai-learning/{course}/books/{document}`（sort_order）、`DELETE` 同一路径。管理写入要求管理员资格与 CSRF。课程及教材关联存放在 `ai_study_courses`、`ai_study_books`，启动自动创建。
+
+路线依据：[Stanford CS229 先修要求](https://cs229.stanford.edu/index.html-spr26)、[Stanford CS224N](https://web.stanford.edu/class/cs224n/)、[Hugging Face LLM 课程介绍](https://huggingface.co/learn/llm-course/en/chapter1/1)。这是一条面向入门到 LLM 的建议路径，不是所有 AI 领域的唯一先修顺序。
+
 ## 管理员维护文献库
 
 ### 六个系列批量追加导入

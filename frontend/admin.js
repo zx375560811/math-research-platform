@@ -1,3 +1,4 @@
+import { createAdminAiLearning } from './ai-learning.js';
 import { createAdminBooks } from './admin-books.js';
 import { createOrganizer } from './admin-organizer.js';
 import { createAdminLibrary } from './admin-library.js';
@@ -57,11 +58,12 @@ $('admin-ai-remove').addEventListener('click', () => action($('admin-ai-form'), 
   if (!aiSettings?.has_key) return;
   showAi(await write('/api/admin/ai/settings', { ...aiSettings, enabled: false, clear_key: true }, 'PUT')); message('默认密钥已删除，默认 API 已停用。');
 }));
+const adminAiStudy=createAdminAiLearning({api,write,message});
 async function route() {
-  if (!state.ready) return; const view = ['series','books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
-  for (const name of ['series','documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
+  if (!state.ready) return; const view = ['ai-learning','series','books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
+  for (const name of ['ai-learning','series','documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
   for (const link of document.querySelectorAll('[data-view]')) { if (link.dataset.view === view) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); }
-  try { if(view==='series')await adminSeries.load();else if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
+  try { if(view==='ai-learning')await adminAiStudy.load();else if(view==='series')await adminSeries.load();else if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
 }
 $('document-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => {
   const title = $('document-title').value.trim(), authors = $('document-authors').value.trim();

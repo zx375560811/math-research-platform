@@ -68,6 +68,7 @@ with tempfile.TemporaryDirectory() as directory:
                 raise AssertionError(log.read())
             for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations', '/api/admin/collections', '/api/library/documents']:
                 assert request(path)[0] == 401
+            assert request('/api/ai-learning')[0]==401
             assert b'account-form' in request('/admin')[1]  # anonymous redirect to login shell
             credentials = {'username': 'owner_one', 'password': 'AdministratorPass123!', 'invitation': invitations.create_invitation(database)}
             assert write('/api/auth/register', {**credentials, 'role': 'ADMIN'})[1]['user']['role'] == 'USER'
@@ -81,12 +82,15 @@ with tempfile.TemporaryDirectory() as directory:
             assert write('/api/admin/series',{'name':'Forbidden'})[0] == 403
             assert write('/api/admin/series/1/books',{'document_id':1})[0] == 403
             assert write('/api/admin/series/1',{},'DELETE')[0] == 403
+            assert write('/api/admin/ai-learning/calculus/books',{'document_id':1})[0]==403
+            assert write('/api/admin/ai-learning/calculus/books/1',{},'DELETE')[0]==403
             assert write('/api/admin/collections', {'name':'Forbidden','parent_id':None})[0] == 403
             assert write('/api/admin/documents/move', {'document_ids':[1], 'collection_id':None})[0] == 403
             assert write('/api/admin/documents/batch-delete', {'document_ids':[1]})[0] == 403
             roles.grant_admin('OWNER_ONE', database)
             assert write('/api/auth/login', credentials)[1]['user']['role'] == 'ADMIN'
             assert request('/api/auth/me')[1]['user']['role'] == 'ADMIN'
+            assert request('/api/admin/ai-learning/calculus/books','POST',b'{"document_id":1}',{'Content-Type':'application/json'})[0]==403
             assert b'document-form' in request('/admin')[1]
             assert request('/admin.html')[0] == 404
             assert request('/api/admin/invitations', 'POST', b'{"days":7}', {'Content-Type': 'application/json'})[0] == 403
@@ -435,6 +439,22 @@ with tempfile.TemporaryDirectory() as directory:
                 invitation_count=db.execute('SELECT count(*) FROM invitations').fetchone()[0]
             response=request('/api/admin/invitations?offset=1000')[1]
             assert response['total']==invitation_count and response['total_pages']==max(1,(invitation_count+19)//20)
+            ai_courses=request('/api/ai-learning')[1]['courses']
+            assert len(ai_courses)==11 and len([c for c in ai_courses if c['phase']=='foundation'])==4
+            ai_path='/api/admin/ai-learning/machine-learning/books'
+            assert write(ai_path,{'document_id':managed})[1]['added']==1
+            assert write(ai_path,{'document_id':managed})[1]['added']==0
+            assert write(ai_path,{'document_id':native_id})[1]['added']==1
+            assert write('/api/admin/ai-learning/unknown/books',{'document_id':managed})[0]==404
+            assert write(ai_path,{'document_id':999999})[0]==404
+            assert write(ai_path+'/'+str(managed),{'sort_order':-1},'PATCH')[0]==400
+            assert write(ai_path+'/'+str(managed),{'sort_order':100},'PATCH')[0]==200
+            ml=next(c for c in request('/api/ai-learning')[1]['courses'] if c['slug']=='machine-learning')
+            assert ml['books'][0]['id']==native_id and ml['books'][1]['progress']==position
+            assert write(ai_path+'/'+str(managed),{},'DELETE')[0]==200
+            assert request(managed_path)[1]['progress']==position
+            assert request(managed_path+'/annotations')[1]['annotations'][0]['id']==kept_mark
+            assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')
