@@ -677,6 +677,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('[data-ai-course="machine-learning"]').click();assert.equal(aiCourseFetches,courseFetchesBefore);
 
     await page.screenshot({path:path.join(shots,'ai-learning-desktop.png'),fullPage:true});
+    await page.locator('.ai-study-map').screenshot({path:path.join(shots,'ai-roadmap-desktop.png'),animations:'disabled'});
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
     await page.locator('.ai-study-book a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/数学到人工智能/);await readerControl(page,'reader-back');await page.locator('[data-ai-course="machine-learning"][aria-current]').waitFor();
     await page.locator('[data-ai-course="pytorch"]').click();await page.waitForFunction(()=>document.querySelector('.ai-study-detail h2')?.textContent==='PyTorch 实践');
