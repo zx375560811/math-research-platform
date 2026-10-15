@@ -84,17 +84,23 @@ function aiRoadmap(courses, chosen, onChoose) {
   ['llm','✦',962,184,'deep','core',154,42]
  ];
  const available=new Set(courses.map(course=>course.slug));
+ const sharedFoundations=['calculus','linear-algebra','probability','machine-learning'].every(slug=>available.has(slug));
+ if(sharedFoundations){
+  svg.append(make('path',{class:'analysis-route-edge',d:'M178 51H244Q256 51 256 63V215Q256 227 244 227H178M178 139H256',fill:'none','aria-hidden':'true'}),make('path',{class:'analysis-route-edge',d:'M256 95H336',fill:'none','marker-end':'url(#ai-route-arrow)','aria-hidden':'true'}),make('circle',{cx:256,cy:95,r:2.5,fill:'#9db7e7',opacity:.85,'aria-hidden':'true'}));
+ }
  const edges=[
-  ['calculus','machine-learning','M178 51C246 51 268 83 336 83'],
-  ['linear-algebra','machine-learning','M178 139C246 139 268 95 336 95'],
-  ['probability','machine-learning','M178 227C276 227 238 107 336 107'],
+  ['calculus','machine-learning','M178 51H244Q256 51 256 63V95H336'],
+  ['linear-algebra','machine-learning','M178 139H256V95H336'],
+  ['probability','machine-learning','M178 227H244Q256 227 256 215V95H336'],
   ['machine-learning','deep-learning','M490 95H650'],['deep-learning','nlp','M804 95H962'],
   ['nlp','llm','M1039 116V184'],
   ['python','machine-learning','M413 184V116'],
   ['python','pytorch','M490 205H650'],['pytorch','deep-learning','M727 184V116',true]
  ];
  for(const [index,[from,to,d,optional]]of edges.entries())if(available.has(from)&&available.has(to)){
-  svg.append(make('path',{class:'analysis-route-edge',d,fill:'none','marker-end':'url(#ai-route-arrow)','data-from':from,'data-to':to,...(optional?{'stroke-dasharray':'5 5'}:{})}));
+  // Draw the shared trunk once; retain each complete route for its moving light.
+  const shared=sharedFoundations&&to==='machine-learning'&&from!=='python';
+  svg.append(make('path',{class:'analysis-route-edge',d,fill:'none','marker-end':'url(#ai-route-arrow)','data-from':from,'data-to':to,...(optional?{'stroke-dasharray':'5 5'}:{}),...(shared?{'stroke-opacity':0,'marker-end':'none','pointer-events':'none'}:{})}));
   const spark=make('circle',{class:'analysis-route-spark',r:1.8,fill:'#d7f1ff','aria-hidden':'true'});spark.append(make('animateMotion',{path:d,dur:'6s',begin:-index*.7+'s',repeatCount:'indefinite'}));svg.append(spark);
  }
  const groups={foundation:make('g',{class:'ai-study-foundations'}),core:make('g',{class:'ai-study-main'}),support:make('g',{class:'ai-study-support'})};
