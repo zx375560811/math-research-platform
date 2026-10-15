@@ -364,8 +364,18 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
         frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false });
       }
       stack.append(fragment); await layout({ page: book.progress?.page || 1, position: book.progress?.position || 0 });
-      if (!closed) await outline();
-    } catch (error) { if (!closed) $('reader-status').textContent = '无法打开教材：' + errorText(error); }
+      if (!closed) {
+        try { await outline(); }
+        catch (error) { if (!closed) $('reader-outline').replaceChildren(el('p', 'muted', '目录加载失败：' + errorText(error))); }
+      }
+    } catch (error) {
+      if (!closed) {
+        const message = '无法打开教材：' + errorText(error);
+        $('reader-status').textContent = message;
+        $('reader-outline').replaceChildren(el('p', 'muted', message));
+        if (!pages.length) stack.replaceChildren(el('p', 'muted', message));
+      }
+    }
   })();
   function close() {
     if (closed) return; stopVertical(); if (drag) finishDrag(); saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);

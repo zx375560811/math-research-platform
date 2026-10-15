@@ -229,6 +229,22 @@ with tempfile.TemporaryDirectory() as directory:
             native = admin.import_document(source, 'Range DjVu', '', 1)
             check_ranges(native['file_url'], djvu_content)
             assert file_response(native['file_url'], headers={'Range':'bytes=0-7'})[1].get_content_type() == 'image/vnd.djvu'
+            # Both bulk importers use distinct, extensionless managed-file prefixes.
+            with sqlite3.connect(root / 'data/math.db') as db:
+                stored = db.execute('SELECT file_path FROM documents WHERE id=?', (native['id'],)).fetchone()[0]
+            for prefix in ['folder', 'series']:
+                next_path = 'data/files/'+prefix+'-range-test'
+                (root / stored).rename(root / next_path)
+                with sqlite3.connect(root / 'data/math.db') as db:
+                    db.execute('UPDATE documents SET file_path=? WHERE id=?', (next_path,native['id']))
+                stored = next_path
+                check_ranges(native['file_url'], djvu_content)
+            for invalid_path in ['data/files/../math.db', '/etc/passwd', 'data/files/unmanaged']:
+                with sqlite3.connect(root / 'data/math.db') as db:
+                    db.execute('UPDATE documents SET file_path=? WHERE id=?', (invalid_path,native['id']))
+                assert file_response(native['file_url'], headers={'Range':'bytes=0-7'})[0] == 500
+            with sqlite3.connect(root / 'data/math.db') as db:
+                db.execute('UPDATE documents SET file_path=? WHERE id=?', (stored,native['id']))
             assert request(big['file_url']) == (200, large)
             assert request('/api/documents/41')[1]['authors'] == 'Original author'
             for path in ['/schema.h', '/data/math.db', '/admin/import_document.py', '/api/documents/999999/file']: assert request(path)[0] == 404

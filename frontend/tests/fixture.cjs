@@ -1,6 +1,6 @@
 'use strict';
 // A valid two-page PDF with selectable text and an outline, generated for tests.
-function fixturePdf(count = 2) {
+function fixturePdf(count = 2, padding = 0) {
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R /Outlines 9 0 R >>',
     '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',
@@ -26,6 +26,7 @@ function fixturePdf(count = 2) {
     objects.push(`<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}\nendstream`);
   }
   objects[1] = `<< /Type /Pages /Kids [${kids.map(id=>`${id} 0 R`).join(' ')}] /Count ${kids.length} >>`;
+  if (padding > 0) objects.push(`<< /Length ${padding} >>\nstream\n${'x'.repeat(padding)}\nendstream`);
   let result = '%PDF-1.4\n'; const offsets = [0];
   objects.forEach((object, i) => { offsets.push(Buffer.byteLength(result)); result += `${i + 1} 0 obj\n${object}\nendobj\n`; });
   const start = Buffer.byteLength(result); result += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;

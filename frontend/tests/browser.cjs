@@ -9,7 +9,9 @@ const { chromium } = require('playwright');
 const frontend = path.resolve(__dirname, '..');
 const repo = path.resolve(frontend, '..');
 const { fixturePdf } = require('./fixture.cjs');
-const pdf = fixturePdf(12);
+// Exceed PDF.js' Range threshold; small fixtures never exercise partial loading.
+const pdf = fixturePdf(12, 1024 * 1024);
+const pdfRangeRequests = [];
 const {fixtureDjvuBundle} = require('./fixture-djvu.cjs');
 const djvu = fixtureDjvuBundle(3);
 let nativeId;
@@ -127,7 +129,12 @@ async function main() {
           const id = Number(url.searchParams.get('subject_id')); const offset = Number(url.searchParams.get('offset') || 0);
           return json({ documents: documents.filter(d => !id || d.subject_ids.includes(id)).slice().reverse().slice(offset, offset + 20), limit: 20, offset });
         }
-        if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) { const native = Number(url.pathname.split('/')[3])===nativeId; res.writeHead(200, { 'Content-Type': native?'image/vnd.djvu':'application/pdf' }); return res.end(native?djvu:pdf); }
+        if (/^\/api\/documents\/\d+\/file$/.test(url.pathname)) {
+          const native = Number(url.pathname.split('/')[3])===nativeId, content=native?djvu:pdf;
+          const headers={'Content-Type':native?'image/vnd.djvu':'application/pdf','Accept-Ranges':'bytes','Content-Length':content.length};
+          if(req.headers.range){const match=/^bytes=(\d+)-(\d*)$/.exec(req.headers.range);assert.ok(match,req.headers.range);const start=Number(match[1]),end=Math.min(match[2]?Number(match[2]):content.length-1,content.length-1);assert.ok(start<=end);if(!native)pdfRangeRequests.push([start,end]);res.writeHead(206,{...headers,'Content-Range':`bytes ${start}-${end}/${content.length}`,'Content-Length':end-start+1});return res.end(content.subarray(start,end+1));}
+          res.writeHead(200,headers);return res.end(content);
+        }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
         for (const name of ['series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
@@ -609,13 +616,20 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#series-ai-results a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/系列书籍/);await readerControl(page,'reader-back');await page.locator('.series-card').first().waitFor();
     await page.locator('.series-card').first().click();await page.locator('#series-catalog .series-book').waitFor();assert.equal(await page.locator('#series-catalog .series-book').count(),1);
     await page.unroute('**/api/series**');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
+    await page.route('**/api/documents/1/file',route=>route.fulfill({status:500,contentType:'application/json',body:'{"error":"file_unavailable"}'}));
+    await page.goto(base+'/#/library/read/1');
+    await page.waitForFunction(()=>document.querySelector('#pdf-pages')?.textContent.includes('无法打开教材：'));
+    assert.match(await page.locator('#reader-outline').textContent(),/无法打开教材：/);
+    assert.doesNotMatch(await page.locator('#reader-outline').textContent(),/正在加载目录/);
+    await page.unroute('**/api/documents/1/file');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);
     assert.equal((await page.request.get(base + '/api/documents')).status(), 401);
     assert.equal((await page.request.get(base + '/api/documents/1/file')).status(), 401);
     await page.goto(base + '/#/'); await page.waitForFunction(() => location.hash === '#/login'); await page.locator('#auth-view').waitFor();
-    assert.deepEqual(errors, []); console.log('Invitation login, direction hierarchy, staged textbooks, PDF rendering, highlighter, note editing/deletion, reload, cross-device progress and mobile checks passed.');
+    if(process.env.MATH_BROWSER_MOCK==='1')assert.ok(pdfRangeRequests.length>0,'Large PDF must actually load through HTTP Range requests');
+    assert.deepEqual(errors, []); console.log('Invitation login, direction hierarchy, staged textbooks, large PDF Range rendering, highlighter, note editing/deletion, reload, cross-device progress and mobile checks passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));
     if (child && child.exitCode === null && child.signalCode === null) { const stopped = new Promise(resolve => child.once('exit', resolve)); child.kill('SIGTERM'); await stopped; }

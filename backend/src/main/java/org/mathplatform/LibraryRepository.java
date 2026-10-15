@@ -159,7 +159,7 @@ public class LibraryRepository {
             try (var result = statement.executeQuery()) {
                 if (!result.next()) throw new ApiProblem(404, "not_found");
                 String stored = result.getString(1);
-                if (stored == null || !stored.matches("data/files/upload-[A-Za-z0-9_-]+")) throw new ApiProblem(500, "file_unavailable");
+                if (stored == null || !stored.matches("data/files/(?:upload|folder|series)-[A-Za-z0-9_-]+")) throw new ApiProblem(500, "file_unavailable");
                 return Path.of(stored);
             }
         }
