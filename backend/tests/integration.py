@@ -1,5 +1,7 @@
 """Read-only HTTP and administrator import, against an isolated database."""
 import concurrent.futures
+from email.parser import BytesParser
+from email.policy import default as email_policy
 import importlib.util
 import http.cookiejar
 import http.client
@@ -38,6 +40,45 @@ def auth(path, body, method='POST'):
     token = request('/api/auth/csrf')[1]
     return request(path, method, json.dumps(body).encode(), {'Content-Type': 'application/json', token['header']: token['token']})
 
+def file_response(path, method='GET', headers=None):
+    try:
+        response = client.open(urllib.request.Request(base + path, method=method, headers=headers or {}), timeout=5)
+    except urllib.error.HTTPError as error:
+        response = error
+    with response:
+        return response.status, response.headers, response.read()
+
+def check_ranges(path, content):
+    size = len(content)
+    status, headers, body = file_response(path)
+    assert status == 200 and body == content
+    assert headers['Accept-Ranges'] == 'bytes' and int(headers['Content-Length']) == size
+    for value, start, end in [('bytes=0-4',0,4), ('bytes=5-',5,size-1), ('bytes=-4',size-4,size-1),
+                               ('bytes=0-999999999999',0,size-1), ('bytes=0-',0,size-1),
+                               ('bytes=-999999999999',0,size-1), ('bytes={0}-{0}'.format(size-1),size-1,size-1)]:
+        status, headers, body = file_response(path, headers={'Range':value})
+        assert status == 206 and body == content[start:end+1], (value,status,body)
+        assert headers['Content-Range'] == 'bytes {}-{}/{}'.format(start,end,size)
+        assert int(headers['Content-Length']) == len(body) and headers['Accept-Ranges'] == 'bytes'
+    status, headers, body = file_response(path, headers={'Range':'bytes=0-1,5-7'})
+    assert status == 206 and int(headers['Content-Length']) == len(body)
+    assert headers['Content-Range'] is None and headers.get_content_type() == 'multipart/byteranges'
+    message = BytesParser(policy=email_policy).parsebytes(('Content-Type: '+headers['Content-Type']+'\r\n\r\n').encode()+body)
+    parts = list(message.iter_parts())
+    assert [part.get_payload(decode=True) for part in parts] == [content[:2],content[5:8]]
+    assert [part['Content-Range'] for part in parts] == ['bytes 0-1/'+str(size),'bytes 5-7/'+str(size)]
+    for value in ['bytes={}-'.format(size), 'bytes=999999-', 'bytes=-0', 'bytes=5-2', 'bytes=oops', 'bytes=', 'bytes=999999999999999999999999-']:
+        status, headers, body = file_response(path, headers={'Range':value})
+        assert status == 416 and body == b'', (value,status)
+        assert headers['Content-Range'] == 'bytes */'+str(size) and headers['Content-Length'] == '0'
+    for extra in [{'Range':'pages=0-2'}, {'Range':'bytes=0-2','If-Range':'"unmatched"'},
+                  {'Range':'bytes='+','.join(['0-0']*17)}, {'Range':'bytes=0-,0-'}]:
+        status, headers, body = file_response(path, headers=extra)
+        assert status == 200 and body == content and headers['Content-Range'] is None
+    status, headers, body = file_response(path, 'HEAD', {'Range':'bytes=0-2'})
+    assert status == 200 and not body and int(headers['Content-Length']) == size
+    assert headers['Accept-Ranges'] == 'bytes'
+
 with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     (root / 'data/files').mkdir(parents=True)
@@ -72,6 +113,8 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/7')[0] == 401
             assert request('/api/documents')[0] == 401
             assert request('/api/documents/41/file')[0] == 401
+            assert file_response('/api/documents/41/file', headers={'Range':'bytes=0-4'})[0] == 401
+            assert file_response('/api/documents/41/file', 'HEAD')[0] == 401
             assert request('/api/auth/me')[1] == {'authenticated': False}
             with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0
             code = invitations.create_invitation(str(root / 'data/math.db'))
@@ -157,6 +200,7 @@ with tempfile.TemporaryDirectory() as directory:
             retained_mark = auth('/api/learning/books/7/annotations',mark)[1]['id']
             assert request('/api/documents')[1]['documents'][0]['id'] == 41
             assert request('/api/documents/41/file') == (200, pdf)
+            check_ranges('/api/documents/41/file', pdf)
             assert [p.name for p in (root / 'data/files').iterdir()] == ['upload-legacy']
             os.chdir(root)
             source = root / 'source.pdf'; source.write_bytes(pdf)
@@ -178,6 +222,13 @@ with tempfile.TemporaryDirectory() as directory:
             source.write_bytes(large)
             big = admin.import_document(source, 'Large PDF', '', 1)
             assert request('/api/documents/' + str(big['id']))[1]['file_size'] == len(large)
+            status, headers, body = file_response(big['file_url'], headers={'Range':'bytes={}-'.format(len(large)-64)})
+            assert status == 206 and body == large[-64:] and headers['Content-Length'] == '64'
+            djvu_content = b'AT&TFORM\x00\x00\x00\x04DJVU' + b'native payload'
+            source.write_bytes(djvu_content)
+            native = admin.import_document(source, 'Range DjVu', '', 1)
+            check_ranges(native['file_url'], djvu_content)
+            assert file_response(native['file_url'], headers={'Range':'bytes=0-7'})[1].get_content_type() == 'image/vnd.djvu'
             assert request(big['file_url']) == (200, large)
             assert request('/api/documents/41')[1]['authors'] == 'Original author'
             for path in ['/schema.h', '/data/math.db', '/admin/import_document.py', '/api/documents/999999/file']: assert request(path)[0] == 404

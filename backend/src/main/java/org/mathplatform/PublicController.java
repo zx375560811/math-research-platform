@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,11 +45,9 @@ public class PublicController {
     @GetMapping("/api/documents/{id}")
     public Map<String, Object> document(@PathVariable String id) throws SQLException { return library.document(number(id, false, 404)); }
     @GetMapping("/api/documents/{id}/file")
-    public ResponseEntity<InputStreamResource> file(@PathVariable String id) throws SQLException {
+    public void file(@PathVariable String id, HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
         long value = number(id, false, 404);
-        String format = DocumentFormat.of(library.file(value));
-        return resource(library.file(value), DocumentFormat.mime(format), 500, false)
-            .header("Content-Disposition", "attachment; filename=\"document-" + value + "." + format + "\"").build();
+        DocumentFileResponse.write(library.file(value), value, request, response);
     }
 
     @GetMapping({"/", "/admin", "/admin/", "/admin.js", "/admin-library.js", "/admin-organizer.js", "/admin-books.js", "/admin-series.js", "/series.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-djvu.js", "/vendor/djvu/djvu.js", "/vendor/djvu/LICENSE", "/vendor/djvu/NOTICE.md", "/vendor/djvu/README.md", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js", "/vendor/pdfjs/**", "/vendor/katex/fonts/**"})

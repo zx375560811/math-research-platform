@@ -65,6 +65,12 @@ java -jar target/math-server.jar
 
 ## 管理员入库
 
+### 文献分段读取
+
+`GET /api/documents/{id}/file` 支持 HTTP 字节 Range，PDF 和原生 DJVU 使用相同接口。完整请求返回 200；有效单段请求（如 `Range: bytes=0-65535`、`bytes=65536-`、`bytes=-1024`）返回 206、准确的 Content-Range / Content-Length 和 Accept-Ranges: bytes。有效多段请求返回 multipart/byteranges；全部范围越界或无效 bytes 格式返回空正文的 416，Content-Range 为 `bytes */文件长度`。文件 HEAD 返回完整长度，无正文。
+
+读取按文件偏移定位，并使用固定 64 KiB 缓冲区，不将整本文献加载进服务器内存。每次读取仍要求登录。未支持的范围单位、超过 16 段或总长度超过文件长度的放大请求会忽略 Range 并返回完整 200；当前不提供文件验证器，含 If-Range 的请求也回退为完整 200。PDF.js 关闭后台流式下载和自动预取，支持 Range 的大文件按阅读需要请求；小文件或不支持 Range 的服务仍可完整下载。此功能不保证打开任意 PDF 都只读取一页，实际请求取决于文档结构和阅读操作。静态网页资源的响应方式保持原有行为。
+
 先启动一次服务，初始化数据库。入库必须在 backend 目录执行，并使用服务账号 math-platform，确保新文件可读。
 
 例如管理员已经把 PDF 放在 `/root/paper.pdf`：

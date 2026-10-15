@@ -350,7 +350,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       $('reader-title').textContent = book.title; $('reader-back').href = backHref || `#/apps/mathematics/directions/${book.direction}`; $('reader-back').textContent = backLabel;
       if (!book.available) throw new Error('这本教材的 文档尚未接入，请先选择其他教材。');
       csrf = await api('/api/auth/csrf'); if (closed) return;
-      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ url: book.file_url, withCredentials: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
+      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ url: book.file_url, withCredentials: true, disableStream: true, disableAutoFetch: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
       if (pdf.numPages > 100000) throw new Error('教材页数超出支持范围。');
       pdf.pageSizes?.forEach((size, index) => dimensions.set(index + 1, size));
       const first = await pdf.getPage(1); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
