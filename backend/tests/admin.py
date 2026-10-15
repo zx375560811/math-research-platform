@@ -413,6 +413,28 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents/'+str(native_id))[0] == 200
             assert request('/api/documents/'+str(managed)+'/file') == (200,pdf)
             assert request('/api/series/'+str(sid))[0] == 404
+            # Counts use the same filters as the page, including recursive folders.
+            with sqlite3.connect(root / 'data/math.db') as db:
+                page_series = db.execute("INSERT INTO book_series(name) VALUES('Pagination test')").lastrowid
+                for index in range(40):
+                    doc = db.execute('INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)',
+                                     ('Pagination alpha' if index < 20 else 'Pagination beta','Page Author','data/files/upload-page'+str(index),10)).lastrowid
+                    db.execute('INSERT INTO document_catalog(document_id) VALUES(?)',(doc,))
+                    db.execute('INSERT INTO document_collections VALUES(?,?)',(doc,child))
+                    db.execute('INSERT INTO document_collections VALUES(?,?)',(doc,sf))
+                    db.execute('INSERT INTO series_documents VALUES(?,?,?)',(page_series,doc,index))
+            for endpoint in ['/api/library/documents','/api/admin/documents','/api/series/'+str(page_series),'/api/admin/series/'+str(page_series)]:
+                for term,total,pages in [('Pagination',40,2),('Pagination%20alpha',20,1),('Pagination%20missing',0,1)]:
+                    for offset in [0,20,1000]:
+                        response=request(endpoint+'?q='+term+'&offset='+str(offset))[1]
+                        assert response['total']==total and response['total_pages']==pages, (endpoint,response)
+                        assert len(response.get('documents',response.get('books',[]))) == min(20,max(0,total-offset))
+            result=request('/api/library/documents?collection='+str(sf)+'&q=Pagination')[1]
+            assert result['total']==40 and result['total_pages']==2
+            with sqlite3.connect(root / 'data/math.db') as db:
+                invitation_count=db.execute('SELECT count(*) FROM invitations').fetchone()[0]
+            response=request('/api/admin/invitations?offset=1000')[1]
+            assert response['total']==invitation_count and response['total_pages']==max(1,(invitation_count+19)//20)
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')

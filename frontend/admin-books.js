@@ -37,7 +37,7 @@ export function createAdminBooks({api,write,message,directions}) {
       if(chosen&&!documents.some(d=>String(d.id)===chosen)&&selected)documents.unshift(selected);
       if(chosen&&!documents.some(d=>String(d.id)===chosen))chosen='';
       $('book-document').replaceChildren(option('请选择文献',''),...documents.map(d=>option(d.title+(d.authors?' · '+d.authors:''),d.id)));$('book-document').value=chosen;
-      $('book-doc-prev').disabled=offset===0;$('book-doc-next').disabled=body.documents.length<20;$('book-doc-page').textContent='第 '+(offset/20+1)+' 页';
+      $('book-doc-prev').disabled=offset===0;$('book-doc-next').disabled=offset+body.limit>=body.total;$('book-doc-page').textContent='第 '+(offset/20+1)+' / '+body.total_pages+' 页 · 共 '+body.total+' 本';
       $('book-binding-hint').hidden=documents.length!==0;$('book-binding-hint').textContent=body.documents.length?'本页文献已在该课程中，可搜索或翻页。':'没有匹配文献，可更换目录或搜索。';
     }catch(error){if(version===generation){failed=true;$('book-editor-error').textContent=error.message;}}
     finally{if(version===generation){loading=false;$('book-document').disabled=failed;preview();}}

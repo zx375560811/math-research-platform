@@ -243,7 +243,9 @@ public class AdminController {
                 value.put("status", status); values.add(value);
             } }
         }
-        return Map.of("invitations", values, "limit", 20, "offset", offset);
+        long total;
+        try (var db = library.connect(true); var query = db.createStatement(); var row = query.executeQuery("SELECT count(*) FROM invitations")) { row.next(); total = row.getLong(1); }
+        return Map.of("invitations", values, "limit", 20, "offset", offset, "total", total, "total_pages", Math.max(1, (total + 19) / 20));
     }
     public record Invitation(Integer days) {}
     @PostMapping("/invitations")

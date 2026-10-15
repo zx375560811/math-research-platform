@@ -60,7 +60,7 @@ async function main() {
       };
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, 'http://localhost');
-        const json = (body, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
+        const json = (body, status = 200) => { if (body.limit===20) { const entries=body.documents||body.books||body.invitations;if(entries){body.total??=entries.length;body.total_pages=Math.max(1,Math.ceil(body.total/20));} } res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
         const sessionId = (req.headers.cookie || '').match(/TESTSESSION=([^;]+)/)?.[1]; let session = sessions.get(sessionId);
         if (url.pathname === '/api/auth/csrf') {
           if (!session) { const id = String(sessions.size + 1); session = { token: 'token' + id }; sessions.set(id, session); res.setHeader('Set-Cookie', `TESTSESSION=${id}; Path=/; HttpOnly; SameSite=Lax`); }
@@ -82,7 +82,7 @@ async function main() {
           if (url.pathname==='/api/library/documents/22' && !documents.some(d=>d.id===22)) documents.push(nativeDocument);
           if(url.pathname==='/api/library/collections')return json({collections:[{id:100,parent_id:null,name:'大学数学基础',count:21},{id:101,parent_id:100,name:'分析',count:1},{id:102,parent_id:101,name:'复分析',count:1},{id:103,parent_id:100,name:'代数',count:21},{id:104,parent_id:100,name:'读书笔记',count:0}],total:documents.length,unfiled:documents.filter(d=>d.id>21).length});
           if (url.pathname==='/api/library/categories') return json({modules:[{slug:'mathematics',name:'数学与应用数学',directions}]});
-          if (url.pathname==='/api/library/documents') {const collection=url.searchParams.get('collection')||'', q=url.searchParams.get('q')||'', direction=url.searchParams.get('direction')||'', language=url.searchParams.get('language')||'', offset=Number(url.searchParams.get('offset')||0);return json({documents:documents.filter(d=>(!collection||collection==='100'&&d.id<=21||collection==='103'&&d.id<=21||['101','102'].includes(collection)&&d.id===1||collection==='unfiled'&&d.id>21)&&(!q||d.title.includes(q)||d.authors.includes(q))&&(!direction||d.directions.includes(direction))&&(!language||d.language===language)).slice().reverse().slice(offset,offset+20).map(d=>({...d,progress:progress.get(user+':doc:'+d.id)||null})),limit:20,offset});}
+          if (url.pathname==='/api/library/documents') {const collection=url.searchParams.get('collection')||'', q=url.searchParams.get('q')||'', direction=url.searchParams.get('direction')||'', language=url.searchParams.get('language')||'', offset=Number(url.searchParams.get('offset')||0);const matched=documents.filter(d=>(!collection||collection==='100'&&d.id<=21||collection==='103'&&d.id<=21||['101','102'].includes(collection)&&d.id===1||collection==='unfiled'&&d.id>21)&&(!q||d.title.includes(q)||d.authors.includes(q))&&(!direction||d.directions.includes(direction))&&(!language||d.language===language));return json({documents:matched.slice().reverse().slice(offset,offset+20).map(d=>({...d,progress:progress.get(user+':doc:'+d.id)||null})),limit:20,offset,total:matched.length});}
           if(docPath){const doc=documents.find(d=>d.id===Number(docPath[1]));if(!doc)return json({error:'not_found'},404);const key=user+':doc:'+doc.id;
             if(req.method==='GET'&&!docPath[2])return json({...doc,available:true,progress:progress.get(key)||null});
             if(req.method==='GET'&&docPath[2]==='annotations')return json({annotations:annotations.get(key)||[]});
@@ -498,6 +498,16 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.reload(); await page.waitForFunction(() => document.getElementById('account-name').textContent === 'browser_reader');
     await page.locator('#library-link').click(); await page.locator('#library-view').waitFor(); await page.locator('.library-document').first().waitFor();
     assert.equal(await page.locator('#library-documents img').count(),0);
+    await page.route('**/api/library/documents?*',async route=>{
+      const offset=Number(new URL(route.request().url()).searchParams.get('offset')||0);
+      await route.fulfill({json:{documents:Array.from({length:20},(_,i)=>({id:9000+offset+i,title:'Pagination '+(offset+i+1),authors:'Test',format:'pdf'})),offset,limit:20,total:40,total_pages:2}});
+    });
+    await page.locator('#library-retry').click();await page.waitForFunction(()=>document.getElementById('library-page').textContent==='第 1 / 2 页 · 共 40 本');
+    assert.equal(await page.locator('#library-prev').isDisabled(),true);
+    await page.locator('#library-next').click();await page.waitForFunction(()=>document.getElementById('library-page').textContent==='第 2 / 2 页 · 共 40 本');
+    assert.equal(await page.locator('#library-next').isDisabled(),true);
+    await page.locator('#library-prev').click();await page.waitForFunction(()=>document.getElementById('library-page').textContent==='第 1 / 2 页 · 共 40 本');
+    await page.unroute('**/api/library/documents?*');await page.locator('#library-retry').click();await page.waitForFunction(()=>!document.querySelector('[data-document="9000"]')&&document.querySelector('.library-document'));
     await page.screenshot({path:path.join(shots,'library-collections-desktop.png'),fullPage:true});
     await page.locator('[aria-controls="library-folder-101"]').click();await chooseCollection(page,'102');await page.locator('[data-document="1"]').waitFor();
     assert.equal(await page.locator('.library-document').count(),1);assert.match(await page.locator('#library-breadcrumbs').textContent(),/大学数学基础.*分析.*复分析/);assert.equal(await page.locator('[data-collection="102"]').getAttribute('aria-current'),'page');
@@ -607,7 +617,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.route('**/api/series**',async route=>{const url=new URL(route.request().url());let body;
       if(url.pathname==='/api/series')body={series:seriesFixture};
       else if(url.pathname==='/api/series/recommend'){recommendationInput=route.request().postDataJSON();body={summary:'根据你的基础，先阅读这本教材。',books:[{...seriesDoc,reason:'适合当前学习目标。'}]};}
-      else body={series:seriesFixture[0],books:[seriesDoc],offset:0,limit:20};
+      else body={series:seriesFixture[0],books:[seriesDoc],offset:0,limit:20,total:1,total_pages:1};
       await route.fulfill({json:body});
     });
     await page.setViewportSize({width:1440,height:900});await page.locator('.series-application').click();await page.locator('.series-card').first().waitFor();assert.equal(await page.locator('.series-card').count(),6);
@@ -615,6 +625,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#series-requirement').fill('学过线性代数，希望学习代数。');await page.locator('#series-recommend').click();await page.locator('#series-ai-results .series-book').waitFor();assert.equal(recommendationInput.requirement,'学过线性代数，希望学习代数。');assert.equal(recommendationInput.source,'default');
     await page.locator('#series-ai-results a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/系列书籍/);await readerControl(page,'reader-back');await page.locator('.series-card').first().waitFor();
     await page.locator('.series-card').first().click();await page.locator('#series-catalog .series-book').waitFor();assert.equal(await page.locator('#series-catalog .series-book').count(),1);
+    assert.match(await page.locator('#series-catalog .series-pager').textContent(),/第 1 \/ 1 页 · 共 1 本/);
     await page.unroute('**/api/series**');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     await page.route('**/api/documents/1/file',route=>route.fulfill({status:500,contentType:'application/json',body:'{"error":"file_unavailable"}'}));
     await page.goto(base+'/#/library/read/1');

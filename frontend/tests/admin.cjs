@@ -21,7 +21,7 @@ async function main() {
       let seriesItems=['Graduate Studies in Mathematics (GSM)','Graduate Texts in Mathematics (GTM)','Lecture Notes in Mathematics','London Mathematical Society Student Texts','SMM 系列','UTM 系列'].map((name,i)=>({id:i+1,name,description:'',sort_order:i*10}));const seriesMembers=new Map();
       server = http.createServer(async (req, res) => {
         const url = new URL(req.url, base), p = url.pathname;
-        const json = (data, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
+        const json = (data, status = 200) => { if (data.limit===20) { const entries=data.documents||data.books||data.invitations;if(entries){data.total??=entries.length;data.total_pages=Math.max(1,Math.ceil(data.total/20));} } res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
         if (p === '/api/health') return json({ status: 'ok' });
         if (p === '/api/auth/csrf') return json({ header: 'X-CSRF-TOKEN', token: 'test-token' });
         if (p === '/api/auth/me') return json(session ? { authenticated: true, user: session } : { authenticated: false });
@@ -55,7 +55,7 @@ async function main() {
           if(p==='/api/admin/books/order'){for(const [i,id]of body.ids.entries())books.find(b=>b.id===id).sort_order=i*10;return json({status:'ok'});}
           if (/^\/api\/admin\/books\/\d+$/.test(p)) { if(req.method==='DELETE'){books.find(b=>b.id===Number(p.split('/').pop())).document_id=null;return json({status:'ok'});}Object.assign(books.find(b=>b.id===Number(p.split('/').pop())), body); return json({ status: 'ok' }); }
           if (p === '/api/admin/invitations' && req.method === 'POST') { const id = 'a'.repeat(64); invites.unshift({ id, created_at: new Date().toISOString(), expires_at: Math.floor(Date.now()/1000) + body.days * 86400, status: 'active' }); return json({ code: 'C'.repeat(43), id, expires_at: invites[0].expires_at }, 201); }
-          if (p === '/api/admin/invitations') return json({ invitations: invites });
+          if (p === '/api/admin/invitations') return json({ invitations: invites, limit:20, offset:0 });
           if (p.endsWith('/revoke')) { invites[0].status = 'revoked'; return json({ status: 'ok' }); }
         }
         if (/^\/api\/learning\/books\/\d+$/.test(p)) return json({ ...books[0], available: !!books.find(b=>b.id===Number(p.split('/').pop())).document_id });
