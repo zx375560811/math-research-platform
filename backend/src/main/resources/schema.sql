@@ -191,7 +191,7 @@ DELETE FROM ai_study_courses WHERE slug='optimization';
 UPDATE ai_study_courses SET practice='用计算图实现复合函数的自动求导，对比手算导数与有限差分，验证链式法则。' WHERE slug='calculus' AND practice='推导线性回归损失的梯度，用有限差分核对结果。';
 UPDATE ai_study_courses SET practice='用 NumPy 练习矩阵转置、乘法、范数和奇异值分解，再做矩阵重建与低秩近似。' WHERE slug='linear-algebra' AND practice='用 NumPy 实现最小二乘，并比较正规方程与数值解。';
 
--- Refresh only shipped default copy; preserve course links and administrator edits.
+-- Refresh only shipped default copy while preserving course links and administrator edits.
 UPDATE ai_study_courses SET topics='极限与连续：理解函数趋近、连续及导数和定积分的定义；一元微分：熟练运用乘积法则与链式法则，手算复合函数的导数；多元微分：掌握偏导数、梯度和方向导数，分清输入与输出的维度；局部近似：用一阶、二阶 Taylor 展开描述函数，理解梯度与 Hessian 的作用；极值与下降方向：判断简单函数的极值，解释非零负梯度为何是局部下降方向；掌握目标：能推导简单复合函数的导数，用有限差分核对，并解释自动求导中的链式法则' WHERE slug='calculus' AND topics='极限与连续；多元微积分；偏导数与梯度；链式法则；Taylor 展开';
 UPDATE ai_study_courses SET practice='用函数值与导数组成的数对实现单变量前向自动求导，对照手算和中心差分检查加法、乘法、幂函数与复合函数。' WHERE slug='calculus' AND practice='用计算图实现复合函数的自动求导，对比手算导数与有限差分，验证链式法则。';
 UPDATE ai_study_courses SET topics='矩阵与线性方程：掌握矩阵乘法、转置、逆与秩，先核对维度再计算；向量空间与映射：理解线性相关、基、维数、列空间与零空间；内积与正交：理解长度、夹角、正交投影和最小二乘的几何意义；特征值与二次型：掌握特征向量、对称矩阵的正交对角化与半正定性；奇异值分解：理解 U、奇异值与 V 的含义，用截断 SVD 做低秩近似；掌握目标：能解释矩阵如何变换向量，区分特征分解与 SVD，并验证矩阵重建及误差' WHERE slug='linear-algebra' AND topics='向量与矩阵；线性映射；特征值；正交投影；奇异值分解与半正定矩阵';

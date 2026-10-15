@@ -5,6 +5,21 @@ import sqlite3
 from pathlib import Path
 
 sql = (Path(__file__).resolve().parents[1] / 'src/main/resources/schema.sql').read_text(encoding='utf-8')
+# LibraryRepository executes semicolon-separated statements rather than a whole script.
+# Exercise those exact boundaries too: a semicolon in a comment or string must fail here,
+# before a catalog edit can ship successfully but prevent the Java service from starting.
+with sqlite3.connect(':memory:', isolation_level=None) as startup:
+    for filename in ('schema.sql', 'learning.sql', 'learning-courses.sql'):
+        script = (Path(__file__).resolve().parents[1] / 'src/main/resources' / filename).read_text(encoding='utf-8')
+        for index, statement in enumerate(script.split(';'), 1):
+            if not statement.strip():
+                continue
+            assert re.sub(r'--[^\n]*', '', statement).strip(), '{} startup statement {} contains only a comment'.format(filename, index)
+            try:
+                startup.execute(statement)
+            except sqlite3.Error as failure:
+                raise AssertionError('{} startup statement {} failed: {}'.format(filename, index, failure)) from failure
+    assert startup.execute('SELECT COUNT(*) FROM subjects').fetchone()[0] == 5
 with sqlite3.connect(':memory:') as db:
     db.executescript(sql)
     db.executescript((Path(__file__).resolve().parents[1] / 'src/main/resources/learning.sql').read_text(encoding='utf-8'))
