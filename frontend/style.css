@@ -994,8 +994,8 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 @media(max-width:650px) { .study-plan-heading { flex-wrap:wrap;gap:10px; }.study-plan-heading h1 { width:100%;font-size:25px; }.study-plan-overview { grid-template-columns:repeat(3,minmax(0,1fr));padding:20px 16px;gap:18px 12px; }.study-plan-ring { grid-column:1/-1;justify-self:center; }.study-plan-metric { padding:0;border:0;text-align:center; }.study-plan-metric strong { font-size:28px; }.study-plan-metric span { font-size:15px; }.study-plan-columns { gap:16px; }.study-plan-book,.study-plan-panel-heading { padding:18px 16px; }.study-plan-book-actions .button { font-size:14px; }.study-plan-remove { margin-left:0; }.study-book-actions { justify-content:flex-start; } }
 .ai-study-heading h1 { margin:0;font-size:28px; }
 /* Same constellation canvas and node treatments as the mathematics roadmap. */
-.ai-study-map { background:white;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin-bottom:20px;overflow-x:auto;scrollbar-width:thin; }
-.ai-study-map svg { display:block;width:100%;min-width:1000px;height:auto; }
+.ai-study-map { width:100%;max-width:930px;background:white;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin:0 auto 20px;overflow-x:auto;scrollbar-width:thin; }
+.ai-study-map svg { display:block;width:100%;min-width:900px;max-width:900px;height:auto; }
 .ai-map-canvas .analysis-course-title { font-size:15px; }
 .ai-map-canvas .analysis-course-symbol { font-size:20px; }
 .ai-map-canvas .ai-course-node { text-decoration:none;cursor:pointer;outline:none; }
