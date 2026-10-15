@@ -66,7 +66,7 @@ function aiRoadmap(courses, chosen, onChoose) {
  const ns='http://www.w3.org/2000/svg';
  const make=(tag,attrs={},text)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};
  const box=document.createElement('nav');box.className='ai-study-map';box.setAttribute('aria-label','数学到人工智能学习路线');
- const svg=make('svg',{viewBox:'0 0 940 226',class:'analysis-map-canvas ai-map-canvas',role:'group','aria-label':'从左向右分四列：第一列数学分析、高等代数、概率统计；第二列机器学习、Python；第三列深度学习、PyTorch 实践；第四列自然语言处理、LLM。'});
+ const svg=make('svg',{viewBox:'0 0 1080 226',class:'analysis-map-canvas ai-map-canvas',role:'group','aria-label':'从左向右分四列：第一列数学分析、高等代数、概率统计；第二列机器学习、Python；第三列深度学习、PyTorch 实践；第四列自然语言处理、LLM。'});
  const defs=make('defs');
  const gradient=(id,colors)=>{const node=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});colors.forEach((color,index)=>node.append(make('stop',{offset:index/(colors.length-1)*100+'%','stop-color':color})));defs.append(node);};
  gradient('ai-map-night',['#152a52','#121d3c','#24395d']);
@@ -74,28 +74,28 @@ function aiRoadmap(courses, chosen, onChoose) {
  for(const [kind,colors]of Object.entries(palettes))gradient('ai-node-'+kind,colors);
  const light=make('radialGradient',{id:'ai-map-light'});light.append(make('stop',{offset:'0%','stop-color':'#7097ff','stop-opacity':'.25'}),make('stop',{offset:'100%','stop-color':'#7097ff','stop-opacity':0}));defs.append(light);
  const marker=make('marker',{id:'ai-route-arrow',viewBox:'0 0 8 8',refX:7,refY:4,markerWidth:6,markerHeight:6,orient:'auto'});marker.append(make('path',{d:'M1 1L7 4L1 7',fill:'none',stroke:'#9db7e7','stroke-width':1.4}));defs.append(marker);svg.append(defs);
- const backdrop=make('g',{'aria-hidden':'true'});backdrop.append(make('rect',{width:940,height:226,rx:14,fill:'url(#ai-map-night)'}),make('ellipse',{cx:180,cy:85,rx:180,ry:80,fill:'url(#ai-map-light)'}),make('ellipse',{cx:730,cy:90,rx:220,ry:80,fill:'url(#ai-map-light)'}));
- for(let i=0;i<68;i++)backdrop.append(make('circle',{cx:12+(i*137)%916,cy:8+(i*47)%210,r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));
- for(const [x,y]of [[300,20],[612,197],[903,30]])backdrop.append(make('path',{d:`M${x-3} ${y}h6M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));svg.append(backdrop);
+ const backdrop=make('g',{'aria-hidden':'true'});backdrop.append(make('rect',{width:1080,height:226,rx:14,fill:'url(#ai-map-night)'}),make('ellipse',{cx:180,cy:85,rx:180,ry:80,fill:'url(#ai-map-light)'}),make('ellipse',{cx:870,cy:90,rx:220,ry:80,fill:'url(#ai-map-light)'}));
+ for(let i=0;i<68;i++)backdrop.append(make('circle',{cx:12+(i*137)%1056,cy:8+(i*47)%210,r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));
+ for(const [x,y]of [[350,20],[710,197],[1043,30]])backdrop.append(make('path',{d:`M${x-3} ${y}h6M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));svg.append(backdrop);
  const nodes=[
   ['calculus','∫',24,8,'math','foundation',154,42],['linear-algebra','ℝⁿ',24,92,'algebra','foundation',154,42],['probability','ℙ',24,176,'probability','foundation',154,42],
-  ['python','Py',270,142,'code','foundation',154,42],['machine-learning','ƒ',270,50,'learning','core',154,42],
-  ['deep-learning','⊗',516,50,'deep','core',154,42],['pytorch','Py',516,142,'code','support',154,42],['nlp','文',762,50,'language','core',154,42],
-  ['llm','✦',762,142,'deep','core',154,42]
+  ['python','Py',316,142,'code','foundation',154,42],['machine-learning','ƒ',316,50,'learning','core',154,42],
+  ['deep-learning','⊗',608,50,'deep','core',154,42],['pytorch','Py',608,142,'code','support',154,42],['nlp','文',900,50,'language','core',154,42],
+  ['llm','✦',900,142,'deep','core',154,42]
  ];
  const available=new Set(courses.map(course=>course.slug));
  const sharedFoundations=['calculus','linear-algebra','probability','machine-learning'].every(slug=>available.has(slug));
  if(sharedFoundations){
-  svg.append(make('path',{class:'analysis-route-edge',d:'M178 29H214Q224 29 224 39V187Q224 197 214 197H178M178 113H224',fill:'none','aria-hidden':'true'}),make('path',{class:'analysis-route-edge',d:'M224 71H270',fill:'none','marker-end':'url(#ai-route-arrow)','aria-hidden':'true'}),make('circle',{cx:224,cy:71,r:2.5,fill:'#9db7e7',opacity:.85,'aria-hidden':'true'}));
+  svg.append(make('path',{class:'analysis-route-edge',d:'M178 29H237Q247 29 247 39V187Q247 197 237 197H178M178 113H247',fill:'none','aria-hidden':'true'}),make('path',{class:'analysis-route-edge',d:'M247 71H316',fill:'none','marker-end':'url(#ai-route-arrow)','aria-hidden':'true'}),make('circle',{cx:247,cy:71,r:2.5,fill:'#9db7e7',opacity:.85,'aria-hidden':'true'}));
  }
  const edges=[
-  ['calculus','machine-learning','M178 29H214Q224 29 224 39V71H270'],
-  ['linear-algebra','machine-learning','M178 113H224V71H270'],
-  ['probability','machine-learning','M178 197H214Q224 197 224 187V71H270'],
-  ['machine-learning','deep-learning','M424 71H516'],['deep-learning','nlp','M670 71H762'],
-  ['nlp','llm','M839 92V142'],
-  ['python','machine-learning','M347 142V92'],
-  ['python','pytorch','M424 163H516'],['pytorch','deep-learning','M593 142V92',true]
+  ['calculus','machine-learning','M178 29H237Q247 29 247 39V71H316'],
+  ['linear-algebra','machine-learning','M178 113H247V71H316'],
+  ['probability','machine-learning','M178 197H237Q247 197 247 187V71H316'],
+  ['machine-learning','deep-learning','M470 71H608'],['deep-learning','nlp','M762 71H900'],
+  ['nlp','llm','M977 92V142'],
+  ['python','machine-learning','M393 142V92'],
+  ['python','pytorch','M470 163H608'],['pytorch','deep-learning','M685 142V92',true]
  ];
  for(const [index,[from,to,d,optional]]of edges.entries())if(available.has(from)&&available.has(to)){
   // Draw the shared trunk once; retain each complete route for its moving light.
