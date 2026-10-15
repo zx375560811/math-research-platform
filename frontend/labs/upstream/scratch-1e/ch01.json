@@ -1,0 +1,55 @@
+{
+  "book": "scratch-1e",
+  "chapter": "ch01",
+  "commit": "07b11618cdb5d5f78ad45464de0730efc07b0a4a",
+  "files": [
+    {
+      "path": "ch01/hungry.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01/hungry.py",
+      "sha256": "2b2778946e4f8958b91375f4ef325f177f33467eb208c0391bbc4470b3dfcdcf",
+      "cells": [
+        "print(\"I'm hungry!\")\n"
+      ]
+    },
+    {
+      "path": "ch01/img_show.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01/img_show.py",
+      "sha256": "ee06cb3836a352364d06589eb48a98d47f4279d3bf84fdc1808e4010b7d7ecf8",
+      "cells": [
+        "# coding: utf-8\nimport matplotlib.pyplot as plt\nfrom matplotlib.image import imread\n\nimg = imread('../dataset/lena.png') # 画像の読み込み\nplt.imshow(img)\n\nplt.show()"
+      ]
+    },
+    {
+      "path": "ch01/man.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01/man.py",
+      "sha256": "4c036ace68710109ad1cb44866e44702f51aa6f6ae32b09bf66d8d4609c0f0be",
+      "cells": [
+        "# coding: utf-8\nclass Man:\n    \"\"\"サンプルクラス\"\"\"\n\n    def __init__(self, name):\n        self.name = name\n        print(\"Initilized!\")\n\n    def hello(self):\n        print(\"Hello \" + self.name + \"!\")\n\n    def goodbye(self):\n        print(\"Good-bye \" + self.name + \"!\")\n\nm = Man(\"David\")\nm.hello()\nm.goodbye()"
+      ]
+    },
+    {
+      "path": "ch01/simple_graph.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01/simple_graph.py",
+      "sha256": "433d1a3cf7f58b168e904341ed13655c6bc95e537c6b3ee66c0582e0664704cb",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# データの作成\nx = np.arange(0, 6, 0.1) # 0から6まで0.1刻みで生成\ny = np.sin(x)\n\n# グラフの描画\nplt.plot(x, y)\nplt.show()"
+      ]
+    },
+    {
+      "path": "ch01/sin_cos_graph.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01/sin_cos_graph.py",
+      "sha256": "127272a12119f75da0e0dc35520ec4e80bedadd7e712800df234afd047a5b5b2",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# データの作成\nx = np.arange(0, 6, 0.1) # 0から6まで0.1刻みで生成\ny1 = np.sin(x)\ny2 = np.cos(x)\n\n# グラフの描画\nplt.plot(x, y1, label=\"sin\")\nplt.plot(x, y2, linestyle = \"--\", label=\"cos\")\nplt.xlabel(\"x\") # x軸のラベル\nplt.ylabel(\"y\") # y軸のラベル\nplt.title('sin & cos')\nplt.legend()\nplt.show()"
+      ]
+    },
+    {
+      "path": "ch01/sin_graph.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01/sin_graph.py",
+      "sha256": "3ef94571f1722cceeea6532901078c6fabf6203467ba5f44b8b6330d6b9c3cf0",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# データの作成\nx = np.arange(0, 6, 0.1)\ny = np.sin(x)\n\n# グラフの描画\nplt.plot(x, y)\nplt.show()\n"
+      ]
+    }
+  ]
+}

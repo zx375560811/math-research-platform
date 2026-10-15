@@ -1,0 +1,18 @@
+{
+  "book": "hands-on-llm",
+  "chapter": "ch01",
+  "commit": "ea3390819997999a51983677b80b3aac4dc50ada",
+  "files": [
+    {
+      "path": "chapter01/Chapter 1 - Introduction to Language Models.ipynb",
+      "url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter01/Chapter%201%20-%20Introduction%20to%20Language%20Models.ipynb",
+      "sha256": "df076ee85f41666ad7b2236a28ffe5a96be83cdb7247210ddafa6b15f36db45a",
+      "cells": [
+        "# %%capture\n# !pip install transformers==4.41.2 accelerate==0.31.0",
+        "from transformers import AutoModelForCausalLM, AutoTokenizer\n\n# Load model and tokenizer\nmodel = AutoModelForCausalLM.from_pretrained(\n    \"microsoft/Phi-3-mini-4k-instruct\",\n    device_map=\"cuda\",\n    torch_dtype=\"auto\",\n    trust_remote_code=False,\n)\ntokenizer = AutoTokenizer.from_pretrained(\"microsoft/Phi-3-mini-4k-instruct\")",
+        "from transformers import pipeline\n\n# Create a pipeline\ngenerator = pipeline(\n    \"text-generation\",\n    model=model,\n    tokenizer=tokenizer,\n    return_full_text=False,\n    max_new_tokens=500,\n    do_sample=False\n)",
+        "# The prompt (user input / query)\nmessages = [\n    {\"role\": \"user\", \"content\": \"Create a funny joke about chickens.\"}\n]\n\n# Generate output\noutput = generator(messages)\nprint(output[0][\"generated_text\"])"
+      ]
+    }
+  ]
+}

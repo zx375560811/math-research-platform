@@ -1,0 +1,55 @@
+{
+  "book": "scratch-1e",
+  "chapter": "ch05",
+  "commit": "07b11618cdb5d5f78ad45464de0730efc07b0a4a",
+  "files": [
+    {
+      "path": "ch05/buy_apple.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05/buy_apple.py",
+      "sha256": "e0407ff492d95d374bc1b50c23bdd6c5c981dee6d2482fc16064974f9042b56c",
+      "cells": [
+        "# coding: utf-8\nfrom layer_naive import *\n\n\napple = 100\napple_num = 2\ntax = 1.1\n\nmul_apple_layer = MulLayer()\nmul_tax_layer = MulLayer()\n\n# forward\napple_price = mul_apple_layer.forward(apple, apple_num)\nprice = mul_tax_layer.forward(apple_price, tax)\n\n# backward\ndprice = 1\ndapple_price, dtax = mul_tax_layer.backward(dprice)\ndapple, dapple_num = mul_apple_layer.backward(dapple_price)\n\nprint(\"price:\", int(price))\nprint(\"dApple:\", dapple)\nprint(\"dApple_num:\", int(dapple_num))\nprint(\"dTax:\", dtax)\n"
+      ]
+    },
+    {
+      "path": "ch05/buy_apple_orange.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05/buy_apple_orange.py",
+      "sha256": "803d43cfef6736bd3b278cbf04525f00a6864437d61a8d9bb55b60e3e97b2c92",
+      "cells": [
+        "# coding: utf-8\nfrom layer_naive import *\n\napple = 100\napple_num = 2\norange = 150\norange_num = 3\ntax = 1.1\n\n# layer\nmul_apple_layer = MulLayer()\nmul_orange_layer = MulLayer()\nadd_apple_orange_layer = AddLayer()\nmul_tax_layer = MulLayer()\n\n# forward\napple_price = mul_apple_layer.forward(apple, apple_num)  # (1)\norange_price = mul_orange_layer.forward(orange, orange_num)  # (2)\nall_price = add_apple_orange_layer.forward(apple_price, orange_price)  # (3)\nprice = mul_tax_layer.forward(all_price, tax)  # (4)\n\n# backward\ndprice = 1\ndall_price, dtax = mul_tax_layer.backward(dprice)  # (4)\ndapple_price, dorange_price = add_apple_orange_layer.backward(dall_price)  # (3)\ndorange, dorange_num = mul_orange_layer.backward(dorange_price)  # (2)\ndapple, dapple_num = mul_apple_layer.backward(dapple_price)  # (1)\n\nprint(\"price:\", int(price))\nprint(\"dApple:\", dapple)\nprint(\"dApple_num:\", int(dapple_num))\nprint(\"dOrange:\", dorange)\nprint(\"dOrange_num:\", int(dorange_num))\nprint(\"dTax:\", dtax)\n"
+      ]
+    },
+    {
+      "path": "ch05/gradient_check.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05/gradient_check.py",
+      "sha256": "735ff3f8553519f4925bcb508a7be448e38ce9f8f24c1dd9692436a5e905eb2c",
+      "cells": [
+        "# coding: utf-8\nimport sys, os\nsys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定\nimport numpy as np\nfrom dataset.mnist import load_mnist\nfrom two_layer_net import TwoLayerNet\n\n# データの読み込み\n(x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)\n\nnetwork = TwoLayerNet(input_size=784, hidden_size=50, output_size=10)\n\nx_batch = x_train[:3]\nt_batch = t_train[:3]\n\ngrad_numerical = network.numerical_gradient(x_batch, t_batch)\ngrad_backprop = network.gradient(x_batch, t_batch)\n\nfor key in grad_numerical.keys():\n    diff = np.average( np.abs(grad_backprop[key] - grad_numerical[key]) )\n    print(key + \":\" + str(diff))"
+      ]
+    },
+    {
+      "path": "ch05/layer_naive.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05/layer_naive.py",
+      "sha256": "23a0d76a287300d76b50e800abefa6be2418012fb10b6efe839ac9eabc95a24e",
+      "cells": [
+        "# coding: utf-8\n\n\nclass MulLayer:\n    def __init__(self):\n        self.x = None\n        self.y = None\n\n    def forward(self, x, y):\n        self.x = x\n        self.y = y                \n        out = x * y\n\n        return out\n\n    def backward(self, dout):\n        dx = dout * self.y\n        dy = dout * self.x\n\n        return dx, dy\n\n\nclass AddLayer:\n    def __init__(self):\n        pass\n\n    def forward(self, x, y):\n        out = x + y\n\n        return out\n\n    def backward(self, dout):\n        dx = dout * 1\n        dy = dout * 1\n\n        return dx, dy\n"
+      ]
+    },
+    {
+      "path": "ch05/train_neuralnet.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05/train_neuralnet.py",
+      "sha256": "aa5d38434fd713b1ae3406ac0de85652022a8c808a4991136a66ebf04d7d5455",
+      "cells": [
+        "# coding: utf-8\nimport sys, os\nsys.path.append(os.pardir)\n\nimport numpy as np\nfrom dataset.mnist import load_mnist\nfrom two_layer_net import TwoLayerNet\n\n# データの読み込み\n(x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)\n\nnetwork = TwoLayerNet(input_size=784, hidden_size=50, output_size=10)\n\niters_num = 10000\ntrain_size = x_train.shape[0]\nbatch_size = 100\nlearning_rate = 0.1\n\ntrain_loss_list = []\ntrain_acc_list = []\ntest_acc_list = []\n\niter_per_epoch = max(train_size / batch_size, 1)\n\nfor i in range(iters_num):\n    batch_mask = np.random.choice(train_size, batch_size)\n    x_batch = x_train[batch_mask]\n    t_batch = t_train[batch_mask]\n    \n    # 勾配\n    #grad = network.numerical_gradient(x_batch, t_batch)\n    grad = network.gradient(x_batch, t_batch)\n    \n    # 更新\n    for key in ('W1', 'b1', 'W2', 'b2'):\n        network.params[key] -= learning_rate * grad[key]\n    \n    loss = network.loss(x_batch, t_batch)\n    train_loss_list.append(loss)\n    \n    if i % iter_per_epoch == 0:\n        train_acc = network.accuracy(x_train, t_train)\n        test_acc = network.accuracy(x_test, t_test)\n        train_acc_list.append(train_acc)\n        test_acc_list.append(test_acc)\n        print(train_acc, test_acc)\n"
+      ]
+    },
+    {
+      "path": "ch05/two_layer_net.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05/two_layer_net.py",
+      "sha256": "f833e408caee28fd62a81af91422c38dd89a05f225fd413b34e8129133d4a9dd",
+      "cells": [
+        "# coding: utf-8\nimport sys, os\nsys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定\nimport numpy as np\nfrom common.layers import *\nfrom common.gradient import numerical_gradient\nfrom collections import OrderedDict\n\n\nclass TwoLayerNet:\n\n    def __init__(self, input_size, hidden_size, output_size, weight_init_std = 0.01):\n        # 重みの初期化\n        self.params = {}\n        self.params['W1'] = weight_init_std * np.random.randn(input_size, hidden_size)\n        self.params['b1'] = np.zeros(hidden_size)\n        self.params['W2'] = weight_init_std * np.random.randn(hidden_size, output_size) \n        self.params['b2'] = np.zeros(output_size)\n\n        # レイヤの生成\n        self.layers = OrderedDict()\n        self.layers['Affine1'] = Affine(self.params['W1'], self.params['b1'])\n        self.layers['Relu1'] = Relu()\n        self.layers['Affine2'] = Affine(self.params['W2'], self.params['b2'])\n\n        self.lastLayer = SoftmaxWithLoss()\n        \n    def predict(self, x):\n        for layer in self.layers.values():\n            x = layer.forward(x)\n        \n        return x\n        \n    # x:入力データ, t:教師データ\n    def loss(self, x, t):\n        y = self.predict(x)\n        return self.lastLayer.forward(y, t)\n    \n    def accuracy(self, x, t):\n        y = self.predict(x)\n        y = np.argmax(y, axis=1)\n        if t.ndim != 1 : t = np.argmax(t, axis=1)\n        \n        accuracy = np.sum(y == t) / float(x.shape[0])\n        return accuracy\n        \n    # x:入力データ, t:教師データ\n    def numerical_gradient(self, x, t):\n        loss_W = lambda W: self.loss(x, t)\n        \n        grads = {}\n        grads['W1'] = numerical_gradient(loss_W, self.params['W1'])\n        grads['b1'] = numerical_gradient(loss_W, self.params['b1'])\n        grads['W2'] = numerical_gradient(loss_W, self.params['W2'])\n        grads['b2'] = numerical_gradient(loss_W, self.params['b2'])\n        \n        return grads\n        \n    def gradient(self, x, t):\n        # forward\n        self.loss(x, t)\n\n        # backward\n        dout = 1\n        dout = self.lastLayer.backward(dout)\n        \n        layers = list(self.layers.values())\n        layers.reverse()\n        for layer in layers:\n            dout = layer.backward(dout)\n\n        # 設定\n        grads = {}\n        grads['W1'], grads['b1'] = self.layers['Affine1'].dW, self.layers['Affine1'].db\n        grads['W2'], grads['b2'] = self.layers['Affine2'].dW, self.layers['Affine2'].db\n\n        return grads\n"
+      ]
+    }
+  ]
+}

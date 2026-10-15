@@ -1,67 +1,83 @@
-# 数学到人工智能：配套实验
+# 数学到人工智能：教材配套实验
 
-每个实验按 **跟着做 → 自己补全 → 独立完成** 展开。教材负责概念与推导，实验负责把它们变成能解释、能检查的操作。GitHub 与官方教程放在参考资料中。
+实验以具体教材、版本和章节为单位，使用作者或出版社提供的代码。课程流程图、教材阅读器与 Morphicons 互动继续沿用，教材列表仍在实验上方。
 
-网页先显示课程教材，随后显示配套实验。四个入口分别为实验指导、下载练习文件、查看提示、核对结果。阶段勾选是用户自行确认的学习记录，按账号保存在数据库中，重新进入或跨设备登录后可以继续。勾选不会触发代码执行，也不代表平台已批改程序。
+## 页面使用
 
-## 在电脑上开始
+1. 选择课程和正在阅读的教材。平台按书名识别已关联 PDF，提供“阅读这本教材”；无法确认对应 PDF 时显示“教材 PDF 待关联”，不会绑定无关文献。
+2. 选择章节，查看该章的学习内容。四本教材提供站内原始代码预览，多个 Python 文件可以切换。
+3. “打开原始实验”进入固定提交的章节；“下载配套代码”从原作者 GitHub / GitLab 下载该版本的完整 ZIP。保留数据、公共函数和目录结构，避免单文件下载导致导入失败。
+4. 在“运行说明”中核对依赖和数据，按教材要求在自己的电脑或推荐的云端 Notebook 环境运行。
+5. 完成实验后勾选“已完成”。记录按账号、教材和章节保存，可以取消，不表示平台自动批改过代码。
 
-建议 Python 3.11 或 3.12，并为练习单独建立环境。下载 .ipynb 文件，按开头的命令安装相应库，再用 `jupyter notebook` 打开。
+同一课程的不同教材各自有章节和进度，不共用旧的三阶段勾选。教材切换不会移动文献或重置阅读页码、笔记和学习计划。
 
-1. 先运行“跟着做”，解释输入与输出。
-2. 在“自己补全”填写 TODO，重新运行函数和检查单元。初始模板返回 None，显示“待完成”，不会假装通过。
-3. 在“独立完成”更换数据或条件，独立实现并解释结果。
-4. 完成数值检查和复盘后，再勾选对应阶段。
+## 已核实来源（2026-10-15）
 
-文件包含示例、数据、检查单元与文件末尾的参考解答。计算在学习者自己的电脑运行，网页服务器不执行用户代码、不需要安装训练环境。机器学习与深度学习的数据由 scikit-learn 安装包提供，不额外下载大型数据集或模型。
+| 课程 | 教材与版本 | 章节入口 | 站内预览 | 来源 |
+| --- | --- | ---: | --- | --- |
+| Python | Python 编程：从入门到实践，第一版 | 20 | 作者入口 | [Eric Matthes / pcc](https://github.com/ehmatthes/pcc) |
+| Python | 利用 Python 进行数据分析，第二版 | 13 | 原始代码单元 | [Wes McKinney / 2nd-edition](https://github.com/wesm/pydata-book/tree/2nd-edition) |
+| 机器学习 | Python 机器学习基础教程，第一版 | 7 | 作者入口 | [Müller / introduction_to_ml_with_python](https://github.com/amueller/introduction_to_ml_with_python) |
+| 机器学习 | 动手学机器学习，张伟楠、赵寒烨、俞勇 | 15 | 作者入口 | [教材官网](https://hml.boyuai.com/)指向的 [boyu-ai / Hands-on-ML](https://github.com/boyu-ai/Hands-on-ML) |
+| 深度学习 | 深度学习入门：基于 Python 的理论与实现，第一卷 | 8 | 原始 Python 文件 | [O’Reilly Japan](https://github.com/oreilly-japan/deep-learning-from-scratch) |
+| PyTorch | 动手学深度学习，第二版 PyTorch | 16 节 | 原始代码单元 | [官方 PyTorch Notebook](https://github.com/d2l-ai/d2l-zh-pytorch-colab) |
+| NLP | Natural Language Processing in Action，第二版 | 12 | 出版社入口 | [出版社](https://www.manning.com/books/natural-language-processing-in-action-second-edition)指向的 [Tangible AI / nlpia2](https://gitlab.com/tangibleai/nlpia2/) |
+| LLM | Hands-On Large Language Models，2024 版配套代码 | 12 | 原始代码单元 | [作者官方仓库](https://github.com/HandsOnLLM/Hands-On-Large-Language-Models) |
 
-## 实验与教材
+合计 103 个章节入口，49 份本地代码预览，约 350 KB（含许可证与来源记录）。这些数字表示接入范围，不表示全部实验已在当前依赖环境运行成功。数学分析、高代、概率暂无核实的原配仓库，保留教材习题安排。
 
-| 课程 | 实验 | 教材范围与先修 | 成果 |
-| --- | --- | --- | --- |
-| 数学分析 | 函数、切线与数值导数 | 导数与切线；Python、NumPy、基础绘图 | 曲线、切线、差分误差 |
-| 高等代数 | 矩阵如何变换平面 | Strang 的矩阵运算与线性变换；Python/NumPy | 旋转、拉伸、投影及组合 |
-| Python | 我的学习记录统计 | 《Python 编程：从入门到实践》的字典、文件与可视化 | 日期和课程时长统计 |
-| 机器学习 | 一步步完成鸢尾花分类 | Müller、Guido 第 1 章；Python/NumPy | 预测、准确率、混淆矩阵、错误样本 |
-| 深度学习 | 两层网络识别手写数字 | 斋藤康毅第 1—5 章；矩阵、链式法则 | 梯度核对、损失曲线、数字识别 |
-| PyTorch | 线性回归的完整训练过程 | D2L PyTorch 第 2 章、3.1—3.3 节 | 参数恢复与独立测试误差 |
-| NLP | 教材简介关键词检索 | NLP in Action 第二版第 2—3 章 | TF-IDF 检索与边界处理 |
-| LLM | 教材简介整理助手 | Hands-On LLM 的 Prompt Engineering 章；JSON | 格式校验与原文核对 |
+## 版本与运行环境
 
-概率继续保留教材练习，暂不放独立实验。数学课的编程实验先完成 Python 基础。自动求导和 SVD 可在相应知识完成后另加，当前不作为第一项实验。原有推荐教材关联不改动。
+- `pcc` 是第一版资源，已归档。部分 Pygal、外部 API、Django 和部署代码依赖旧版本，不能用第三版资源替代第一版 PDF。
+- 数据分析使用 `2nd-edition` 对应提交。样例数据从完整仓库获取，旧 pandas API 需匹配相应环境。
+- Müller 的 README 仍提到 scikit-learn 0.20.0。运行需保留 `mglearn`、`preamble.py` 与数据文件，使用原环境或经过核验的兼容方案。
+- D2L 使用官网链接的 PyTorch 生成仓库，不混入其他框架。接入 2.1—2.6、3.2、3.3、3.6、3.7、4.2、4.3、4.5、4.6、6.2、6.6 节。
+- NLP 第二版官方资源在 GitLab，不能用第一版 GitHub 仓库替代。预出版 PDF 以章节标题对应。
+- Hands-On LLM 作者主要在 Colab T4 16GB GPU 上测试。部分代码下载模型或调用外部 API；预出版 PDF 与仓库可能章节编号不同，按主题标题对应。
 
-## 鸢尾花样板
+平台只预览代码，不执行安装、训练、模型下载或 API 调用。运行环境和所需额度由学习者按实际实验准备。
 
-跟着做：观察 150×4 的数据，固定种子得到 112 条训练和 38 条测试，运行 k=1 分类器，查看预测、新样本类别、混淆矩阵和错误样本。
+## 来源与授权
 
-自己补全：返回 model、predictions 和 accuracy，检查模型训练样本数量、预测形状及准确率计算。还需自己解释训练与测试为何分开。
+所有章节入口和下载固定到已核实提交，不随默认分支自动漂移。站内预览仅提取代码，保留代码顺序，不复制 Notebook 正文、HTML 输出、图片、模型或数据集。
 
-独立完成：预先固定 k=3 和另一随机种子，独立实现并分析错误。不要求分数提高，不根据测试分数反复选择 k。程序检查不能替代对数据泄漏与泛化的理解。
+斋藤康毅和 Wes McKinney 的代码为 MIT；D2L 和 Hands-On LLM 的代码为 Apache-2.0。D2L 的官方生成代码同时记录原始源码仓库许可证。每本镜像教材附 `LICENSE.txt` 和 `NOTICE.txt`。其他四本直接提供作者或出版社入口，不复制内容。
 
-## 数据和模型调用
+维护位置：
 
-学习记录与教材简介是明确标注的教学数据，不连接用户真实记录或文献库。数字识别使用 scikit-learn 内置的 8×8 手写数字，网络由 NumPy 实现，库只提供数据和划分。数据来源见 [官方 load_digits 文档](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_digits.html)。
+- `tools/textbook_lab_sources.json`：教材、版本、章节路径、许可证与固定提交。
+- `backend/src/main/resources/textbook-labs.json`：生成后的接口目录。
+- `frontend/labs/upstream/{book}/{chapter}.json`：代码快照，每个原文件附 SHA-256。
 
-LLM Notebook 默认只读取示例响应，不联网、不计费。离线检查只验证解析逻辑，不能证明真实模型表现。真实实验可以在平台教材阅读器用默认或个人 API 提问，将回答粘贴进 Notebook；也可以在自己的电脑配置个人兼容 API，主动调用 call_model。密钥从环境变量或不回显输入读取，不保存到 Notebook 或 Git，不复制管理员默认密钥。
+## 更新和部署
 
-格式正确后仍需逐项核对原文，未提及的字段保持 null。无可用 API 时，真实模型部分仍未完成。
-
-## 维护与验证
-
-界面代码：frontend/learning-labs.js。文件目录：frontend/labs。登录后通过受限接口下载。重建文件：
-
-```bash
-python tools/build_learning_labs.py
-```
-
-验证八份 Notebook：
+代码预览已经随 Git 保存。服务器不需要运行同步工具，也不需要安装训练环境。SSH 终端执行一整行：
 
 ```bash
-python -m pip install -r frontend/labs/requirements.txt
-python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-python backend/tests/learning_notebooks.py
+cd /opt/math-platform && git pull --ff-only && cd backend && ./mvnw -B package && systemctl restart math-platform && curl --retry 15 --retry-connrefused --retry-delay 1 -fsS http://127.0.0.1:8080/api/health
 ```
 
-检查运行示例、未完成模板、参考答案和部分错误实现，阻止外部请求。Java 接口测试检查登录、CSRF、下载内容和用户隔离。数据库脚本还按实际服务语句边界检查启动和重复升级。
+浏览器强制刷新，进入 `/#/apps/math-to-ai`。管理端 `admin#ai-learning` 继续从文献库关联相应 PDF。
 
-教材参考：[Müller、Guido 第 1 章](https://github.com/amueller/introduction_to_ml_with_python/blob/main/01-introduction.ipynb)、[斋藤康毅第 5 章](https://github.com/oreilly-japan/deep-learning-from-scratch/tree/master/ch05)、[D2L 线性回归](https://zh.d2l.ai/chapter_linear-networks/linear-regression-concise.html)、[Hands-On LLM](https://github.com/HandsOnLLM/Hands-On-Large-Language-Models)。
+维护者更新源代码时，先核对版本与授权、修改维护清单，再手动执行（Python 3.9+）：
+
+```bash
+python tools/sync_textbook_labs.py
+python backend/tests/textbook_labs.py
+```
+
+同步工具仅读取固定版本的代码，不执行上游程序。Git 忽略的下载缓存位于 `frontend/tests/artifacts/textbook-source-cache`，不需上传服务器。
+
+## 接口与验证
+
+| 方法 | 登录后接口 | 功能 |
+| --- | --- | --- |
+| GET | `/api/learning-labs/catalog` | 教材、版本、章节与固定来源 |
+| GET | `/api/learning-labs/progress` | 当前账号的章节完成记录 |
+| GET | `/api/learning-labs/{book}/chapters/{chapter}/preview` | 清单允许的本地原始代码 |
+| PUT | `/api/learning-labs/{book}/chapters/{chapter}/progress` | 带 CSRF 的 `{ "completed": true/false }` |
+
+`textbook_lab_progress` 按账号、教材、章节保存。旧 `learning_lab_progress` 表保留历史记录，旧自编练习文件、生成器与接口退出当前功能。
+
+离线审计检查固定来源、授权和代码提取范围；开发缓存存在时核对每份原文件摘要与代码单元。Java 测试实际启动服务，验证登录、CSRF、全部预览及两个账号的进度隔离。浏览器验证教材识别、章节切换、原始文件选择、失败重试、代码纯文本显示、进度记忆、手机布局，以及课程切换不重建流程图。

@@ -1,0 +1,21 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s3-7",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_linear-networks/softmax-regression-concise.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/softmax-regression-concise.ipynb",
+      "sha256": "ab8ad369aa7d05282ce7af2ace338dce1c998ddd5b6e562471818ff343ddfddd",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "import torch\nfrom torch import nn\nfrom d2l import torch as d2l",
+        "batch_size = 256\ntrain_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)",
+        "# PyTorch不会隐式地调整输入的形状。因此，\n# 我们在线性层前定义了展平层（flatten），来调整网络输入的形状\nnet = nn.Sequential(nn.Flatten(), nn.Linear(784, 10))\n\ndef init_weights(m):\n    if type(m) == nn.Linear:\n        nn.init.normal_(m.weight, std=0.01)\n\nnet.apply(init_weights);",
+        "loss = nn.CrossEntropyLoss(reduction='none')",
+        "trainer = torch.optim.SGD(net.parameters(), lr=0.1)",
+        "num_epochs = 10\nd2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)"
+      ]
+    }
+  ]
+}

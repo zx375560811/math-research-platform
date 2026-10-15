@@ -1,0 +1,44 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s2-3",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_preliminaries/linear-algebra.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/linear-algebra.ipynb",
+      "sha256": "419e8aae4b4a3d6115bdec8bbb334427d38c343bf9483e9dd67ec57b42c5b9f6",
+      "cells": [
+        "import torch\n\nx = torch.tensor(3.0)\ny = torch.tensor(2.0)\n\nx + y, x * y, x / y, x**y",
+        "x = torch.arange(4)\nx",
+        "x[3]",
+        "len(x)",
+        "x.shape",
+        "A = torch.arange(20).reshape(5, 4)\nA",
+        "A.T",
+        "B = torch.tensor([[1, 2, 3], [2, 0, 4], [3, 4, 5]])\nB",
+        "B == B.T",
+        "X = torch.arange(24).reshape(2, 3, 4)\nX",
+        "A = torch.arange(20, dtype=torch.float32).reshape(5, 4)\nB = A.clone()  # 通过分配新内存，将A的一个副本分配给B\nA, A + B",
+        "A * B",
+        "a = 2\nX = torch.arange(24).reshape(2, 3, 4)\na + X, (a * X).shape",
+        "x = torch.arange(4, dtype=torch.float32)\nx, x.sum()",
+        "A.shape, A.sum()",
+        "A_sum_axis0 = A.sum(axis=0)\nA_sum_axis0, A_sum_axis0.shape",
+        "A_sum_axis1 = A.sum(axis=1)\nA_sum_axis1, A_sum_axis1.shape",
+        "A.sum(axis=[0, 1])  # 结果和A.sum()相同",
+        "A.mean(), A.sum() / A.numel()",
+        "A.mean(axis=0), A.sum(axis=0) / A.shape[0]",
+        "sum_A = A.sum(axis=1, keepdims=True)\nsum_A",
+        "A / sum_A",
+        "A.cumsum(axis=0)",
+        "y = torch.ones(4, dtype = torch.float32)\nx, y, torch.dot(x, y)",
+        "torch.sum(x * y)",
+        "A.shape, x.shape, torch.mv(A, x)",
+        "B = torch.ones(4, 3)\ntorch.mm(A, B)",
+        "u = torch.tensor([3.0, -4.0])\ntorch.norm(u)",
+        "torch.abs(u).sum()",
+        "torch.norm(torch.ones((4, 9)))"
+      ]
+    }
+  ]
+}

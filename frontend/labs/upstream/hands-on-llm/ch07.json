@@ -1,0 +1,47 @@
+{
+  "book": "hands-on-llm",
+  "chapter": "ch07",
+  "commit": "ea3390819997999a51983677b80b3aac4dc50ada",
+  "files": [
+    {
+      "path": "chapter07/Chapter 7 - Advanced Text Generation Techniques and Tools.ipynb",
+      "url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter07/Chapter%207%20-%20Advanced%20Text%20Generation%20Techniques%20and%20Tools.ipynb",
+      "sha256": "120622855e8314857d22bed45f6f69b707c981ffe200e2e318502a1e7f05e868",
+      "cells": [
+        "# %%capture\n# !pip install langchain>=0.1.17 openai>=1.13.3 langchain_openai>=0.1.6 transformers>=4.40.1 datasets>=2.18.0 accelerate>=0.27.2 sentence-transformers>=2.5.1 duckduckgo-search>=5.2.2 langchain_community\n# !CMAKE_ARGS=\"-DLLAMA_CUDA=on\" pip install llama-cpp-python==0.2.69",
+        "!wget https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-fp16.gguf\n\n# If this command does not work for you, you can use the link directly to download the model\n# https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-fp16.gguf",
+        "from langchain import LlamaCpp\n\n# Make sure the model path is correct for your system!\nllm = LlamaCpp(\n    model_path=\"Phi-3-mini-4k-instruct-fp16.gguf\",\n    n_gpu_layers=-1,\n    max_tokens=500,\n    n_ctx=2048,\n    seed=42,\n    verbose=False\n)",
+        "llm.invoke(\"Hi! My name is Maarten. What is 1 + 1?\")",
+        "from langchain import PromptTemplate\n\n# Create a prompt template with the \"input_prompt\" variable\ntemplate = \"\"\"<s><|user|>\n{input_prompt}<|end|>\n<|assistant|>\"\"\"\nprompt = PromptTemplate(\n    template=template,\n    input_variables=[\"input_prompt\"]\n)",
+        "basic_chain = prompt | llm",
+        "# Use the chain\nbasic_chain.invoke(\n    {\n        \"input_prompt\": \"Hi! My name is Maarten. What is 1 + 1?\",\n    }\n)",
+        "from langchain import LLMChain\n\n# Create a chain for the title of our story\ntemplate = \"\"\"<s><|user|>\nCreate a title for a story about {summary}. Only return the title.<|end|>\n<|assistant|>\"\"\"\ntitle_prompt = PromptTemplate(template=template, input_variables=[\"summary\"])\ntitle = LLMChain(llm=llm, prompt=title_prompt, output_key=\"title\")",
+        "title.invoke({\"summary\": \"a girl that lost her mother\"})",
+        "# Create a chain for the character description using the summary and title\ntemplate = \"\"\"<s><|user|>\nDescribe the main character of a story about {summary} with the title {title}. Use only two sentences.<|end|>\n<|assistant|>\"\"\"\ncharacter_prompt = PromptTemplate(\n    template=template, input_variables=[\"summary\", \"title\"]\n)\ncharacter = LLMChain(llm=llm, prompt=character_prompt, output_key=\"character\")",
+        "# Create a chain for the story using the summary, title, and character description\ntemplate = \"\"\"<s><|user|>\nCreate a story about {summary} with the title {title}. The main charachter is: {character}. Only return the story and it cannot be longer than one paragraph<|end|>\n<|assistant|>\"\"\"\nstory_prompt = PromptTemplate(\n    template=template, input_variables=[\"summary\", \"title\", \"character\"]\n)\nstory = LLMChain(llm=llm, prompt=story_prompt, output_key=\"story\")",
+        "# Combine all three components to create the full chain\nllm_chain = title | character | story",
+        "llm_chain.invoke(\"a girl that lost her mother\")",
+        "# Let's give the LLM our name\nbasic_chain.invoke({\"input_prompt\": \"Hi! My name is Maarten. What is 1 + 1?\"})",
+        "# Next, we ask the LLM to reproduce the name\nbasic_chain.invoke({\"input_prompt\": \"What is my name?\"})",
+        "# Create an updated prompt template to include a chat history\ntemplate = \"\"\"<s><|user|>Current conversation:{chat_history}\n\n{input_prompt}<|end|>\n<|assistant|>\"\"\"\n\nprompt = PromptTemplate(\n    template=template,\n    input_variables=[\"input_prompt\", \"chat_history\"]\n)",
+        "from langchain.memory import ConversationBufferMemory\n\n# Define the type of Memory we will use\nmemory = ConversationBufferMemory(memory_key=\"chat_history\")\n\n# Chain the LLM, Prompt, and Memory together\nllm_chain = LLMChain(\n    prompt=prompt,\n    llm=llm,\n    memory=memory\n)",
+        "# Generate a conversation and ask a basic question\nllm_chain.invoke({\"input_prompt\": \"Hi! My name is Maarten. What is 1 + 1?\"})",
+        "# Does the LLM remember the name we gave it?\nllm_chain.invoke({\"input_prompt\": \"What is my name?\"})",
+        "from langchain.memory import ConversationBufferWindowMemory\n\n# Retain only the last 2 conversations in memory\nmemory = ConversationBufferWindowMemory(k=2, memory_key=\"chat_history\")\n\n# Chain the LLM, Prompt, and Memory together\nllm_chain = LLMChain(\n    prompt=prompt,\n    llm=llm,\n    memory=memory\n)",
+        "# Ask two questions and generate two conversations in its memory\nllm_chain.invoke({\"input_prompt\":\"Hi! My name is Maarten and I am 33 years old. What is 1 + 1?\"})\nllm_chain.invoke({\"input_prompt\":\"What is 3 + 3?\"})",
+        "# Check whether it knows the name we gave it\nllm_chain.invoke({\"input_prompt\":\"What is my name?\"})",
+        "# Check whether it knows the age we gave it\nllm_chain.invoke({\"input_prompt\":\"What is my age?\"})",
+        "# Create a summary prompt template\nsummary_prompt_template = \"\"\"<s><|user|>Summarize the conversations and update with the new lines.\n\nCurrent summary:\n{summary}\n\nnew lines of conversation:\n{new_lines}\n\nNew summary:<|end|>\n<|assistant|>\"\"\"\nsummary_prompt = PromptTemplate(\n    input_variables=[\"new_lines\", \"summary\"],\n    template=summary_prompt_template\n)",
+        "from langchain.memory import ConversationSummaryMemory\n\n# Define the type of memory we will use\nmemory = ConversationSummaryMemory(\n    llm=llm,\n    memory_key=\"chat_history\",\n    prompt=summary_prompt\n)\n\n# Chain the LLM, prompt, and memory together\nllm_chain = LLMChain(\n    prompt=prompt,\n    llm=llm,\n    memory=memory\n)",
+        "# Generate a conversation and ask for the name\nllm_chain.invoke({\"input_prompt\": \"Hi! My name is Maarten. What is 1 + 1?\"})\nllm_chain.invoke({\"input_prompt\": \"What is my name?\"})",
+        "# Check whether it has summarized everything thus far\nllm_chain.invoke({\"input_prompt\": \"What was the first question I asked?\"})",
+        "# Check what the summary is thus far\nmemory.load_memory_variables({})",
+        "import os\nfrom langchain_openai import ChatOpenAI\n\n# Load OpenAI's LLMs with LangChain\nos.environ[\"OPENAI_API_KEY\"] = \"MY_KEY\"\nopenai_llm = ChatOpenAI(model_name=\"gpt-3.5-turbo\", temperature=0)",
+        "# Create the ReAct template\nreact_template = \"\"\"Answer the following questions as best you can. You have access to the following tools:\n\n{tools}\n\nUse the following format:\n\nQuestion: the input question you must answer\nThought: you should always think about what to do\nAction: the action to take, should be one of [{tool_names}]\nAction Input: the input to the action\nObservation: the result of the action\n... (this Thought/Action/Action Input/Observation can repeat N times)\nThought: I now know the final answer\nFinal Answer: the final answer to the original input question\n\nBegin!\n\nQuestion: {input}\nThought:{agent_scratchpad}\"\"\"\n\nprompt = PromptTemplate(\n    template=react_template,\n    input_variables=[\"tools\", \"tool_names\", \"input\", \"agent_scratchpad\"]\n)",
+        "from langchain.agents import load_tools, Tool\nfrom langchain.tools import DuckDuckGoSearchResults\n\n# You can create the tool to pass to an agent\nsearch = DuckDuckGoSearchResults()\nsearch_tool = Tool(\n    name=\"duckduck\",\n    description=\"A web search engine. Use this to as a search engine for general queries.\",\n    func=search.run,\n)\n\n# Prepare tools\ntools = load_tools([\"llm-math\"], llm=openai_llm)\ntools.append(search_tool)",
+        "from langchain.agents import AgentExecutor, create_react_agent\n\n# Construct the ReAct agent\nagent = create_react_agent(openai_llm, tools, prompt)\nagent_executor = AgentExecutor(\n    agent=agent, tools=tools, verbose=True, handle_parsing_errors=True\n)",
+        "# What is the Price of a MacBook Pro?\nagent_executor.invoke(\n    {\n        \"input\": \"What is the current price of a MacBook Pro in USD? How much would it cost in EUR if the exchange rate is 0.85 EUR for 1 USD?\"\n    }\n)"
+      ]
+    }
+  ]
+}

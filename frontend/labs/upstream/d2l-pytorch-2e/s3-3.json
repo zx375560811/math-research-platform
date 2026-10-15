@@ -1,0 +1,26 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s3-3",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_linear-networks/linear-regression-concise.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/linear-regression-concise.ipynb",
+      "sha256": "ed51d84ccb8630e2190310006cd2b355f0dcfede750242530b03cba0c60b0921",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "import numpy as np\nimport torch\nfrom torch.utils import data\nfrom d2l import torch as d2l",
+        "true_w = torch.tensor([2, -3.4])\ntrue_b = 4.2\nfeatures, labels = d2l.synthetic_data(true_w, true_b, 1000)",
+        "def load_array(data_arrays, batch_size, is_train=True):  #@save\n    \"\"\"构造一个PyTorch数据迭代器\"\"\"\n    dataset = data.TensorDataset(*data_arrays)\n    return data.DataLoader(dataset, batch_size, shuffle=is_train)",
+        "batch_size = 10\ndata_iter = load_array((features, labels), batch_size)",
+        "next(iter(data_iter))",
+        "# nn是神经网络的缩写\nfrom torch import nn\n\nnet = nn.Sequential(nn.Linear(2, 1))",
+        "net[0].weight.data.normal_(0, 0.01)\nnet[0].bias.data.fill_(0)",
+        "loss = nn.MSELoss()",
+        "trainer = torch.optim.SGD(net.parameters(), lr=0.03)",
+        "num_epochs = 3\nfor epoch in range(num_epochs):\n    for X, y in data_iter:\n        l = loss(net(X) ,y)\n        trainer.zero_grad()\n        l.backward()\n        trainer.step()\n    l = loss(net(features), labels)\n    print(f'epoch {epoch + 1}, loss {l:f}')",
+        "w = net[0].weight.data\nprint('w的估计误差：', true_w - w.reshape(true_w.shape))\nb = net[0].bias.data\nprint('b的估计误差：', true_b - b)"
+      ]
+    }
+  ]
+}

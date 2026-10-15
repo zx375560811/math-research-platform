@@ -1,0 +1,22 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s4-6",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_multilayer-perceptrons/dropout.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_multilayer-perceptrons/dropout.ipynb",
+      "sha256": "1343c06a2b702a5ab81210e5d6dbc508e51d582015dce38ab1587d596ce5fe50",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "import torch\nfrom torch import nn\nfrom d2l import torch as d2l\n\n\ndef dropout_layer(X, dropout):\n    assert 0 <= dropout <= 1\n    # 在本情况中，所有元素都被丢弃\n    if dropout == 1:\n        return torch.zeros_like(X)\n    # 在本情况中，所有元素都被保留\n    if dropout == 0:\n        return X\n    mask = (torch.rand(X.shape) > dropout).float()\n    return mask * X / (1.0 - dropout)",
+        "X= torch.arange(16, dtype = torch.float32).reshape((2, 8))\nprint(X)\nprint(dropout_layer(X, 0.))\nprint(dropout_layer(X, 0.5))\nprint(dropout_layer(X, 1.))",
+        "num_inputs, num_outputs, num_hiddens1, num_hiddens2 = 784, 10, 256, 256",
+        "dropout1, dropout2 = 0.2, 0.5\n\nclass Net(nn.Module):\n    def __init__(self, num_inputs, num_outputs, num_hiddens1, num_hiddens2,\n                 is_training = True):\n        super(Net, self).__init__()\n        self.num_inputs = num_inputs\n        self.training = is_training\n        self.lin1 = nn.Linear(num_inputs, num_hiddens1)\n        self.lin2 = nn.Linear(num_hiddens1, num_hiddens2)\n        self.lin3 = nn.Linear(num_hiddens2, num_outputs)\n        self.relu = nn.ReLU()\n\n    def forward(self, X):\n        H1 = self.relu(self.lin1(X.reshape((-1, self.num_inputs))))\n        # 只有在训练模型时才使用dropout\n        if self.training == True:\n            # 在第一个全连接层之后添加一个dropout层\n            H1 = dropout_layer(H1, dropout1)\n        H2 = self.relu(self.lin2(H1))\n        if self.training == True:\n            # 在第二个全连接层之后添加一个dropout层\n            H2 = dropout_layer(H2, dropout2)\n        out = self.lin3(H2)\n        return out\n\n\nnet = Net(num_inputs, num_outputs, num_hiddens1, num_hiddens2)",
+        "num_epochs, lr, batch_size = 10, 0.5, 256\nloss = nn.CrossEntropyLoss(reduction='none')\ntrain_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)\ntrainer = torch.optim.SGD(net.parameters(), lr=lr)\nd2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)",
+        "net = nn.Sequential(nn.Flatten(),\n        nn.Linear(784, 256),\n        nn.ReLU(),\n        # 在第一个全连接层之后添加一个dropout层\n        nn.Dropout(dropout1),\n        nn.Linear(256, 256),\n        nn.ReLU(),\n        # 在第二个全连接层之后添加一个dropout层\n        nn.Dropout(dropout2),\n        nn.Linear(256, 10))\n\ndef init_weights(m):\n    if type(m) == nn.Linear:\n        nn.init.normal_(m.weight, std=0.01)\n\nnet.apply(init_weights);",
+        "trainer = torch.optim.SGD(net.parameters(), lr=lr)\nd2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)"
+      ]
+    }
+  ]
+}

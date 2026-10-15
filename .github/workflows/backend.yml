@@ -7,19 +7,15 @@ permissions:
   contents: read
 
 jobs:
-  learning-notebooks:
+  textbook-companions:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install CPU exercise dependencies
-        run: |
-          python -m pip install -r frontend/labs/requirements.txt
-          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - name: Run all staged notebooks without API calls
-        run: python backend/tests/learning_notebooks.py
+      - name: Check pinned textbook code and source boundaries
+        run: python backend/tests/textbook_labs.py
   zotero-compatibility:
     runs-on: ubuntu-22.04
     steps:

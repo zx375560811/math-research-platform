@@ -1,0 +1,38 @@
+{
+  "book": "hands-on-llm",
+  "chapter": "ch04",
+  "commit": "ea3390819997999a51983677b80b3aac4dc50ada",
+  "files": [
+    {
+      "path": "chapter04/Chapter 4 - Text Classification.ipynb",
+      "url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter04/Chapter%204%20-%20Text%20Classification.ipynb",
+      "sha256": "a07ae914667c6f042e7238cf087ad79d2ffb4366f0485d52b526adf67d199f66",
+      "cells": [
+        "# %%capture\n# !pip install \"transformers==4.41.2\" \"sentence-transformers==3.0.1\" openai\n# !pip install -U datasets",
+        "from datasets import load_dataset\n\n# Load our data\ndata = load_dataset(\"rotten_tomatoes\")\ndata",
+        "data[\"train\"][0, -1]",
+        "from transformers import pipeline\n\n# Path to our HF model\nmodel_path = \"cardiffnlp/twitter-roberta-base-sentiment-latest\"\n\n# Load model into pipeline\npipe = pipeline(\n    model=model_path,\n    tokenizer=model_path,\n    return_all_scores=True,\n    device=\"cuda:0\"\n)",
+        "import numpy as np\nfrom tqdm import tqdm\nfrom transformers.pipelines.pt_utils import KeyDataset\n\n# Run inference\ny_pred = []\nfor output in tqdm(pipe(KeyDataset(data[\"test\"], \"text\")), total=len(data[\"test\"])):\n    negative_score = output[0][\"score\"]\n    positive_score = output[2][\"score\"]\n    assignment = np.argmax([negative_score, positive_score])\n    y_pred.append(assignment)",
+        "from sklearn.metrics import classification_report\n\ndef evaluate_performance(y_true, y_pred):\n    \"\"\"Create and print the classification report\"\"\"\n    performance = classification_report(\n        y_true, y_pred,\n        target_names=[\"Negative Review\", \"Positive Review\"]\n    )\n    print(performance)",
+        "evaluate_performance(data[\"test\"][\"label\"], y_pred)",
+        "from sentence_transformers import SentenceTransformer\n\n# Load model\nmodel = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')\n\n# Convert text to embeddings\ntrain_embeddings = model.encode(data[\"train\"][\"text\"], show_progress_bar=True)\ntest_embeddings = model.encode(data[\"test\"][\"text\"], show_progress_bar=True)",
+        "train_embeddings.shape",
+        "from sklearn.linear_model import LogisticRegression\n\n# Train a Logistic Regression on our train embeddings\nclf = LogisticRegression(random_state=42)\nclf.fit(train_embeddings, data[\"train\"][\"label\"])",
+        "# Predict previously unseen instances\ny_pred = clf.predict(test_embeddings)\nevaluate_performance(data[\"test\"][\"label\"], y_pred)",
+        "import numpy as np\nimport pandas as pd\nfrom sklearn.metrics import classification_report\nfrom sklearn.metrics.pairwise import cosine_similarity\n\n# Average the embeddings of all documents in each target label\ndf = pd.DataFrame(np.hstack([train_embeddings, np.array(data[\"train\"][\"label\"]).reshape(-1, 1)]))\naveraged_target_embeddings = df.groupby(768).mean().values\n\n# Find the best matching embeddings between evaluation documents and target embeddings\nsim_matrix = cosine_similarity(test_embeddings, averaged_target_embeddings)\ny_pred = np.argmax(sim_matrix, axis=1)\n\n# Evaluate the model\nevaluate_performance(data[\"test\"][\"label\"], y_pred)",
+        "# Create embeddings for our labels\nlabel_embeddings = model.encode([\"A negative review\",  \"A positive review\"])",
+        "from sklearn.metrics.pairwise import cosine_similarity\n\n# Find the best matching label for each document\nsim_matrix = cosine_similarity(test_embeddings, label_embeddings)\ny_pred = np.argmax(sim_matrix, axis=1)",
+        "evaluate_performance(data[\"test\"][\"label\"], y_pred)",
+        "# Load our model\npipe = pipeline(\n    \"text2text-generation\",\n    model=\"google/flan-t5-small\",\n    device=\"cuda:0\"\n)",
+        "# Prepare our data\nprompt = \"Is the following sentence positive or negative? \"\ndata = data.map(lambda example: {\"t5\": prompt + example['text']})\ndata",
+        "# Run inference\ny_pred = []\nfor output in tqdm(pipe(KeyDataset(data[\"test\"], \"t5\")), total=len(data[\"test\"])):\n    text = output[0][\"generated_text\"]\n    y_pred.append(0 if text == \"negative\" else 1)",
+        "evaluate_performance(data[\"test\"][\"label\"], y_pred)",
+        "import openai\n\n# Create client\nclient = openai.OpenAI(api_key=\"YOUR_KEY_HERE\")",
+        "def chatgpt_generation(prompt, document, model=\"gpt-3.5-turbo-0125\"):\n    \"\"\"Generate an output based on a prompt and an input document.\"\"\"\n    messages=[\n        {\n            \"role\": \"system\",\n            \"content\": \"You are a helpful assistant.\"\n            },\n        {\n            \"role\": \"user\",\n            \"content\":   prompt.replace(\"[DOCUMENT]\", document)\n            }\n    ]\n    chat_completion = client.chat.completions.create(\n      messages=messages,\n      model=model,\n      temperature=0\n    )\n    return chat_completion.choices[0].message.content",
+        "# Define a prompt template as a base\nprompt = \"\"\"Predict whether the following document is a positive or negative movie review:\n\n[DOCUMENT]\n\nIf it is positive return 1 and if it is negative return 0. Do not give any other answers.\n\"\"\"\n\n# Predict the target using GPT\ndocument = \"unpretentious , charming , quirky , original\"\nchatgpt_generation(prompt, document)",
+        "# You can skip this if you want to save your (free) credits\npredictions = [chatgpt_generation(prompt, doc) for doc in tqdm(data[\"test\"][\"text\"])]",
+        "# Extract predictions\ny_pred = [int(pred) for pred in predictions]\n\n# Evaluate performance\nevaluate_performance(data[\"test\"][\"label\"], y_pred)"
+      ]
+    }
+  ]
+}

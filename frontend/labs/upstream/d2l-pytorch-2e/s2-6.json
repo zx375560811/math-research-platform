@@ -1,0 +1,20 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s2-6",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_preliminaries/probability.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/probability.ipynb",
+      "sha256": "fdf891dc46af95ea94e86c41a81571939ef7e139ad26ca644334c7edf339d379",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "%matplotlib inline\nimport torch\nfrom torch.distributions import multinomial\nfrom d2l import torch as d2l",
+        "fair_probs = torch.ones([6]) / 6\nmultinomial.Multinomial(1, fair_probs).sample()",
+        "multinomial.Multinomial(10, fair_probs).sample()",
+        "# 将结果存储为32位浮点数以进行除法\ncounts = multinomial.Multinomial(1000, fair_probs).sample()\ncounts / 1000  # 相对频率作为估计值",
+        "counts = multinomial.Multinomial(10, fair_probs).sample((500,))\ncum_counts = counts.cumsum(dim=0)\nestimates = cum_counts / cum_counts.sum(dim=1, keepdims=True)\n\nd2l.set_figsize((6, 4.5))\nfor i in range(6):\n    d2l.plt.plot(estimates[:, i].numpy(),\n                 label=(\"P(die=\" + str(i + 1) + \")\"))\nd2l.plt.axhline(y=0.167, color='black', linestyle='dashed')\nd2l.plt.gca().set_xlabel('Groups of experiments')\nd2l.plt.gca().set_ylabel('Estimated probability')\nd2l.plt.legend();"
+      ]
+    }
+  ]
+}

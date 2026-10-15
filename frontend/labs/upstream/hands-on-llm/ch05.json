@@ -1,0 +1,40 @@
+{
+  "book": "hands-on-llm",
+  "chapter": "ch05",
+  "commit": "ea3390819997999a51983677b80b3aac4dc50ada",
+  "files": [
+    {
+      "path": "chapter05/Chapter 5 - Text Clustering and Topic Modeling.ipynb",
+      "url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter05/Chapter%205%20-%20Text%20Clustering%20and%20Topic%20Modeling.ipynb",
+      "sha256": "c095fa5ff8c436918548711a77976cd74f24eac09117313d466929f1c1e49f09",
+      "cells": [
+        "# %%capture\n# !pip install bertopic datasets openai datamapplot",
+        "# Load data from huggingface\nfrom datasets import load_dataset\ndataset = load_dataset(\"maartengr/arxiv_nlp\")[\"train\"]\n\n# Extract metadata\nabstracts = list(dataset[\"Abstracts\"])\ntitles = list(dataset[\"Titles\"])",
+        "from sentence_transformers import SentenceTransformer\n\n# Create an embedding for each abstract\nembedding_model = SentenceTransformer('thenlper/gte-small')\nembeddings = embedding_model.encode(abstracts, show_progress_bar=True)",
+        "# Check the dimensions of the resulting embeddings\nembeddings.shape",
+        "from umap import UMAP\n\n# We reduce the input embeddings from 384 dimenions to 5 dimenions\numap_model = UMAP(\n    n_components=5, min_dist=0.0, metric='cosine', random_state=42\n)\nreduced_embeddings = umap_model.fit_transform(embeddings)",
+        "from hdbscan import HDBSCAN\n\n# We fit the model and extract the clusters\nhdbscan_model = HDBSCAN(\n    min_cluster_size=50, metric='euclidean', cluster_selection_method='eom'\n).fit(reduced_embeddings)\nclusters = hdbscan_model.labels_\n\n# How many clusters did we generate?\nlen(set(clusters))",
+        "import numpy as np\n\n# Print first three documents in cluster 0\ncluster = 0\nfor index in np.where(clusters==cluster)[0][:3]:\n    print(abstracts[index][:300] + \"... \\n\")",
+        "import pandas as pd\n\n# Reduce 384-dimensional embeddings to 2 dimensions for easier visualization\nreduced_embeddings = UMAP(\n    n_components=2, min_dist=0.0, metric='cosine', random_state=42\n).fit_transform(embeddings)\n\n# Create dataframe\ndf = pd.DataFrame(reduced_embeddings, columns=[\"x\", \"y\"])\ndf[\"title\"] = titles\ndf[\"cluster\"] = [str(c) for c in clusters]\n\n# Select outliers and non-outliers (clusters)\nclusters_df = df.loc[df.cluster != \"-1\", :]\noutliers_df = df.loc[df.cluster == \"-1\", :]",
+        "import matplotlib.pyplot as plt\n\n# Plot outliers and non-outliers seperately\nplt.scatter(outliers_df.x, outliers_df.y, alpha=0.05, s=2, c=\"grey\")\nplt.scatter(\n    clusters_df.x, clusters_df.y, c=clusters_df.cluster.astype(int),\n    alpha=0.6, s=2, cmap='tab20b'\n)\nplt.axis('off')\n# plt.savefig(\"matplotlib.png\", dpi=300)  # Uncomment to save the graph as a .png",
+        "from bertopic import BERTopic\n\n# Train our model with our previously defined models\ntopic_model = BERTopic(\n    embedding_model=embedding_model,\n    umap_model=umap_model,\n    hdbscan_model=hdbscan_model,\n    verbose=True\n).fit(abstracts, embeddings)",
+        "topic_model.get_topic_info()",
+        "topic_model.get_topic(0)",
+        "topic_model.find_topics(\"topic modeling\")",
+        "topic_model.get_topic(22)",
+        "topic_model.topics_[titles.index('BERTopic: Neural topic modeling with a class-based TF-IDF procedure')]",
+        "# Visualize topics and documents\nfig = topic_model.visualize_documents(\n    titles,\n    reduced_embeddings=reduced_embeddings,\n    width=1200,\n    hide_annotations=True\n)\n\n# Update fonts of legend for easier visualization\nfig.update_layout(font=dict(size=16))",
+        "# Visualize barchart with ranked keywords\ntopic_model.visualize_barchart()\n\n# Visualize relationships between topics\ntopic_model.visualize_heatmap(n_clusters=30)\n\n# Visualize the potential hierarchical structure of topics\ntopic_model.visualize_hierarchy()",
+        "# Save original representations\nfrom copy import deepcopy\noriginal_topics = deepcopy(topic_model.topic_representations_)",
+        "def topic_differences(model, original_topics, nr_topics=5):\n    \"\"\"Show the differences in topic representations between two models \"\"\"\n    df = pd.DataFrame(columns=[\"Topic\", \"Original\", \"Updated\"])\n    for topic in range(nr_topics):\n\n        # Extract top 5 words per topic per model\n        og_words = \" | \".join(list(zip(*original_topics[topic]))[0][:5])\n        new_words = \" | \".join(list(zip(*model.get_topic(topic)))[0][:5])\n        df.loc[len(df)] = [topic, og_words, new_words]\n\n    return df",
+        "from bertopic.representation import KeyBERTInspired\n\n# Update our topic representations using KeyBERTInspired\nrepresentation_model = KeyBERTInspired()\ntopic_model.update_topics(abstracts, representation_model=representation_model)\n\n# Show topic differences\ntopic_differences(topic_model, original_topics)",
+        "from bertopic.representation import MaximalMarginalRelevance\n\n# Update our topic representations to MaximalMarginalRelevance\nrepresentation_model = MaximalMarginalRelevance(diversity=0.5)\ntopic_model.update_topics(abstracts, representation_model=representation_model)\n\n# Show topic differences\ntopic_differences(topic_model, original_topics)",
+        "from transformers import pipeline\nfrom bertopic.representation import TextGeneration\n\nprompt = \"\"\"I have a topic that contains the following documents:\n[DOCUMENTS]\n\nThe topic is described by the following keywords: '[KEYWORDS]'.\n\nBased on the documents and keywords, what is this topic about?\"\"\"\n\n# Update our topic representations using Flan-T5\ngenerator = pipeline('text2text-generation', model='google/flan-t5-small')\nrepresentation_model = TextGeneration(\n    generator, prompt=prompt, doc_length=50, tokenizer=\"whitespace\"\n)\ntopic_model.update_topics(abstracts, representation_model=representation_model)\n\n# Show topic differences\ntopic_differences(topic_model, original_topics)",
+        "import openai\nfrom bertopic.representation import OpenAI\n\nprompt = \"\"\"\nI have a topic that contains the following documents:\n[DOCUMENTS]\n\nThe topic is described by the following keywords: [KEYWORDS]\n\nBased on the information above, extract a short topic label in the following format:\ntopic: <short topic label>\n\"\"\"\n\n# Update our topic representations using GPT-3.5\nclient = openai.OpenAI(api_key=\"YOUR_KEY_HERE\")\nrepresentation_model = OpenAI(\n    client, model=\"gpt-3.5-turbo\", exponential_backoff=True, chat=True, prompt=prompt\n)\ntopic_model.update_topics(abstracts, representation_model=representation_model)\n\n# Show topic differences\ntopic_differences(topic_model, original_topics)",
+        "# Visualize topics and documents\nfig = topic_model.visualize_document_datamap(\n    titles,\n    topics=list(range(20)),\n    reduced_embeddings=reduced_embeddings,\n    width=1200,\n    label_font_size=11,\n    label_wrap_width=20,\n    use_medoids=True,\n)\nplt.savefig(\"datamapplot.png\", dpi=300)",
+        "topic_model.update_topics(abstracts, top_n_words=500)",
+        "from wordcloud import WordCloud\nimport matplotlib.pyplot as plt\n\ndef create_wordcloud(model, topic):\n    plt.figure(figsize=(10,5))\n    text = {word: value for word, value in model.get_topic(topic)}\n    wc = WordCloud(background_color=\"white\", max_words=1000, width=1600, height=800)\n    wc.generate_from_frequencies(text)\n    plt.imshow(wc, interpolation=\"bilinear\")\n    plt.axis(\"off\")\n    plt.show()\n\n# Show wordcloud\ncreate_wordcloud(topic_model, topic=17)"
+      ]
+    }
+  ]
+}

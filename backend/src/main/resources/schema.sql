@@ -176,21 +176,26 @@ CREATE TABLE IF NOT EXISTS learning_lab_progress (
  stages INTEGER NOT NULL DEFAULT 0 CHECK(stages BETWEEN 0 AND 7),
  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
  PRIMARY KEY(username,lab));
+CREATE TABLE IF NOT EXISTS textbook_lab_progress (
+ username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+ book TEXT NOT NULL, chapter TEXT NOT NULL,
+ completed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+ PRIMARY KEY(username,book,chapter));
 CREATE TABLE IF NOT EXISTS ai_study_books (
  course TEXT NOT NULL REFERENCES ai_study_courses(slug) ON DELETE CASCADE,
  document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
  sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(course,document_id));
 INSERT OR IGNORE INTO ai_study_courses VALUES
-('calculus','数学分析重点','foundation','极限与连续：理解函数趋近、连续及导数和定积分的定义；一元微分：熟练运用乘积法则与链式法则，手算复合函数的导数；多元微分：掌握偏导数、梯度和方向导数，分清输入与输出的维度；局部近似：用一阶、二阶 Taylor 展开描述函数，理解梯度与 Hessian 的作用；极值与下降方向：判断简单函数的极值，解释非零负梯度为何是局部下降方向；掌握目标：能推导简单复合函数的导数，用有限差分核对，并解释自动求导中的链式法则','画出函数与切线，用中心差分核对手算导数，比较不同步长的数值误差。',10),
-('linear-algebra','高等代数重点','foundation','矩阵与线性方程：掌握矩阵乘法、转置、逆与秩，先核对维度再计算；向量空间与映射：理解线性相关、基、维数、列空间与零空间；内积与正交：理解长度、夹角、正交投影和最小二乘的几何意义；特征值与二次型：掌握特征向量、对称矩阵的正交对角化与半正定性；奇异值分解：理解 U、奇异值与 V 的含义，用截断 SVD 做低秩近似；掌握目标：能解释矩阵如何变换向量，区分特征分解与 SVD，并验证矩阵重建及误差','用 NumPy 对平面点集做旋转、拉伸和投影，画图并核对组合变换的先后顺序。',20),
+('calculus','数学分析重点','foundation','极限与连续：理解函数趋近、连续及导数和定积分的定义；一元微分：熟练运用乘积法则与链式法则，手算复合函数的导数；多元微分：掌握偏导数、梯度和方向导数，分清输入与输出的维度；局部近似：用一阶、二阶 Taylor 展开描述函数，理解梯度与 Hessian 的作用；极值与下降方向：判断简单函数的极值，解释非零负梯度为何是局部下降方向；掌握目标：能推导简单复合函数的导数，用有限差分核对，并解释自动求导中的链式法则','按教材完成极限、微分与积分习题，先理解定义与证明，再学习自动微分所需的链式法则。',10),
+('linear-algebra','高等代数重点','foundation','矩阵与线性方程：掌握矩阵乘法、转置、逆与秩，先核对维度再计算；向量空间与映射：理解线性相关、基、维数、列空间与零空间；内积与正交：理解长度、夹角、正交投影和最小二乘的几何意义；特征值与二次型：掌握特征向量、对称矩阵的正交对角化与半正定性；奇异值分解：理解 U、奇异值与 V 的含义，用截断 SVD 做低秩近似；掌握目标：能解释矩阵如何变换向量，区分特征分解与 SVD，并验证矩阵重建及误差','按教材完成矩阵运算、线性变换、正交投影与特征值习题，核对维度和计算过程。',20),
 ('probability','概率与统计','foundation','概率与条件：掌握条件概率、全概率与 Bayes 公式，区分独立和互斥；随机变量与分布：区分离散与连续变量，理解分布函数、概率质量与概率密度；期望与相关性：计算期望、方差和协方差，理解不相关与独立的区别；采样与极限定理：在有限方差的独立同分布情形下，区分大数定律与中心极限定理的结论；统计推断：理解点估计、置信区间与假设检验，区分总体参数与样本统计量；掌握目标：能完成基本概率与估计计算，解释样本波动，避免把一次实验的结果当成普遍规律','先完成教材中的条件概率、期望方差和参数估计练习，再用小规模采样观察样本均值的波动。',30),
-('python','Python 与 NumPy','foundation','基础语法：熟练使用数值、字符串、列表、字典、条件与循环表达计算步骤；程序组织：用函数、类和模块组织代码，掌握文件读写、异常与基本调试；NumPy 数组：分清 shape、轴和 dtype，掌握索引、切片、广播与矩阵乘法；数据整理：读取小型表格，检查缺失、重复与数据类型，保留可追溯的处理步骤；可视化与复现：绘图时写清坐标含义，设置随机种子并记录运行环境；掌握目标：能从空文件写出读取、处理、检查和绘图脚本，读懂报错并定位问题','读取教学用学习记录 CSV，按日期和课程汇总分钟数并绘图，检查新数据下的结果。',40),
-('machine-learning','机器学习','core','学习任务：区分分类、回归与聚类，明确输入特征、目标和要解决的问题；数据划分：理解训练、验证与测试集的用途，所有处理与选择都避免泄漏测试信息；基础模型：掌握 k 近邻、线性回归、逻辑回归和决策树的输入、输出与适用场景；泛化能力：识别欠拟合和过拟合，理解模型复杂度、正则化与学习曲线；评价方法：按任务选择准确率、精确率、召回率或回归误差，结合基线与错误样本解释结果；掌握目标：独立完成小数据集的训练与留出评估，说明结果如何得到、哪里可能失效','先完成《Python 机器学习基础教程》第 1 章的鸢尾花 k 近邻分类，报告数据划分、测试准确率和新样本预测。',60),
-('deep-learning','深度学习','core','前向计算：理解全连接层、激活函数与批量输入，逐层核对张量和参数形状；输出与损失：理解回归误差、Softmax 与交叉熵，区分模型输出和训练目标；反向传播：用链式法则推导各层梯度，说明梯度怎样从损失传到参数；参数更新：掌握小批量梯度下降与学习率，串起前向、求损失、反向和更新；训练诊断：用数值梯度、损失曲线和独立测试集检查实现，识别过拟合与数值不稳定；掌握目标：用 NumPy 实现两层全连接网络，解释一个批次内四组参数如何更新','先运行两层 NumPy 网络，再补全梯度并做数值检查，使用内置小型手写数字数据训练与测试。',70),
-('pytorch','PyTorch 实践','support','张量操作：掌握形状、dtype、设备与广播，分清逐元素运算和矩阵运算；自动微分：理解 requires_grad、backward、梯度累积与清零，知道何时关闭梯度记录；批量数据：使用 Dataset 与 DataLoader 组织样本，分开训练数据和测试数据；模型与训练：用 nn.Module、损失函数和优化器写出完整训练循环，说明每一步的作用；评估与复现：区分 train、eval 与 no_grad，记录随机种子并学习参数保存和恢复；掌握目标：在 CPU 上独立完成线性回归训练，检查权重、偏置和独立测试误差','按《动手学深度学习》的 PyTorch 线性回归章节生成数据，使用 DataLoader、损失和优化器恢复已知权重与偏置。',75),
-('nlp','自然语言处理','core','文本与分词：理解文本清理、词元、词表和未登录词，说明预处理会保留或丢失哪些信息；词袋与 TF-IDF：掌握计数、文档频率与权重计算，解释常见词和区分性词的作用；向量与相似度：把文本表示为同一词表中的向量，用余弦相似度比较相关程度；基础任务：将文本特征用于检索或分类，词表和统计量只从允许使用的训练语料构建；评价与误差：检查相关文本能否被找到、类别是否混淆，分析分词、歧义与语料差异造成的失败；掌握目标：独立完成短文本 TF-IDF 检索，解释从原文到排序结果的每一步，再衔接神经语言模型','用教学用教材简介建立词袋与 TF-IDF 索引，补全余弦相似度，检验新增简介与空查询。',80),
+('python','Python 与 NumPy','foundation','基础语法：熟练使用数值、字符串、列表、字典、条件与循环表达计算步骤；程序组织：用函数、类和模块组织代码，掌握文件读写、异常与基本调试；NumPy 数组：分清 shape、轴和 dtype，掌握索引、切片、广播与矩阵乘法；数据整理：读取小型表格，检查缺失、重复与数据类型，保留可追溯的处理步骤；可视化与复现：绘图时写清坐标含义，设置随机种子并记录运行环境；掌握目标：能从空文件写出读取、处理、检查和绘图脚本，读懂报错并定位问题','按所选教材逐章运行原配示例，从基础语法到文件与绘图；数据分析教材使用第二版配套代码。',40),
+('machine-learning','机器学习','core','学习任务：区分分类、回归与聚类，明确输入特征、目标和要解决的问题；数据划分：理解训练、验证与测试集的用途，所有处理与选择都避免泄漏测试信息；基础模型：掌握 k 近邻、线性回归、逻辑回归和决策树的输入、输出与适用场景；泛化能力：识别欠拟合和过拟合，理解模型复杂度、正则化与学习曲线；评价方法：按任务选择准确率、精确率、召回率或回归误差，结合基线与错误样本解释结果；掌握目标：独立完成小数据集的训练与留出评估，说明结果如何得到、哪里可能失效','选择正在阅读的教材，按章运行作者的原始 Notebook，从数据、训练和预测开始，随后学习评估与比较。',60),
+('deep-learning','深度学习','core','前向计算：理解全连接层、激活函数与批量输入，逐层核对张量和参数形状；输出与损失：理解回归误差、Softmax 与交叉熵，区分模型输出和训练目标；反向传播：用链式法则推导各层梯度，说明梯度怎样从损失传到参数；参数更新：掌握小批量梯度下降与学习率，串起前向、求损失、反向和更新；训练诊断：用数值梯度、损失曲线和独立测试集检查实现，识别过拟合与数值不稳定；掌握目标：用 NumPy 实现两层全连接网络，解释一个批次内四组参数如何更新','按斋藤康毅教材运行原配 Python 文件，先理解前向计算，再核对反向传播，随后训练神经网络。',70),
+('pytorch','PyTorch 实践','support','张量操作：掌握形状、dtype、设备与广播，分清逐元素运算和矩阵运算；自动微分：理解 requires_grad、backward、梯度累积与清零，知道何时关闭梯度记录；批量数据：使用 Dataset 与 DataLoader 组织样本，分开训练数据和测试数据；模型与训练：用 nn.Module、损失函数和优化器写出完整训练循环，说明每一步的作用；评估与复现：区分 train、eval 与 no_grad，记录随机种子并学习参数保存和恢复；掌握目标：在 CPU 上独立完成线性回归训练，检查权重、偏置和独立测试误差','按《动手学深度学习》第二版的 PyTorch 原始 Notebook，从 Tensor 和自动微分到线性回归，再进入多层网络。',75),
+('nlp','自然语言处理','core','文本与分词：理解文本清理、词元、词表和未登录词，说明预处理会保留或丢失哪些信息；词袋与 TF-IDF：掌握计数、文档频率与权重计算，解释常见词和区分性词的作用；向量与相似度：把文本表示为同一词表中的向量，用余弦相似度比较相关程度；基础任务：将文本特征用于检索或分类，词表和统计量只从允许使用的训练语料构建；评价与误差：检查相关文本能否被找到、类别是否混淆，分析分词、歧义与语料差异造成的失败；掌握目标：独立完成短文本 TF-IDF 检索，解释从原文到排序结果的每一步，再衔接神经语言模型','按《Natural Language Processing in Action》第二版的原配代码，从分词、词袋与 TF-IDF 开始，后续实验随对应章节推进。',80),
 ('transformer','Transformer','core','序列表示：理解 token、嵌入和位置信息，明确批量、序列长度与特征维度；注意力计算：解释 Q、K、V、缩放点积与 Softmax，核对各次矩阵乘法的形状；多头与网络层：理解多头拼接、前馈层、残差连接和层归一化的作用；掩码与结构：区分填充掩码和因果掩码，理解编码器、解码器及其信息可见范围；自回归学习：理解下一 token 预测、训练目标与逐步生成的区别；掌握目标：能追踪一层注意力的数据流，检查因果掩码，说明后续 token 为什么不能影响当前位置','在已学深度学习和 PyTorch 后实现小规模注意力计算，验证形状与因果掩码，不将完整 Transformer 训练列为入门必做项目。',90),
-('llm','LLM','core','分词与上下文：理解 token、上下文窗口和下一 token 预测，知道历史对话必须作为输入传入；提示词设计：把任务、材料、输出约束与示例写清楚，比较零样本和少样本提示；生成与调用：理解采样随机性，记录模型、输入与参数，区分 API 调用和本地推理；输出检查：分别检查事实正确性、格式和引用依据，识别幻觉与不能验证的回答；方法边界：区分预训练、指令微调与检索增强，知道哪些需求靠提示、哪些需要额外数据或训练；掌握目标：使用现有 API 完成有对照的实验，记录原始结果、错误与成本，不以几次成功概括模型能力','先用离线示例练习简介信息抽取与 JSON 校验，再用可用 API 对照真实回答，缺失信息保持 null。',100);
+('llm','LLM','core','分词与上下文：理解 token、上下文窗口和下一 token 预测，知道历史对话必须作为输入传入；提示词设计：把任务、材料、输出约束与示例写清楚，比较零样本和少样本提示；生成与调用：理解采样随机性，记录模型、输入与参数，区分 API 调用和本地推理；输出检查：分别检查事实正确性、格式和引用依据，识别幻觉与不能验证的回答；方法边界：区分预训练、指令微调与检索增强，知道哪些需求靠提示、哪些需要额外数据或训练；掌握目标：使用现有 API 完成有对照的实验，记录原始结果、错误与成本，不以几次成功概括模型能力','按 Hands-On Large Language Models 的原始 Notebook 复现实验，先核对章节主题，再准备相应 GPU、模型或 API 环境。',100);
 -- Remove the retired course associations while preserving the shared documents.
 DELETE FROM ai_study_books WHERE course='optimization';
 DELETE FROM ai_study_courses WHERE slug='optimization';
@@ -226,3 +231,13 @@ UPDATE ai_study_courses SET practice='读取教学用学习记录 CSV，按日�
 UPDATE ai_study_courses SET practice='先运行两层 NumPy 网络，再补全梯度并做数值检查，使用内置小型手写数字数据训练与测试。' WHERE slug='deep-learning' AND practice='按斋藤康毅教材第 5 章实现 NumPy 两层网络，先做小网络梯度检查，再进行 MNIST 训练与测试。';
 UPDATE ai_study_courses SET practice='用教学用教材简介建立词袋与 TF-IDF 索引，补全余弦相似度，检验新增简介与空查询。' WHERE slug='nlp' AND practice='按《Natural Language Processing in Action》第 2—3 章的知识，对固定短文实现词袋、TF-IDF 与余弦检索，处理空查询和词表外查询。';
 UPDATE ai_study_courses SET practice='先用离线示例练习简介信息抽取与 JSON 校验，再用可用 API 对照真实回答，缺失信息保持 null。' WHERE slug='llm' AND practice='使用平台现有 AI API，对六条课程描述比较直接提问、格式约束和示例提示，分别统计分类正确数与 JSON 格式合格数。';
+
+-- Textbook companion descriptions replace only the previous shipped defaults.
+UPDATE ai_study_courses SET practice='按教材完成极限、微分与积分习题，先理解定义与证明，再学习自动微分所需的链式法则。' WHERE slug='calculus' AND practice='画出函数与切线，用中心差分核对手算导数，比较不同步长的数值误差。';
+UPDATE ai_study_courses SET practice='按教材完成矩阵运算、线性变换、正交投影与特征值习题，核对维度和计算过程。' WHERE slug='linear-algebra' AND practice='用 NumPy 对平面点集做旋转、拉伸和投影，画图并核对组合变换的先后顺序。';
+UPDATE ai_study_courses SET practice='按所选教材逐章运行原配示例，从基础语法到文件与绘图；数据分析教材使用第二版配套代码。' WHERE slug='python' AND practice='读取教学用学习记录 CSV，按日期和课程汇总分钟数并绘图，检查新数据下的结果。';
+UPDATE ai_study_courses SET practice='选择正在阅读的教材，按章运行作者的原始 Notebook，从数据、训练和预测开始，随后学习评估与比较。' WHERE slug='machine-learning' AND practice='先完成《Python 机器学习基础教程》第 1 章的鸢尾花 k 近邻分类，报告数据划分、测试准确率和新样本预测。';
+UPDATE ai_study_courses SET practice='按斋藤康毅教材运行原配 Python 文件，先理解前向计算，再核对反向传播，随后训练神经网络。' WHERE slug='deep-learning' AND practice='先运行两层 NumPy 网络，再补全梯度并做数值检查，使用内置小型手写数字数据训练与测试。';
+UPDATE ai_study_courses SET practice='按《动手学深度学习》第二版的 PyTorch 原始 Notebook，从 Tensor 和自动微分到线性回归，再进入多层网络。' WHERE slug='pytorch' AND practice='按《动手学深度学习》的 PyTorch 线性回归章节生成数据，使用 DataLoader、损失和优化器恢复已知权重与偏置。';
+UPDATE ai_study_courses SET practice='按《Natural Language Processing in Action》第二版的原配代码，从分词、词袋与 TF-IDF 开始，后续实验随对应章节推进。' WHERE slug='nlp' AND practice='用教学用教材简介建立词袋与 TF-IDF 索引，补全余弦相似度，检验新增简介与空查询。';
+UPDATE ai_study_courses SET practice='按 Hands-On Large Language Models 的原始 Notebook 复现实验，先核对章节主题，再准备相应 GPU、模型或 API 环境。' WHERE slug='llm' AND practice='先用离线示例练习简介信息抽取与 JSON 校验，再用可用 API 对照真实回答，缺失信息保持 null。';

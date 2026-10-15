@@ -1,0 +1,63 @@
+{
+  "book": "scratch-1e",
+  "chapter": "ch03",
+  "commit": "07b11618cdb5d5f78ad45464de0730efc07b0a4a",
+  "files": [
+    {
+      "path": "ch03/mnist_show.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/mnist_show.py",
+      "sha256": "548296da4cb39519baaa6d1a5a48a876802422e9907fc62d70879299e698777f",
+      "cells": [
+        "# coding: utf-8\nimport sys, os\nsys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定\nimport numpy as np\nfrom dataset.mnist import load_mnist\nfrom PIL import Image\n\n\ndef img_show(img):\n    pil_img = Image.fromarray(np.uint8(img))\n    pil_img.show()\n\n(x_train, t_train), (x_test, t_test) = load_mnist(flatten=True, normalize=False)\n\nimg = x_train[0]\nlabel = t_train[0]\nprint(label)  # 5\n\nprint(img.shape)  # (784,)\nimg = img.reshape(28, 28)  # 形状を元の画像サイズに変形\nprint(img.shape)  # (28, 28)\n\nimg_show(img)\n"
+      ]
+    },
+    {
+      "path": "ch03/neuralnet_mnist.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/neuralnet_mnist.py",
+      "sha256": "dab5148cad0ab9fb1fe17a054b711154bf366f6df9c79ecf1dc1545bb5aefbd4",
+      "cells": [
+        "# coding: utf-8\nimport sys, os\nsys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定\nimport numpy as np\nimport pickle\nfrom dataset.mnist import load_mnist\nfrom common.functions import sigmoid, softmax\n\n\ndef get_data():\n    (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, flatten=True, one_hot_label=False)\n    return x_test, t_test\n\n\ndef init_network():\n    with open(\"sample_weight.pkl\", 'rb') as f:\n        network = pickle.load(f)\n    return network\n\n\ndef predict(network, x):\n    W1, W2, W3 = network['W1'], network['W2'], network['W3']\n    b1, b2, b3 = network['b1'], network['b2'], network['b3']\n\n    a1 = np.dot(x, W1) + b1\n    z1 = sigmoid(a1)\n    a2 = np.dot(z1, W2) + b2\n    z2 = sigmoid(a2)\n    a3 = np.dot(z2, W3) + b3\n    y = softmax(a3)\n\n    return y\n\n\nx, t = get_data()\nnetwork = init_network()\naccuracy_cnt = 0\nfor i in range(len(x)):\n    y = predict(network, x[i])\n    p= np.argmax(y) # 最も確率の高い要素のインデックスを取得\n    if p == t[i]:\n        accuracy_cnt += 1\n\nprint(\"Accuracy:\" + str(float(accuracy_cnt) / len(x)))"
+      ]
+    },
+    {
+      "path": "ch03/neuralnet_mnist_batch.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/neuralnet_mnist_batch.py",
+      "sha256": "e83be8fc2f887292f1c46ae3c483a8166e72e241abf8cd46df8a65cf7a570ee2",
+      "cells": [
+        "# coding: utf-8\nimport sys, os\nsys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定\nimport numpy as np\nimport pickle\nfrom dataset.mnist import load_mnist\nfrom common.functions import sigmoid, softmax\n\n\ndef get_data():\n    (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, flatten=True, one_hot_label=False)\n    return x_test, t_test\n\n\ndef init_network():\n    with open(\"sample_weight.pkl\", 'rb') as f:\n        network = pickle.load(f)\n    return network\n\n\ndef predict(network, x):\n    w1, w2, w3 = network['W1'], network['W2'], network['W3']\n    b1, b2, b3 = network['b1'], network['b2'], network['b3']\n\n    a1 = np.dot(x, w1) + b1\n    z1 = sigmoid(a1)\n    a2 = np.dot(z1, w2) + b2\n    z2 = sigmoid(a2)\n    a3 = np.dot(z2, w3) + b3\n    y = softmax(a3)\n\n    return y\n\n\nx, t = get_data()\nnetwork = init_network()\n\nbatch_size = 100 # バッチの数\naccuracy_cnt = 0\n\nfor i in range(0, len(x), batch_size):\n    x_batch = x[i:i+batch_size]\n    y_batch = predict(network, x_batch)\n    p = np.argmax(y_batch, axis=1)\n    accuracy_cnt += np.sum(p == t[i:i+batch_size])\n\nprint(\"Accuracy:\" + str(float(accuracy_cnt) / len(x)))\n"
+      ]
+    },
+    {
+      "path": "ch03/relu.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/relu.py",
+      "sha256": "06949fd85f1230dc0969997c167bba0b2dbb01d434e6c058c62b646067ae0e9c",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pylab as plt\n\n\ndef relu(x):\n    return np.maximum(0, x)\n\nx = np.arange(-5.0, 5.0, 0.1)\ny = relu(x)\nplt.plot(x, y)\nplt.ylim(-1.0, 5.5)\nplt.show()\n"
+      ]
+    },
+    {
+      "path": "ch03/sig_step_compare.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/sig_step_compare.py",
+      "sha256": "908ce6f7a491c4bbfcf674e6cb85214c7af66e5f349f036f8f769c5b86f15fab",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pylab as plt\n\n\ndef sigmoid(x):\n    return 1 / (1 + np.exp(-x))\n\n\ndef step_function(x):\n    return np.array(x > 0, dtype=int)\n\nx = np.arange(-5.0, 5.0, 0.1)\ny1 = sigmoid(x)\ny2 = step_function(x)\n\nplt.plot(x, y1)\nplt.plot(x, y2, 'k--')\nplt.ylim(-0.1, 1.1) #図で描画するy軸の範囲を指定\nplt.show()\n"
+      ]
+    },
+    {
+      "path": "ch03/sigmoid.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/sigmoid.py",
+      "sha256": "0787a8b765d672f60d5d14f2bc297138fcf3f2cb3f95342b4f0768981bb14746",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pylab as plt\n\n\ndef sigmoid(x):\n    return 1 / (1 + np.exp(-x))    \n\nX = np.arange(-5.0, 5.0, 0.1)\nY = sigmoid(X)\nplt.plot(X, Y)\nplt.ylim(-0.1, 1.1)\nplt.show()\n"
+      ]
+    },
+    {
+      "path": "ch03/step_function.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03/step_function.py",
+      "sha256": "8131be1247c5e5e01017f39564ac07834c8a80fd61e5d1970abf7f9a2e315359",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\nimport matplotlib.pylab as plt\n\n\ndef step_function(x):\n    return np.array(x > 0, dtype=int)\n\nX = np.arange(-5.0, 5.0, 0.1)\nY = step_function(X)\nplt.plot(X, Y)\nplt.ylim(-0.1, 1.1)  # 図で描画するy軸の範囲を指定\nplt.show()\n"
+      ]
+    }
+  ]
+}

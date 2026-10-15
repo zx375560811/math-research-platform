@@ -1,0 +1,6 @@
+深度学习入门：基于 Python 的理论与实现
+斋藤康毅
+https://github.com/oreilly-japan/deep-learning-from-scratch
+Commit: 07b11618cdb5d5f78ad45464de0730efc07b0a4a
+Licence: https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/LICENSE.md
+Only code cells are extracted for previews. Original code is not rewritten.

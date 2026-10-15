@@ -1,0 +1,47 @@
+{
+  "book": "hands-on-llm",
+  "chapter": "ch02",
+  "commit": "ea3390819997999a51983677b80b3aac4dc50ada",
+  "files": [
+    {
+      "path": "chapter02/Chapter 2 - Tokens and Token Embeddings.ipynb",
+      "url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter02/Chapter%202%20-%20Tokens%20and%20Token%20Embeddings.ipynb",
+      "sha256": "41debbe42f27fb344976e4c986c5f7019d0e37269d41b17cafcd73c80c5dc499",
+      "cells": [
+        "# %%capture\n# !pip install --upgrade transformers==4.41.2 sentence-transformers==3.0.1 gensim==4.3.2 scikit-learn==1.5.0 accelerate==0.31.0 peft==0.11.1 scipy==1.10.1 numpy==1.26.4",
+        "from transformers import AutoModelForCausalLM, AutoTokenizer\n\n# Load model and tokenizer\nmodel = AutoModelForCausalLM.from_pretrained(\n    \"microsoft/Phi-3-mini-4k-instruct\",\n    device_map=\"cuda\",\n    torch_dtype=\"auto\",\n    trust_remote_code=False,\n)\ntokenizer = AutoTokenizer.from_pretrained(\"microsoft/Phi-3-mini-4k-instruct\")",
+        "prompt = \"Write an email apologizing to Sarah for the tragic gardening mishap. Explain how it happened.<|assistant|>\"\n\n# Tokenize the input prompt\ninput_ids = tokenizer(prompt, return_tensors=\"pt\").input_ids.to(\"cuda\")\n\n# Generate the text\ngeneration_output = model.generate(\n  input_ids=input_ids,\n  max_new_tokens=20\n)\n\n# Print the output\nprint(tokenizer.decode(generation_output[0]))",
+        "print(input_ids)",
+        "for id in input_ids[0]:\n   print(tokenizer.decode(id))",
+        "generation_output",
+        "print(tokenizer.decode(3323))\nprint(tokenizer.decode(622))\nprint(tokenizer.decode([3323, 622]))\nprint(tokenizer.decode(29901))",
+        "from transformers import AutoModelForCausalLM, AutoTokenizer\n\ncolors_list = [\n    '102;194;165', '252;141;98', '141;160;203',\n    '231;138;195', '166;216;84', '255;217;47'\n]\n\ndef show_tokens(sentence, tokenizer_name):\n    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)\n    token_ids = tokenizer(sentence).input_ids\n    for idx, t in enumerate(token_ids):\n        print(\n            f'\\x1b[0;30;48;2;{colors_list[idx % len(colors_list)]}m' +\n            tokenizer.decode(t) +\n            '\\x1b[0m',\n            end=' '\n        )",
+        "text = \"\"\"\nEnglish and CAPITALIZATION\n🎵 鸟\nshow_tokens False None elif == >= else: two tabs:\"    \" Three tabs: \"       \"\n12.0*50=600\n\"\"\"",
+        "show_tokens(text, \"bert-base-uncased\")",
+        "show_tokens(text, \"bert-base-cased\")",
+        "show_tokens(text, \"gpt2\")",
+        "show_tokens(text, \"google/flan-t5-small\")",
+        "# The official is `tiktoken` but this the same tokenizer on the HF platform\nshow_tokens(text, \"Xenova/gpt-4\")",
+        "# You need to request access before being able to use this tokenizer\nshow_tokens(text, \"bigcode/starcoder2-15b\")",
+        "show_tokens(text, \"facebook/galactica-1.3b\")",
+        "show_tokens(text, \"microsoft/Phi-3-mini-4k-instruct\")",
+        "from transformers import AutoModel, AutoTokenizer\n\n# Load a tokenizer\ntokenizer = AutoTokenizer.from_pretrained(\"microsoft/deberta-base\")\n\n# Load a language model\nmodel = AutoModel.from_pretrained(\"microsoft/deberta-v3-xsmall\")\n\n# Tokenize the sentence\ntokens = tokenizer('Hello world', return_tensors='pt')\n\n# Process the tokens\noutput = model(**tokens)[0]",
+        "output.shape",
+        "for token in tokens['input_ids'][0]:\n    print(tokenizer.decode(token))",
+        "output",
+        "from sentence_transformers import SentenceTransformer\n\n# Load model\nmodel = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')\n\n# Convert text to text embeddings\nvector = model.encode(\"Best movie ever!\")",
+        "vector.shape",
+        "import gensim.downloader as api\n\n# Download embeddings (66MB, glove, trained on wikipedia, vector size: 50)\n# Other options include \"word2vec-google-news-300\"\n# More options at https://github.com/RaRe-Technologies/gensim-data\nmodel = api.load(\"glove-wiki-gigaword-50\")",
+        "model.most_similar([model['king']], topn=11)",
+        "import pandas as pd\nfrom urllib import request\n\n# Get the playlist dataset file\ndata = request.urlopen('https://storage.googleapis.com/maps-premium/dataset/yes_complete/train.txt')\n\n# Parse the playlist dataset file. Skip the first two lines as\n# they only contain metadata\nlines = data.read().decode(\"utf-8\").split('\\n')[2:]\n\n# Remove playlists with only one song\nplaylists = [s.rstrip().split() for s in lines if len(s.split()) > 1]\n\n# Load song metadata\nsongs_file = request.urlopen('https://storage.googleapis.com/maps-premium/dataset/yes_complete/song_hash.txt')\nsongs_file = songs_file.read().decode(\"utf-8\").split('\\n')\nsongs = [s.rstrip().split('\\t') for s in songs_file]\nsongs_df = pd.DataFrame(data=songs, columns = ['id', 'title', 'artist'])\nsongs_df = songs_df.set_index('id')",
+        "print( 'Playlist #1:\\n ', playlists[0], '\\n')\nprint( 'Playlist #2:\\n ', playlists[1])",
+        "from gensim.models import Word2Vec\n\n# Train our Word2Vec model\nmodel = Word2Vec(\n    playlists, vector_size=32, window=20, negative=50, min_count=1, workers=4\n)",
+        "song_id = 2172\n\n# Ask the model for songs similar to song #2172\nmodel.wv.most_similar(positive=str(song_id))",
+        "print(songs_df.iloc[2172])",
+        "import numpy as np\n\ndef print_recommendations(song_id):\n    similar_songs = np.array(\n        model.wv.most_similar(positive=str(song_id),topn=5)\n    )[:,0]\n    return  songs_df.iloc[similar_songs]\n\n# Extract recommendations\nprint_recommendations(2172)",
+        "print_recommendations(2172)",
+        "print_recommendations(842)"
+      ]
+    }
+  ]
+}

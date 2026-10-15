@@ -1,0 +1,6 @@
+利用 Python 进行数据分析
+Wes McKinney
+https://github.com/wesm/pydata-book
+Commit: 6427db12ed7ae06328124f950c0b4ac9baf6b31f
+Licence: https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/COPYING
+Only code cells are extracted for previews. Original code is not rewritten.

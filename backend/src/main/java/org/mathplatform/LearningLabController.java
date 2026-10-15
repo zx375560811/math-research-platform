@@ -1,7 +1,6 @@
 package org.mathplatform;
 
 import java.io.IOException;
-import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -11,54 +10,90 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
-/** Curated local exercises and learner-reported stages. No user code runs on the server. */
+/** Reviewed, pinned textbook companions. Code is displayed as data, never executed. */
 @RestController
 @RequestMapping("/api/learning-labs")
 public class LearningLabController {
-    private static final Set<String> LABS=Set.of("calculus","linear-algebra","python","machine-learning","deep-learning","pytorch","nlp","llm");
-    private static final List<String> STAGES=List.of("follow","fill","independent");
     private final LibraryRepository library;
-    LearningLabController(LibraryRepository library){this.library=library;}
-    private static void lab(String slug){if(!LABS.contains(slug))throw new ApiProblem(404,"not_found");}
-    private static List<String> stages(int mask){var result=new ArrayList<String>();for(int i=0;i<3;i++)if((mask&(1<<i))!=0)result.add(STAGES.get(i));return result;}
+    private final ObjectMapper json = new ObjectMapper();
+    private final JsonNode catalogue;
+    private final Map<String, Map<String, Boolean>> chapters = new LinkedHashMap<>();
+
+    LearningLabController(LibraryRepository library) throws IOException {
+        this.library = library;
+        try (var source = getClass().getResourceAsStream("/textbook-labs.json")) {
+            if (source == null) throw new IOException("Missing textbook-labs.json");
+            catalogue = json.readTree(source);
+        }
+        for (var book : catalogue.path("books")) {
+            String id = book.path("id").asString();
+            if (!id.matches("[a-z0-9-]+")) throw new IOException("Invalid companion id");
+            var entries = new LinkedHashMap<String, Boolean>();
+            for (var chapter : book.path("chapters")) {
+                String name = chapter.path("id").asString();
+                if (!name.matches("[a-z0-9-]+")) throw new IOException("Invalid chapter id");
+                entries.put(name, chapter.path("preview").asBoolean());
+            }
+            chapters.put(id, entries);
+        }
+    }
+
+    private boolean chapter(String book, String chapter) {
+        var entries = chapters.get(book);
+        if (entries == null || !entries.containsKey(chapter)) throw new ApiProblem(404, "not_found");
+        return entries.get(chapter);
+    }
+
+    @GetMapping("/catalog")
+    public JsonNode catalogue() { return catalogue; }
+
     @GetMapping("/progress")
-    public Map<String,Object> progress(Authentication user)throws SQLException{
-        var result=new LinkedHashMap<String,Object>();
-        try(var db=library.connect(true);var q=db.prepareStatement("SELECT lab,stages FROM learning_lab_progress WHERE username=?")){
-            q.setString(1,user.getName());try(var rows=q.executeQuery()){while(rows.next())if(LABS.contains(rows.getString(1)))result.put(rows.getString(1),stages(rows.getInt(2)));}
-        }
-        return Map.of("progress",result);
-    }
-    public record Stage(String stage,Boolean completed){}
-    @PutMapping("/{slug}/progress")
-    public Map<String,Object> save(Authentication user,@PathVariable String slug,@RequestBody Stage body)throws SQLException{
-        lab(slug);if(body==null||body.stage()==null||!STAGES.contains(body.stage())||body.completed()==null)throw new ApiProblem(400,"invalid_query");
-        int bit=1<<STAGES.indexOf(body.stage());
-        try(var db=library.connect(false)){
-            try(var q=db.prepareStatement("INSERT INTO learning_lab_progress(username,lab,stages) VALUES(?,?,?) ON CONFLICT(username,lab) DO UPDATE SET stages=CASE WHEN ? THEN stages|? ELSE stages&? END,updated_at=strftime('%Y-%m-%dT%H:%M:%SZ','now')")){
-                q.setString(1,user.getName());q.setString(2,slug);q.setInt(3,body.completed()?bit:0);q.setBoolean(4,body.completed());q.setInt(5,bit);q.setInt(6,~bit);q.executeUpdate();
-            }
-            try(var q=db.prepareStatement("SELECT stages FROM learning_lab_progress WHERE username=? AND lab=?")){
-                q.setString(1,user.getName());q.setString(2,slug);try(var row=q.executeQuery()){row.next();return Map.of("completed_stages",stages(row.getInt(1)));}
+    public Map<String, Object> progress(Authentication user) throws SQLException {
+        var result = new LinkedHashMap<String, List<String>>();
+        try (var db = library.connect(true); var query = db.prepareStatement(
+            "SELECT book,chapter FROM textbook_lab_progress WHERE username=? ORDER BY book,chapter")) {
+            query.setString(1, user.getName());
+            try (var rows = query.executeQuery()) {
+                while (rows.next()) {
+                    String book = rows.getString(1), chapter = rows.getString(2);
+                    if (chapters.containsKey(book) && chapters.get(book).containsKey(chapter))
+                        result.computeIfAbsent(book, key -> new ArrayList<>()).add(chapter);
+                }
             }
         }
+        return Map.of("progress", result);
     }
-    @GetMapping("/{slug}/notebook")
-    public ResponseEntity<InputStreamResource> notebook(Authentication user,@PathVariable String slug)throws IOException{
-        lab(slug);
-        Path file=Path.of(LibraryRepository.setting("MATH_WEB_DIR","../frontend")).resolve("labs").resolve(slug+".ipynb");
-        if(!Files.isRegularFile(file,LinkOption.NOFOLLOW_LINKS))throw new ApiProblem(503,"lab_unavailable");
-        var channel=Files.newByteChannel(file,StandardOpenOption.READ,LinkOption.NOFOLLOW_LINKS);
-        long size=channel.size();if(size>8388608){channel.close();throw new ApiProblem(503,"lab_unavailable");}
-        return ResponseEntity.ok().header("Content-Type","application/x-ipynb+json; charset=utf-8")
-            .header("Content-Disposition","attachment; filename=\"axiom-"+slug+".ipynb\"")
-            .header("Cache-Control","no-store").contentLength(size)
-            .body(new InputStreamResource(Channels.newInputStream(channel)));
+
+    public record Completion(Boolean completed) {}
+
+    @PutMapping("/{book}/chapters/{chapter}/progress")
+    public Map<String, Object> save(Authentication user, @PathVariable String book,
+        @PathVariable String chapter, @RequestBody Completion body) throws SQLException {
+        chapter(book, chapter);
+        if (body == null || body.completed() == null) throw new ApiProblem(400, "invalid_query");
+        try (var db = library.connect(false); var query = db.prepareStatement(body.completed()
+            ? "INSERT OR IGNORE INTO textbook_lab_progress(username,book,chapter) VALUES(?,?,?)"
+            : "DELETE FROM textbook_lab_progress WHERE username=? AND book=? AND chapter=?")) {
+            query.setString(1, user.getName()); query.setString(2, book); query.setString(3, chapter);
+            query.executeUpdate();
+        }
+        return Map.of("completed", body.completed());
+    }
+
+    @GetMapping("/{book}/chapters/{chapter}/preview")
+    public JsonNode preview(@PathVariable String book, @PathVariable String chapter) throws IOException {
+        if (!chapter(book, chapter)) throw new ApiProblem(404, "preview_not_available");
+        Path file = Path.of(LibraryRepository.setting("MATH_WEB_DIR", "../frontend"))
+            .resolve("labs/upstream").resolve(book).resolve(chapter + ".json");
+        if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) throw new ApiProblem(503, "lab_unavailable");
+        try (var channel = Files.newByteChannel(file, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)) {
+            if (channel.size() > 4194304) throw new ApiProblem(503, "lab_unavailable");
+            return json.readTree(java.nio.channels.Channels.newInputStream(channel));
+        }
     }
 }

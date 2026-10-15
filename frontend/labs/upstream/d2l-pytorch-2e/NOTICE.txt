@@ -1,0 +1,6 @@
+动手学深度学习
+Aston Zhang / Zachary C. Lipton / 李沐 / Alexander J. Smola
+https://github.com/d2l-ai/d2l-zh-pytorch-colab
+Commit: 10243a27370ebfa2bd6c3d8ef127e37c829b3051
+Licence: https://github.com/d2l-ai/d2l-zh/blob/e6b18ccea71451a55fcd861d7b96fddf2587b09a/LICENSE
+Only code cells are extracted for previews. Original code is not rewritten.

@@ -90,9 +90,9 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 每个节点展示学习重点、动手练习和实际关联教材。管理员在 `/admin#ai-learning` 按课程从文档库目录中搜索、选择并关联 PDF/DJVU，可排序或移除关联；不复制文件，也不影响原有数学教材配置。未关联时显示空教材状态，不生成虚假的教材或下载地址。阅读继续使用按用户和文献保存的进度、笔记及阅读器 AI。
 
-配套实验按“跟着做 → 自己补全 → 独立完成”组织：数学分析做导数与切线可视化，高代做平面矩阵变换，Python 做学习记录统计，机器学习做鸢尾花分类，深度学习做两层数字识别网络，PyTorch 做线性回归，NLP 做教材简介检索，LLM 做简介整理与结果校验。每门课提供实验指导、Notebook 下载、提示与核对结果，个人阶段进度登录后保存在数据库。练习在学习者自己的电脑运行，服务器不执行用户代码。数学课的编程实验需先会 Python，概率统计暂不设置实验。具体教材衔接和使用方法见 [配套实验说明](docs/ai-course-projects.md)。
+教材配套实验直接对应作者或出版社的代码库，按教材、版本和章节组织。已核实 8 本教材的 103 个章节入口，其中 4 本提供共 49 份站内原始代码预览；可以切换教材与章节、下载固定版本的配套仓库、查看运行说明并保存个人完成记录。数学分析、高代和概率暂不添加未经核实的编程实验。代码在学习者自己的电脑或教材推荐环境运行，平台只保存小体积代码预览与进度。具体来源、版本和使用方法见 [教材配套实验说明](docs/ai-course-projects.md)。
 
-新接口：登录后 `GET /api/ai-learning`；管理员 `GET /api/admin/ai-learning`，以及 `POST /api/admin/ai-learning/{course}/books`（document_id、可选 sort_order）、`PATCH /api/admin/ai-learning/{course}/books/{document}`（sort_order）、`DELETE` 同一路径。管理写入要求管理员资格与 CSRF。课程及教材关联存放在 `ai_study_courses`、`ai_study_books`，启动自动创建。 实验接口为登录后的 `GET /api/learning-labs/progress`、`GET /api/learning-labs/{course}/notebook` 和带 CSRF 的 `PUT /api/learning-labs/{course}/progress`（stage: follow/fill/independent，completed: 布尔值）。阶段记录存放在 `learning_lab_progress`，按账号隔离。
+新接口：登录后 `GET /api/ai-learning`；管理员 `GET /api/admin/ai-learning`，以及 `POST /api/admin/ai-learning/{course}/books`（document_id、可选 sort_order）、`PATCH /api/admin/ai-learning/{course}/books/{document}`（sort_order）、`DELETE` 同一路径。管理写入要求管理员资格与 CSRF。课程及教材关联存放在 `ai_study_courses`、`ai_study_books`，启动自动创建。实验接口为登录后的 `GET /api/learning-labs/catalog`、`GET /api/learning-labs/progress`、`GET /api/learning-labs/{book}/chapters/{chapter}/preview`，以及带 CSRF 的 `PUT /api/learning-labs/{book}/chapters/{chapter}/progress`（completed: 布尔值）。章节记录存放在 `textbook_lab_progress`，按账号隔离。旧自编练习文件与下载入口已移除，历史阶段记录保留，不会冒充为官方实验的完成记录。
 
 路线依据：[Stanford CS229 先修要求](https://cs229.stanford.edu/index.html-spr26)、[Stanford CS224N](https://web.stanford.edu/class/cs224n/)、[Hugging Face LLM 课程介绍](https://huggingface.co/learn/llm-course/en/chapter1/1)。这是一条面向入门到 LLM 的建议路径，不是所有 AI 领域的唯一先修顺序。
 

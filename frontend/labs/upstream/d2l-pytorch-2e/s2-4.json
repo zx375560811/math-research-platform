@@ -1,0 +1,22 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s2-4",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_preliminaries/calculus.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/calculus.ipynb",
+      "sha256": "b6572c3c78942ab037d1452bf7523d27eb5ddc843ee424e38fd7a52b9b5b3728",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "%matplotlib inline\nimport numpy as np\nfrom matplotlib_inline import backend_inline\nfrom d2l import torch as d2l\n\n\ndef f(x):\n    return 3 * x ** 2 - 4 * x",
+        "def numerical_lim(f, x, h):\n    return (f(x + h) - f(x)) / h\n\nh = 0.1\nfor i in range(5):\n    print(f'h={h:.5f}, numerical limit={numerical_lim(f, 1, h):.5f}')\n    h *= 0.1",
+        "def use_svg_display():  #@save\n    \"\"\"使用svg格式在Jupyter中显示绘图\"\"\"\n    backend_inline.set_matplotlib_formats('svg')",
+        "def set_figsize(figsize=(3.5, 2.5)):  #@save\n    \"\"\"设置matplotlib的图表大小\"\"\"\n    use_svg_display()\n    d2l.plt.rcParams['figure.figsize'] = figsize",
+        "#@save\ndef set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):\n    \"\"\"设置matplotlib的轴\"\"\"\n    axes.set_xlabel(xlabel)\n    axes.set_ylabel(ylabel)\n    axes.set_xscale(xscale)\n    axes.set_yscale(yscale)\n    axes.set_xlim(xlim)\n    axes.set_ylim(ylim)\n    if legend:\n        axes.legend(legend)\n    axes.grid()",
+        "#@save\ndef plot(X, Y=None, xlabel=None, ylabel=None, legend=None, xlim=None,\n         ylim=None, xscale='linear', yscale='linear',\n         fmts=('-', 'm--', 'g-.', 'r:'), figsize=(3.5, 2.5), axes=None):\n    \"\"\"绘制数据点\"\"\"\n    if legend is None:\n        legend = []\n\n    set_figsize(figsize)\n    axes = axes if axes else d2l.plt.gca()\n\n    # 如果X有一个轴，输出True\n    def has_one_axis(X):\n        return (hasattr(X, \"ndim\") and X.ndim == 1 or isinstance(X, list)\n                and not hasattr(X[0], \"__len__\"))\n\n    if has_one_axis(X):\n        X = [X]\n    if Y is None:\n        X, Y = [[]] * len(X), X\n    elif has_one_axis(Y):\n        Y = [Y]\n    if len(X) != len(Y):\n        X = X * len(Y)\n    axes.cla()\n    for x, y, fmt in zip(X, Y, fmts):\n        if len(x):\n            axes.plot(x, y, fmt)\n        else:\n            axes.plot(y, fmt)\n    set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend)",
+        "x = np.arange(0, 3, 0.1)\nplot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])"
+      ]
+    }
+  ]
+}

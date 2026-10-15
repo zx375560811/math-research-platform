@@ -1,0 +1,19 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s4-3",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_multilayer-perceptrons/mlp-concise.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_multilayer-perceptrons/mlp-concise.ipynb",
+      "sha256": "76ade5c3c5e65b50a408163723bfd742ab9f211515eaeed691b416f30dd4355e",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "import torch\nfrom torch import nn\nfrom d2l import torch as d2l",
+        "net = nn.Sequential(nn.Flatten(),\n                    nn.Linear(784, 256),\n                    nn.ReLU(),\n                    nn.Linear(256, 10))\n\ndef init_weights(m):\n    if type(m) == nn.Linear:\n        nn.init.normal_(m.weight, std=0.01)\n\nnet.apply(init_weights);",
+        "batch_size, lr, num_epochs = 256, 0.1, 10\nloss = nn.CrossEntropyLoss(reduction='none')\ntrainer = torch.optim.SGD(net.parameters(), lr=lr)",
+        "train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)\nd2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, trainer)"
+      ]
+    }
+  ]
+}

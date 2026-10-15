@@ -70,6 +70,8 @@ with tempfile.TemporaryDirectory() as directory:
                 assert request(path)[0] == 401
             assert request('/api/ai-learning')[0]==401
             assert request('/api/learning-labs/progress')[0]==401
+            assert request('/api/learning-labs/catalog')[0]==401
+            assert request('/api/learning-labs/scratch-1e/chapters/ch02/preview')[0]==401
             assert request('/api/learning-labs/machine-learning/notebook')[0]==401
             assert request('/api/study-plan')[0]==401
             assert request('/api/study-plan/members')[0]==401
@@ -447,24 +449,38 @@ with tempfile.TemporaryDirectory() as directory:
             assert len(ai_courses)==10 and len([c for c in ai_courses if c['phase']=='foundation'])==4
             assert all(c['slug']!='optimization' for c in ai_courses)
             assert request('/learning-labs.js')[0]==200
-            for slug in ['calculus','linear-algebra','python','machine-learning','deep-learning','pytorch','nlp','llm']:
-                status,notebook=request('/api/learning-labs/'+slug+'/notebook')
-                assert status==200 and notebook['metadata']['axiom']['lab']==slug
-                assert len(notebook['cells'])>10
-            assert request('/api/learning-labs/unknown/notebook')[0]==404
-            lab='/api/learning-labs/machine-learning/progress'
+            catalog=request('/api/learning-labs/catalog')[1]
+            assert len(catalog['books'])==8
+            previews=0
+            for book in catalog['books']:
+                for chapter in book['chapters']:
+                    status,content=request('/api/learning-labs/'+book['id']+'/chapters/'+chapter['id']+'/preview')
+                    if not chapter['preview']:
+                        assert status==404
+                        continue
+                    assert status==200 and content['book']==book['id'] and content['chapter']==chapter['id']
+                    assert content['commit']==book['commit'] and any(f['cells'] for f in content['files'])
+                    previews+=1
+            assert previews==49
+            assert request('/api/learning-labs/scratch-1e/chapters/unknown/preview')[0]==404
+            assert request('/api/learning-labs/unknown/chapters/ch01/preview')[0]==404
+            assert request('/api/learning-labs/machine-learning/notebook')[0]==404
+            lab='/api/learning-labs/imlp-1e/chapters/ch01/progress'
             assert request('/api/learning-labs/progress')[1]=={'progress':{}}
-            assert request(lab,'PUT',b'{"stage":"follow","completed":true}',{'Content-Type':'application/json'})[0]==403
-            assert write(lab,{'stage':'wrong','completed':True},'PUT')[0]==400
-            assert write(lab,{'stage':'follow'},'PUT')[0]==400
-            assert write(lab,{'stage':'follow','completed':True},'PUT')[1]=={'completed_stages':['follow']}
-            assert write(lab,{'stage':'fill','completed':True},'PUT')[1]=={'completed_stages':['follow','fill']}
-            assert write(lab,{'stage':'follow','completed':False},'PUT')[1]=={'completed_stages':['fill']}
+            assert request(lab,'PUT',b'{"completed":true}',{'Content-Type':'application/json'})[0]==403
+            assert write(lab,{},'PUT')[0]==400
+            assert write('/api/learning-labs/imlp-1e/chapters/unknown/progress',{'completed':True},'PUT')[0]==404
+            assert write(lab,{'completed':True},'PUT')[1]=={'completed':True}
+            assert write(lab,{'completed':True},'PUT')[1]=={'completed':True}
+            assert request('/api/learning-labs/progress')[1]=={'progress':{'imlp-1e':['ch01']}}
+            assert write(lab,{'completed':False},'PUT')[1]=={'completed':False}
+            assert request('/api/learning-labs/progress')[1]=={'progress':{}}
+            assert write(lab,{'completed':True},'PUT')[0]==200
             assert write('/api/auth/login',{'username':'invited_reader','password':credentials['password']})[0]==200
             assert request('/api/learning-labs/progress')[1]=={'progress':{}}
-            assert write(lab,{'stage':'independent','completed':True},'PUT')[1]=={'completed_stages':['independent']}
+            assert write('/api/learning-labs/scratch-1e/chapters/ch02/progress',{'completed':True},'PUT')[0]==200
             assert write('/api/auth/login',credentials)[0]==200
-            assert request('/api/learning-labs/progress')[1]=={'progress':{'machine-learning':['fill']}}
+            assert request('/api/learning-labs/progress')[1]=={'progress':{'imlp-1e':['ch01']}}
             assert all(c['slug']!='optimization' for c in request('/api/admin/ai-learning')[1]['courses'])
             ai_path='/api/admin/ai-learning/machine-learning/books'
             assert write(ai_path,{'document_id':managed})[1]['added']==1

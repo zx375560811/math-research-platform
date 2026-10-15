@@ -88,16 +88,17 @@ async function main() {
         }
         if(url.pathname.startsWith('/api/learning-labs')){
           if(!session?.user)return json({error:'login_required'},401);
-          const key=session.user.username+':',labs=['calculus','linear-algebra','python','machine-learning','deep-learning','pytorch','nlp','llm'];
+          const key=session.user.username+':',catalog=JSON.parse(fs.readFileSync(path.join(repo,'backend/src/main/resources/textbook-labs.json'),'utf8'));
+          if(req.method==='GET'&&url.pathname==='/api/learning-labs/catalog')return json(catalog);
           if(req.method==='GET'&&url.pathname==='/api/learning-labs/progress')return json({progress:Object.fromEntries([...labProgress].filter(([name])=>name.startsWith(key)).map(([name,value])=>[name.slice(key.length),value]))});
-          const match=url.pathname.match(/^\/api\/learning-labs\/([a-z-]+)\/(progress|notebook)$/);
-          if(!match||!labs.includes(match[1]))return json({error:'not_found'},404);
-          if(req.method==='GET'&&match[2]==='notebook'){res.writeHead(200,{'Content-Type':'application/x-ipynb+json','Content-Disposition':'attachment; filename="axiom-'+match[1]+'.ipynb"'});return res.end(fs.readFileSync(path.join(frontend,'labs',match[1]+'.ipynb')));}
-          if(req.method==='PUT'&&match[2]==='progress'){
+          const match=url.pathname.match(/^\/api\/learning-labs\/([a-z0-9-]+)\/chapters\/([a-z0-9-]+)\/(progress|preview)$/),book=match&&catalog.books.find(b=>b.id===match[1]),chapter=book?.chapters.find(c=>c.id===match[2]);
+          if(!chapter)return json({error:'not_found'},404);
+          if(req.method==='GET'&&match[3]==='preview'){if(!chapter.preview)return json({error:'preview_not_available'},404);return json(JSON.parse(fs.readFileSync(path.join(frontend,'labs/upstream',match[1],match[2]+'.json'),'utf8')));}
+          if(req.method==='PUT'&&match[3]==='progress'){
             if(req.headers['x-csrf-token']!==session.token)return json({error:'invalid_csrf'},403);
             const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks)),id=key+match[1],saved=new Set(labProgress.get(id)||[]);
-            if(body.completed)saved.add(body.stage);else saved.delete(body.stage);
-            const completed=['follow','fill','independent'].filter(stage=>saved.has(stage));labProgress.set(id,completed);return json({completed_stages:completed});
+            if(body.completed)saved.add(match[2]);else saved.delete(match[2]);
+            labProgress.set(id,[...saved]);return json({completed:body.completed});
           }
         }
         if(url.pathname.startsWith('/api/study-plan')){
@@ -668,7 +669,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.match(await page.locator('#series-catalog .series-pager').textContent(),/第 1 \/ 1 页 · 共 1 本/);
     await page.unroute('**/api/series**');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     const aiCourseNames=[['calculus','数学分析重点','foundation'],['linear-algebra','高等代数重点','foundation'],['probability','概率与统计','foundation'],['python','Python 与 NumPy','foundation'],['machine-learning','机器学习','core'],['deep-learning','深度学习','core'],['pytorch','PyTorch 实践','support'],['nlp','自然语言处理','core'],['transformer','Transformer','core'],['llm','LLM','core']];
-    let aiCourseFetches=0;await page.route('**/api/ai-learning',route=>{aiCourseFetches++;return route.fulfill({json:{courses:aiCourseNames.map(([slug,name,phase])=>({slug,name,phase,topics:'概念；方法',practice:'完成一个可复现练习。',books:slug==='machine-learning'?[seriesDoc]:[]}))}});});
+    let aiCourseFetches=0;await page.route('**/api/ai-learning',route=>{aiCourseFetches++;return route.fulfill({json:{courses:aiCourseNames.map(([slug,name,phase])=>({slug,name,phase,topics:'概念；方法',practice:'按教材章节运行原始实验。',books:slug==='machine-learning'?[{...seriesDoc,title:'Python 机器学习基础教程'}]:[]}))}});});
     await page.locator('.ai-learning-application').click();await page.locator('.ai-study-map').waitFor();
     assert.equal(await page.locator('.ai-study-foundations .ai-course-node').count(),4);assert.equal(await page.locator('.ai-study-main .ai-course-node').count(),4);
     for(const slug of ['optimization','transformer'])assert.equal(await page.locator(`[data-ai-course="${slug}"]`).count(),0);
@@ -680,37 +681,60 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true,'Course selection must preserve the roadmap and its animations');
     assert.equal(await page.locator('[data-ai-course="machine-learning"][aria-current="step"]').count(),1);
     assert.match(await page.url(),/course=machine-learning/);
-    assert.equal(await page.locator('.learning-lab[data-lab="machine-learning"]').count(),1);
-    assert.match(await page.locator('.lab-book').textContent(),/Python 机器学习基础教程.*第 1 章/);
-    assert.equal(await page.locator('.lab-stages input').count(),3);
-    await page.getByRole('button',{name:'实验指导',exact:true}).click();assert.equal(await page.locator('#lab-machine-learning-guide').isVisible(),true);assert.match(await page.locator('#lab-machine-learning-guide .lab-commands').first().textContent(),/py -m venv/);
-    await page.getByRole('button',{name:'查看提示',exact:true}).click();assert.equal(await page.locator('#lab-machine-learning-guide').isVisible(),false);assert.match(await page.locator('#lab-machine-learning-hints').textContent(),/训练集/);
-    await page.getByRole('button',{name:'核对结果',exact:true}).click();assert.match(await page.locator('#lab-machine-learning-results').textContent(),/112.*38/);
-    const downloaded=page.waitForEvent('download');await page.getByRole('link',{name:'下载练习文件',exact:true}).click();const file=await downloaded;
-    assert.equal(file.suggestedFilename(),'axiom-machine-learning.ipynb');assert.equal(JSON.parse(fs.readFileSync(await file.path(),'utf8')).metadata.axiom.lab,'machine-learning');
-    await page.locator('[data-lab-stage="follow"]').check();await page.waitForFunction(()=>document.querySelector('.lab-status')?.textContent==='实验进度已保存。');
-    assert.match(await page.locator('.lab-count').textContent(),/1 \/ 3/);
+    assert.equal(await page.locator('.textbook-companion[data-book="imlp-1e"]').count(),1);
+    assert.equal(await page.locator('.companion-chapter').count(),7);
+    assert.equal(await page.locator('.lab-stages').count(),0);
+    assert.match(await page.getByRole('link',{name:'打开原始实验',exact:true}).getAttribute('href'),/amueller\/introduction_to_ml_with_python\/blob\/[a-f0-9]{40}\/01-introduction.ipynb/);
+    assert.match(await page.getByRole('link',{name:'下载配套代码',exact:true}).getAttribute('href'),/archive\/[a-f0-9]{40}\.zip$/);
+    await page.getByRole('button',{name:'运行说明',exact:true}).click();assert.match(await page.locator('.companion-view').textContent(),/mglearn.*data/);
+    await page.locator('.companion-completion input').check();await page.waitForFunction(()=>document.querySelector('.lab-status')?.textContent==='本章进度已保存。');
+    assert.match(await page.locator('.lab-count').textContent(),/1 \/ 7/);
+    await page.locator('[data-lab-book="hands-on-ml-zh"]').click();assert.equal(await page.locator('.companion-chapter').count(),15);assert.match(await page.locator('.lab-count').textContent(),/0 \/ 15/);
+    await page.locator('[data-lab-book="imlp-1e"]').click();assert.equal(await page.locator('.companion-completion input').isChecked(),true);
+    // Switching books during a save must not leave the restored checkbox disabled.
+    let finishSave;const heldSave=new Promise(resolve=>finishSave=resolve),savePath='**/api/learning-labs/imlp-1e/chapters/ch02/progress';await page.route(savePath,async route=>{await heldSave;await route.fallback();});
+    await page.locator('[data-chapter="ch02"]').click();await page.locator('.companion-completion input').check();await page.locator('[data-lab-book="hands-on-ml-zh"]').click();await page.locator('[data-lab-book="imlp-1e"]').click();assert.equal(await page.locator('.companion-completion input').isDisabled(),true);finishSave();await page.waitForFunction(()=>!document.querySelector('.companion-completion input').disabled);assert.equal(await page.locator('.companion-completion input').isChecked(),true);assert.match(await page.locator('.lab-count').textContent(),/2 \/ 7/);await page.unroute(savePath);await page.locator('[data-chapter="ch01"]').click();
     const experimentSlugs=new Set();
     for(const [slug]of aiCourseNames.filter(([slug])=>slug!=='transformer')){
       await page.locator(`[data-ai-course="${slug}"]`).click();
-      if(slug==='probability'){assert.equal(await page.locator('.learning-labs').count(),0);continue;}
-      assert.equal(await page.locator(`.learning-lab[data-lab="${slug}"]`).count(),1);
-      assert.equal(await page.locator('.lab-stages input').count(),3);
-      assert.ok((await page.locator('.lab-prior').textContent()).length>10);
-      assert.equal(await page.getByRole('link',{name:'下载练习文件',exact:true}).getAttribute('href'),'/api/learning-labs/'+slug+'/notebook');
+      if(['calculus','linear-algebra','probability'].includes(slug)){assert.equal(await page.locator('.learning-labs').count(),0);continue;}
+      assert.equal(await page.locator('.textbook-companion').count(),1);
+      assert.equal(await page.locator('.companion-completion input').count(),1);
+      assert.ok((await page.locator('.companion-chapter').count())>=7);
+      assert.match(await page.getByRole('link',{name:'下载配套代码',exact:true}).getAttribute('href'),/[a-f0-9]{40}.*\.zip$/);
       experimentSlugs.add(slug);
     }
-    assert.equal(experimentSlugs.size,8);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
+    assert.equal(experimentSlugs.size,6);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
+    await page.locator('[data-ai-course="deep-learning"]').click();await page.locator('.companion-file').waitFor();
+    await page.locator('[data-chapter="ch02"]').click();await page.locator('.companion-file').waitFor();
+    await page.locator('.companion-file').selectOption('ch02/xor_gate.py');assert.match(await page.locator('.companion-code').textContent(),/def XOR/);
+    await page.screenshot({path:path.join(shots,'textbook-labs-desktop.png'),fullPage:true});
+    await page.locator('.learning-labs').screenshot({path:path.join(shots,'textbook-labs-panel.png')});
+    const failingPreview='**/api/learning-labs/scratch-1e/chapters/ch03/preview';await page.route(failingPreview,route=>route.fulfill({status:503,json:{error:'lab_unavailable'}}));
+    await page.locator('[data-chapter="ch03"]').click();await page.getByRole('button',{name:'重试预览',exact:true}).waitFor();await page.unroute(failingPreview);await page.getByRole('button',{name:'重试预览',exact:true}).click();await page.locator('.companion-file').waitFor();
+    // Original code is inert text, even if it contains HTML-looking strings.
+    const unsafePreview='**/api/learning-labs/scratch-1e/chapters/ch04/preview';await page.route(unsafePreview,route=>route.fulfill({json:{files:[{path:'example.py',cells:['print("<img src=x onerror=alert(1)>")']}]}}));
+    await page.locator('[data-chapter="ch04"]').click();await page.locator('.companion-file').waitFor();assert.equal(await page.locator('.companion-code img').count(),0);assert.match(await page.locator('.companion-code').textContent(),/<img/);await page.unroute(unsafePreview);
+    await page.locator('[data-ai-course="pytorch"]').click();await page.locator('.companion-file').waitFor();assert.match(await page.locator('.companion-code').textContent(),/torch/);assert.doesNotMatch(await page.locator('.companion-code').textContent(),/from mxnet/);
+    await page.locator('[data-ai-course="python"]').click();await page.locator('[data-lab-book="pydata-2e"]').click();await page.locator('.companion-file').waitFor();
+    assert.match(await page.locator('.companion-code').textContent(),/print|import|range/);assert.match(await page.locator('.companion-edition').textContent(),/第二版/);
+    await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'textbook-labs-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
+    await page.locator('[data-ai-course="nlp"]').click();assert.match(await page.getByRole('link',{name:'打开原始实验',exact:true}).getAttribute('href'),/gitlab.com\/tangibleai\/nlpia2/);
     await page.locator('[data-ai-course="machine-learning"]').click();
 
     await page.locator('[data-ai-course="machine-learning"]').click();assert.equal(aiCourseFetches,courseFetchesBefore);
 
     await page.screenshot({path:path.join(shots,'ai-learning-desktop.png'),fullPage:true});
     await page.locator('.ai-study-map').screenshot({path:path.join(shots,'ai-roadmap-desktop.png'),animations:'disabled'});
-    await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'实验指导',exact:true}).click();await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.getByRole('button',{name:'实验指导',exact:true}).click();await page.setViewportSize({width:1440,height:900});
+    await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'运行说明',exact:true}).click();await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
     await page.locator('.ai-study-book a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/数学到人工智能/);await readerControl(page,'reader-back');await page.locator('[data-ai-course="machine-learning"][aria-current]').waitFor();
-    assert.equal(await page.locator('[data-lab-stage="follow"]').isChecked(),true);
+    assert.equal(await page.locator('.companion-completion input').isChecked(),true);
     await page.locator('[data-ai-course="pytorch"]').click();await page.waitForFunction(()=>document.querySelector('.ai-study-detail h2')?.textContent==='PyTorch 实践');
+    await page.route('**/api/learning-labs/catalog',route=>route.fulfill({status:503,json:{error:'unavailable'}}));
+    await page.goto(base+'/#/apps/math-to-ai?course=python');await page.locator('.lab-load-error').waitFor();
+    await page.unroute('**/api/learning-labs/catalog');await page.locator('.lab-load-error button').click();await page.locator('.textbook-companion').waitFor();
+    await page.route('**/api/learning-labs/progress',route=>route.fulfill({status:503,json:{error:'unavailable'}}));
+    await page.goto(base+'/#/apps/math-to-ai?course=pytorch');await page.locator('.companion-file').waitFor();assert.equal(await page.locator('.companion-completion input').isDisabled(),true);assert.equal(await page.locator('.lab-count').textContent(),'进度未读取');await page.unroute('**/api/learning-labs/progress');
     await page.unroute('**/api/ai-learning');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     let planDocument=2;
     if(process.env.MATH_BROWSER_MOCK!=='1'){const added=spawnSync('python3',[path.join(repo,'backend/admin/import_document.py'),'source.pdf','--title','研究资料 2','--subject-id','1'],{cwd:temp,encoding:'utf8'});assert.equal(added.status,0,added.stderr);planDocument=JSON.parse(added.stdout).id;}

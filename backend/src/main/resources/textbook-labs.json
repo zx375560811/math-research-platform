@@ -1,0 +1,1148 @@
+{
+  "version": 1,
+  "books": [
+    {
+      "id": "pcc-1e",
+      "title": "Python 编程：从入门到实践",
+      "authors": "Eric Matthes",
+      "edition": "第一版",
+      "courses": [
+        "python"
+      ],
+      "aliases": [
+        "Python编程从入门到实践",
+        "Python Crash Course"
+      ],
+      "repository": "https://github.com/ehmatthes/pcc",
+      "commit": "27110c449978b60004106b619a029efcb2451212",
+      "mirror": false,
+      "environment": "CPU",
+      "notes": [
+        "从对应章的 .py 示例开始。第一版代码保留原貌，后半部分的数据接口、Pygal 与 Django 依赖较旧，按仓库说明配置。",
+        "下载并解压完整仓库，进入当前章节目录运行文件。第一版与第三版的项目和依赖不同，请勿混用。"
+      ],
+      "download_url": "https://github.com/ehmatthes/pcc/archive/27110c449978b60004106b619a029efcb2451212.zip",
+      "chapters": [
+        {
+          "id": "ch01",
+          "label": "第 1 章",
+          "title": "起步",
+          "description": "配置解释器并运行 hello_world.py，确认编辑、保存与执行 Python 文件的完整过程。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_01",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch02",
+          "label": "第 2 章",
+          "title": "变量和简单数据类型",
+          "description": "操作字符串和数字，比较变量、类型与简单表达式的运行结果。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_02",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch03",
+          "label": "第 3 章",
+          "title": "列表简介",
+          "description": "创建并修改列表，练习按索引读取、添加、删除与排序。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_03",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch04",
+          "label": "第 4 章",
+          "title": "操作列表",
+          "description": "用循环、切片和列表解析处理一组数据，观察遍历与复制的区别。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_04",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch05",
+          "label": "第 5 章",
+          "title": "if 语句",
+          "description": "通过条件判断和分支处理不同输入，理解布尔表达式与边界情况。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_05",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch06",
+          "label": "第 6 章",
+          "title": "字典",
+          "description": "用字典存储和遍历关联数据，组合列表与字典表达更复杂的信息。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_06",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch07",
+          "label": "第 7 章",
+          "title": "用户输入和 while 循环",
+          "description": "读取交互输入并控制 while 循环，处理停止条件与数据转换。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_07",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch08",
+          "label": "第 8 章",
+          "title": "函数",
+          "description": "定义和调用函数，练习参数、返回值与模块之间的引用。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_08",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch09",
+          "label": "第 9 章",
+          "title": "类",
+          "description": "创建对象并修改属性，理解类、实例、继承与方法调用。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_09",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch10",
+          "label": "第 10 章",
+          "title": "文件和异常",
+          "description": "从文件读取数据并写回结果，处理异常和 JSON 格式的数据。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_10",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch11",
+          "label": "第 11 章",
+          "title": "测试代码",
+          "description": "运行作者的函数与类测试，观察通过和失败时的输出。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_11",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch12",
+          "label": "第 12 章",
+          "title": "武装飞船",
+          "description": "跟随书中项目创建 Pygame 窗口、飞船和子弹，先运行本章的基础结构。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_12",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch13",
+          "label": "第 13 章",
+          "title": "外星人",
+          "description": "在前一章基础上加入外星人群、移动与碰撞，保留项目文件结构。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_13",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch14",
+          "label": "第 14 章",
+          "title": "计分",
+          "description": "为游戏增加得分、等级与开始按钮，检查完整交互流程。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_14",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch15",
+          "label": "第 15 章",
+          "title": "生成数据",
+          "description": "运行折线、散点和随机漫步示例，观察生成数据与可视化之间的对应。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_15",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch16",
+          "label": "第 16 章",
+          "title": "下载数据",
+          "description": "读取天气与地理数据，按教材处理文件并绘图；外部数据源可能已变化。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_16",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch17",
+          "label": "第 17 章",
+          "title": "使用 API",
+          "description": "用书中 API 示例请求和整理数据；运行前核对接口是否仍然可用。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_17",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch18",
+          "label": "第 18 章",
+          "title": "Django 入门",
+          "description": "使用本书第一版的 Django 项目搭建页面，先匹配教材所用框架版本。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_18",
+          "runtime": "CPU · 旧版 Django",
+          "preview": false
+        },
+        {
+          "id": "ch19",
+          "label": "第 19 章",
+          "title": "用户账户",
+          "description": "接着前一章加入账户和权限，观察登录状态如何影响页面与数据。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_19",
+          "runtime": "CPU · 旧版 Django",
+          "preview": false
+        },
+        {
+          "id": "ch20",
+          "label": "第 20 章",
+          "title": "设置样式与部署",
+          "description": "完成学习笔记项目的样式与部署步骤；旧版云平台说明需按实际环境核对。",
+          "source_url": "https://github.com/ehmatthes/pcc/tree/27110c449978b60004106b619a029efcb2451212/chapter_20",
+          "runtime": "CPU · 旧版 Django",
+          "preview": false
+        }
+      ],
+      "license": "作者仓库提供",
+      "license_url": "https://github.com/ehmatthes/pcc",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "pydata-2e",
+      "title": "利用 Python 进行数据分析",
+      "authors": "Wes McKinney",
+      "edition": "原书第二版",
+      "courses": [
+        "python"
+      ],
+      "aliases": [
+        "利用Python进行数据分析",
+        "Python for Data Analysis"
+      ],
+      "repository": "https://github.com/wesm/pydata-book",
+      "commit": "6427db12ed7ae06328124f950c0b4ac9baf6b31f",
+      "mirror": true,
+      "environment": "CPU",
+      "notes": [
+        "使用 2nd-edition 分支的原始代码单元，按章节从上到下运行。涉及 examples、datasets 的章节，需先下载并解压完整仓库，在仓库根目录启动 Jupyter。",
+        "配套代码使用当时的 pandas API，尚未承诺在最新 pandas 上全部兼容。环境版本以仓库 requirements.txt 为准。"
+      ],
+      "download_url": "https://github.com/wesm/pydata-book/archive/6427db12ed7ae06328124f950c0b4ac9baf6b31f.zip",
+      "chapters": [
+        {
+          "id": "ch02",
+          "label": "第 2 章",
+          "title": "Python 语法、IPython 与 Jupyter",
+          "description": "在 Jupyter 中运行数组、函数调用和交互式示例，熟悉书中使用的 Python 工作方式。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch02.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch03",
+          "label": "第 3 章",
+          "title": "数据结构、函数与文件",
+          "description": "练习列表、元组、字典、集合与函数，并处理文件读取中的常见情况。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch03.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch04",
+          "label": "第 4 章",
+          "title": "NumPy 数组与向量化",
+          "description": "对数组进行索引、切片、广播和向量化运算，观察形状与结果的变化。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch04.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch05",
+          "label": "第 5 章",
+          "title": "pandas 入门",
+          "description": "创建 Series 与 DataFrame，练习索引、筛选、对齐和缺失值处理。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch05.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch06",
+          "label": "第 6 章",
+          "title": "数据读取与存储",
+          "description": "读取 CSV、JSON 等文件并写出结果，保留仓库 examples 中的配套输入文件。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch06.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch07",
+          "label": "第 7 章",
+          "title": "数据清洗与准备",
+          "description": "识别缺失、重复和异常数据，使用映射、替换与字符串处理进行清洗。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch07.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch08",
+          "label": "第 8 章",
+          "title": "数据规整：连接、合并与重塑",
+          "description": "连接和合并多张表，练习索引重塑并检查合并后的行列关系。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch08.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch09",
+          "label": "第 9 章",
+          "title": "绘图与可视化",
+          "description": "用书中绘图代码把表格数据转成图形，对照坐标、标签与统计含义。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch09.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch10",
+          "label": "第 10 章",
+          "title": "数据聚合与分组运算",
+          "description": "按类别拆分数据并计算汇总结果，理解聚合、变换与分组应用。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch10.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch11",
+          "label": "第 11 章",
+          "title": "时间序列",
+          "description": "处理日期索引、频率与重采样，观察时间对齐如何影响分析。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch11.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch12",
+          "label": "第 12 章",
+          "title": "pandas 进阶",
+          "description": "运行分类数据和 pandas 进阶示例；本章旧 API 需匹配第二版环境。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch12.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch13",
+          "label": "第 13 章",
+          "title": "建模库入门",
+          "description": "连接 pandas 与建模库，观察特征整理、拟合和结果读取的过程。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch13.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch14",
+          "label": "第 14 章",
+          "title": "数据分析实例",
+          "description": "按书中真实数据案例串联读取、清洗、分组和可视化步骤。",
+          "source_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/ch14.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        }
+      ],
+      "license": "MIT",
+      "license_url": "https://github.com/wesm/pydata-book/blob/6427db12ed7ae06328124f950c0b4ac9baf6b31f/COPYING",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "imlp-1e",
+      "title": "Python 机器学习基础教程",
+      "authors": "Andreas C. Müller / Sarah Guido",
+      "edition": "第一版",
+      "courses": [
+        "machine-learning"
+      ],
+      "aliases": [
+        "Python机器学习基础教程",
+        "Introduction to Machine Learning with Python"
+      ],
+      "repository": "https://github.com/amueller/introduction_to_ml_with_python",
+      "commit": "ea60cf6cf791553b6cca7cf31802c68cb3798ebb",
+      "mirror": false,
+      "environment": "CPU",
+      "notes": [
+        "下载完整仓库，在根目录启动 Jupyter，保留 mglearn、preamble.py 与 data 目录。按每章 Notebook 的顺序运行。",
+        "仓库说明仍列出 scikit-learn 0.20.0。旧 API 需要相应环境或兼容调整；文本章节还需 NLP 包和语言数据。"
+      ],
+      "download_url": "https://github.com/amueller/introduction_to_ml_with_python/archive/ea60cf6cf791553b6cca7cf31802c68cb3798ebb.zip",
+      "chapters": [
+        {
+          "id": "ch01",
+          "label": "第 1 章",
+          "title": "引言与鸢尾花分类",
+          "description": "使用鸢尾花数据建立第一个分类器，依次完成数据观察、训练测试划分、预测与评估。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/01-introduction.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch02",
+          "label": "第 2 章",
+          "title": "监督学习",
+          "description": "比较书中的分类和回归模型，观察模型复杂度、数据尺度与决策边界的关系。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/02-supervised-learning.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch03",
+          "label": "第 3 章",
+          "title": "无监督学习与预处理",
+          "description": "运行缩放、降维和聚类示例，观察预处理如何改变表示与分组结果。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/03-unsupervised-learning.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch04",
+          "label": "第 4 章",
+          "title": "数据表示与特征工程",
+          "description": "对类别、数值和交互特征进行转换，比较不同表示对模型的影响。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/04-representing-data-feature-engineering.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch05",
+          "label": "第 5 章",
+          "title": "模型评估与改进",
+          "description": "用交叉验证、网格搜索和评价指标检查模型，区分选模型和最终测试。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/05-model-evaluation-and-improvement.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch06",
+          "label": "第 6 章",
+          "title": "算法链与管道",
+          "description": "把预处理与模型组成管道，在交叉验证中保持正确的数据处理顺序。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/06-algorithm-chains-and-pipelines.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch07",
+          "label": "第 7 章",
+          "title": "文本数据处理",
+          "description": "把文本转成词袋或 TF-IDF 特征，再训练并评估文本分类模型。",
+          "source_url": "https://github.com/amueller/introduction_to_ml_with_python/blob/ea60cf6cf791553b6cca7cf31802c68cb3798ebb/07-working-with-text-data.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        }
+      ],
+      "license": "作者仓库提供",
+      "license_url": "https://github.com/amueller/introduction_to_ml_with_python",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "hands-on-ml-zh",
+      "title": "动手学机器学习",
+      "authors": "张伟楠 / 赵寒烨 / 俞勇",
+      "edition": "中文教材配套版",
+      "courses": [
+        "machine-learning"
+      ],
+      "aliases": [
+        "动手学机器学习"
+      ],
+      "repository": "https://github.com/boyu-ai/Hands-on-ML",
+      "commit": "3777fa83e4fa01ad3e34324821be93bab8b3fcdf",
+      "mirror": false,
+      "environment": "CPU / 部分章节 GPU",
+      "notes": [
+        "这是教材官网 hml.boyuai.com 指向的作者代码库。下载后按章进入目录，运行对应 Notebook；相关数据与辅助文件应一起保留。",
+        "从第 3 章 k 近邻开始，随后阅读线性回归。神经网络等后续实验在学习相应章节之后再做。"
+      ],
+      "download_url": "https://github.com/boyu-ai/Hands-on-ML/archive/3777fa83e4fa01ad3e34324821be93bab8b3fcdf.zip",
+      "chapters": [
+        {
+          "id": "ch03",
+          "label": "第 3 章",
+          "title": "k近邻算法",
+          "description": "复现本章 k 近邻案例，观察距离、邻居数与预测结果之间的关系。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC3%E7%AB%A0%20k%E8%BF%91%E9%82%BB%E7%AE%97%E6%B3%95/03%20k%E8%BF%91%E9%82%BB%E7%AE%97%E6%B3%95.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch04",
+          "label": "第 4 章",
+          "title": "线性回归",
+          "description": "运行线性回归案例，连接预测函数、损失与参数学习过程。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC4%E7%AB%A0%20%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92/04%20%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch06",
+          "label": "第 6 章",
+          "title": "逻辑斯谛回归",
+          "description": "运行逻辑斯谛回归案例，观察线性分数如何转成类别概率。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC6%E7%AB%A0%20%E9%80%BB%E8%BE%91%E6%96%AF%E8%B0%9B%E5%9B%9E%E5%BD%92/06%20%E9%80%BB%E8%BE%91%E6%96%AF%E8%B0%9B%E5%9B%9E%E5%BD%92.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch07",
+          "label": "第 7 章",
+          "title": "双线性模型",
+          "description": "按教材运行双线性模型，跟踪两组输入与模型参数如何共同决定预测。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC7%E7%AB%A0%20%E5%8F%8C%E7%BA%BF%E6%80%A7%E6%A8%A1%E5%9E%8B/07%20%E5%8F%8C%E7%BA%BF%E6%80%A7%E6%A8%A1%E5%9E%8B.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch08",
+          "label": "第 8 章",
+          "title": "神经网络与多层感知机",
+          "description": "运行多层感知机案例，查看前向计算、损失和参数更新。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC8%E7%AB%A0%20%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%A4%9A%E5%B1%82%E6%84%9F%E7%9F%A5%E6%9C%BA/08%20%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%A4%9A%E5%B1%82%E6%84%9F%E7%9F%A5%E6%9C%BA.ipynb",
+          "runtime": "GPU 可选",
+          "preview": false
+        },
+        {
+          "id": "ch09",
+          "label": "第 9 章",
+          "title": "卷积神经网络",
+          "description": "运行本章卷积网络案例，核对图像、卷积层与分类输出的形状。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC9%E7%AB%A0%20%E5%8D%B7%E7%A7%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/09%20%E5%8D%B7%E7%A7%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C.ipynb",
+          "runtime": "GPU 可选",
+          "preview": false
+        },
+        {
+          "id": "ch10",
+          "label": "第 10 章",
+          "title": "循环神经网络",
+          "description": "按序列组织数据并运行循环网络，观察隐藏状态和序列输出。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC10%E7%AB%A0%20%E5%BE%AA%E7%8E%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C/10%20%E5%BE%AA%E7%8E%AF%E7%A5%9E%E7%BB%8F%E7%BD%91%E7%BB%9C.ipynb",
+          "runtime": "GPU 可选",
+          "preview": false
+        },
+        {
+          "id": "ch11",
+          "label": "第 11 章",
+          "title": "支持向量机",
+          "description": "运行支持向量机案例，对照教材理解间隔、核函数与分类边界。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC11%E7%AB%A0%20%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA/11%20%E6%94%AF%E6%8C%81%E5%90%91%E9%87%8F%E6%9C%BA.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch12",
+          "label": "第 12 章",
+          "title": "决策树",
+          "description": "运行决策树案例，观察特征切分、树结构与预测的关系。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC12%E7%AB%A0%20%E5%86%B3%E7%AD%96%E6%A0%91/12%20%E5%86%B3%E7%AD%96%E6%A0%91.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch13",
+          "label": "第 13 章",
+          "title": "集成学习与梯度提升决策树",
+          "description": "比较集成模型与梯度提升决策树，查看组合多个模型后的实验结果。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC13%E7%AB%A0%20%E9%9B%86%E6%88%90%E5%AD%A6%E4%B9%A0%E4%B8%8E%E6%A2%AF%E5%BA%A6%E6%8F%90%E5%8D%87%E5%86%B3%E7%AD%96%E6%A0%91/13%20%E9%9B%86%E6%88%90%E5%AD%A6%E4%B9%A0%E4%B8%8E%E6%A2%AF%E5%BA%A6%E6%8F%90%E5%8D%87%E5%86%B3%E7%AD%96%E6%A0%91.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch14",
+          "label": "第 14 章",
+          "title": "k均值聚类",
+          "description": "运行 k 均值聚类，观察中心初始化与聚类迭代得到的分组。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC14%E7%AB%A0%20k%E5%9D%87%E5%80%BC%E8%81%9A%E7%B1%BB/14%20k%E5%9D%87%E5%80%BC%E8%81%9A%E7%B1%BB.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch15",
+          "label": "第 15 章",
+          "title": "主成分分析",
+          "description": "运行主成分分析，对照投影结果理解方差与低维表示。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC15%E7%AB%A0%20%E4%B8%BB%E6%88%90%E5%88%86%E5%88%86%E6%9E%90/15%20%E4%B8%BB%E6%88%90%E5%88%86%E5%88%86%E6%9E%90.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch16",
+          "label": "第 16 章",
+          "title": "概率图模型",
+          "description": "按本章概率图模型案例跟踪变量关系与推断过程。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC16%E7%AB%A0%20%E6%A6%82%E7%8E%87%E5%9B%BE%E6%A8%A1%E5%9E%8B/16%20%E6%A6%82%E7%8E%87%E5%9B%BE%E6%A8%A1%E5%9E%8B.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch17",
+          "label": "第 17 章",
+          "title": "EM算法",
+          "description": "运行 EM 算法案例，观察隐变量估计与参数更新的交替过程。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC17%E7%AB%A0%20EM%E7%AE%97%E6%B3%95/17%20EM%E7%AE%97%E6%B3%95.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch18",
+          "label": "第 18 章",
+          "title": "自动编码器",
+          "description": "运行自动编码器案例，观察编码、重建与重建损失。",
+          "source_url": "https://github.com/boyu-ai/Hands-on-ML/blob/3777fa83e4fa01ad3e34324821be93bab8b3fcdf/%E7%AC%AC18%E7%AB%A0%20%E8%87%AA%E5%8A%A8%E7%BC%96%E7%A0%81%E5%99%A8/18%20%E8%87%AA%E5%8A%A8%E7%BC%96%E7%A0%81%E5%99%A8.ipynb",
+          "runtime": "GPU 可选",
+          "preview": false
+        }
+      ],
+      "license": "作者仓库提供",
+      "license_url": "https://github.com/boyu-ai/Hands-on-ML",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "scratch-1e",
+      "title": "深度学习入门：基于 Python 的理论与实现",
+      "authors": "斋藤康毅",
+      "edition": "第一卷",
+      "courses": [
+        "deep-learning"
+      ],
+      "aliases": [
+        "深度学习入门基于Python的理论与实现",
+        "Deep Learning from Scratch"
+      ],
+      "repository": "https://github.com/oreilly-japan/deep-learning-from-scratch",
+      "commit": "07b11618cdb5d5f78ad45464de0730efc07b0a4a",
+      "mirror": true,
+      "environment": "CPU · NumPy",
+      "notes": [
+        "下载完整仓库，保留 common、dataset 与各章目录。进入 ch01 等当前章目录后运行 .py 文件；Notebook 版本位于 notebooks 目录。",
+        "神经网络训练按教材使用 MNIST，首次运行可能下载数据。第 5 章先做梯度核对，再训练网络；卷积网络在第 7 章之后进行。"
+      ],
+      "download_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/archive/07b11618cdb5d5f78ad45464de0730efc07b0a4a.zip",
+      "chapters": [
+        {
+          "id": "ch01",
+          "label": "第 1 章",
+          "title": "Python 与 NumPy 入门",
+          "description": "运行作者的数组与绘图示例，理解 NumPy 数组、广播和函数曲线。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch01",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch02",
+          "label": "第 2 章",
+          "title": "感知机",
+          "description": "分别运行 AND、NAND、OR 和 XOR，观察简单感知机如何组合成异或运算。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch02",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch03",
+          "label": "第 3 章",
+          "title": "神经网络",
+          "description": "运行激活函数与 MNIST 推理示例，跟踪输入、权重和输出的形状。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch03",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch04",
+          "label": "第 4 章",
+          "title": "神经网络的学习",
+          "description": "比较数值梯度与梯度下降，再运行两层网络的训练过程。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch04",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch05",
+          "label": "第 5 章",
+          "title": "误差反向传播法",
+          "description": "从苹果购买计算图开始实现反向传播，先做梯度核对，再训练两层网络。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch05",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch06",
+          "label": "第 6 章",
+          "title": "与学习相关的技巧",
+          "description": "比较优化器、权重初始化、Batch Normalization 与正则化对学习的影响。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch06",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch07",
+          "label": "第 7 章",
+          "title": "卷积神经网络",
+          "description": "运行卷积与池化代码，构建并训练书中的简单卷积网络。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch07",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "ch08",
+          "label": "第 8 章",
+          "title": "深度学习",
+          "description": "查看更深的卷积网络、错误样本和数值精度示例，对照教材理解深层网络。",
+          "source_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/tree/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch08",
+          "runtime": "CPU",
+          "preview": true
+        }
+      ],
+      "license": "MIT",
+      "license_url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/LICENSE.md",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "d2l-pytorch-2e",
+      "title": "动手学深度学习",
+      "authors": "Aston Zhang / Zachary C. Lipton / 李沐 / Alexander J. Smola",
+      "edition": "第二版 · PyTorch",
+      "courses": [
+        "pytorch"
+      ],
+      "aliases": [
+        "动手学深度学习",
+        "Dive into Deep Learning"
+      ],
+      "repository": "https://github.com/d2l-ai/d2l-zh-pytorch-colab",
+      "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+      "mirror": true,
+      "environment": "CPU / 后续训练 GPU",
+      "notes": [
+        "这里使用 D2L 官方生成的 PyTorch Notebook，不混入 MXNet、TensorFlow 或 Paddle 代码。可从原始实验页面点击 Colab 运行。",
+        "下载完整仓库后按官方安装章节配置 d2l 与 PyTorch。2—3 章基础实验可先用 CPU，训练数据会按需下载，后续大网络应使用合适的 GPU。"
+      ],
+      "download_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/archive/10243a27370ebfa2bd6c3d8ef127e37c829b3051.zip",
+      "chapters": [
+        {
+          "id": "s2-1",
+          "label": "第 2.1 节",
+          "title": "数据操作",
+          "description": "创建、索引和重塑 Tensor，检查广播、内存复用与 NumPy 转换。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/ndarray.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s2-2",
+          "label": "第 2.2 节",
+          "title": "数据预处理",
+          "description": "读取并整理表格数据，把清洗后的数值转成 Tensor。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/pandas.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s2-3",
+          "label": "第 2.3 节",
+          "title": "线性代数",
+          "description": "执行向量、矩阵、内积与范数计算，逐项核对张量形状。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/linear-algebra.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s2-4",
+          "label": "第 2.4 节",
+          "title": "微积分",
+          "description": "用教材代码观察函数和切线，把导数定义与数值结果对照。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/calculus.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s2-5",
+          "label": "第 2.5 节",
+          "title": "自动微分",
+          "description": "构建计算图并调用自动微分，观察梯度累加、分离与控制流。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/autograd.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s2-6",
+          "label": "第 2.6 节",
+          "title": "概率",
+          "description": "运行采样与频率统计，观察重复试验中估计值的波动。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/probability.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s3-2",
+          "label": "第 3.2 节",
+          "title": "线性回归：从零开始",
+          "description": "从数据生成、损失和小批量更新开始，实现线性回归训练循环。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/linear-regression-scratch.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s3-3",
+          "label": "第 3.3 节",
+          "title": "线性回归：简洁实现",
+          "description": "用 DataLoader、线性层、损失函数与优化器完成同一个回归任务。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/linear-regression-concise.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s3-6",
+          "label": "第 3.6 节",
+          "title": "Softmax 回归：从零开始",
+          "description": "按书中实现 Softmax、交叉熵和训练循环，完成 Fashion-MNIST 分类。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/softmax-regression-scratch.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s3-7",
+          "label": "第 3.7 节",
+          "title": "Softmax 回归：简洁实现",
+          "description": "用 PyTorch 的模块与损失函数重写 Softmax 分类，比较实现步骤。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/softmax-regression-concise.ipynb",
+          "runtime": "CPU",
+          "preview": true
+        },
+        {
+          "id": "s4-2",
+          "label": "第 4.2 节",
+          "title": "多层感知机：从零开始",
+          "description": "显式定义隐藏层参数与激活函数，训练基础多层感知机。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_multilayer-perceptrons/mlp-scratch.ipynb",
+          "runtime": "GPU 可选",
+          "preview": true
+        },
+        {
+          "id": "s4-3",
+          "label": "第 4.3 节",
+          "title": "多层感知机：简洁实现",
+          "description": "用 nn.Sequential 构建多层感知机，运行并查看分类结果。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_multilayer-perceptrons/mlp-concise.ipynb",
+          "runtime": "GPU 可选",
+          "preview": true
+        },
+        {
+          "id": "s4-5",
+          "label": "第 4.5 节",
+          "title": "权重衰减",
+          "description": "比较正则化前后的训练和验证结果，理解权重衰减。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_multilayer-perceptrons/weight-decay.ipynb",
+          "runtime": "GPU 可选",
+          "preview": true
+        },
+        {
+          "id": "s4-6",
+          "label": "第 4.6 节",
+          "title": "暂退法",
+          "description": "运行暂退层及训练示例，区分训练阶段和预测阶段的行为。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_multilayer-perceptrons/dropout.ipynb",
+          "runtime": "GPU 可选",
+          "preview": true
+        },
+        {
+          "id": "s6-2",
+          "label": "第 6.2 节",
+          "title": "图像卷积",
+          "description": "实现二维互相关并学习卷积核，检查输入和输出的尺寸。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_convolutional-neural-networks/conv-layer.ipynb",
+          "runtime": "GPU 可选",
+          "preview": true
+        },
+        {
+          "id": "s6-6",
+          "label": "第 6.6 节",
+          "title": "LeNet",
+          "description": "运行 LeNet，逐层检查形状，再观察图像分类训练结果。",
+          "source_url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_convolutional-neural-networks/lenet.ipynb",
+          "runtime": "GPU 可选",
+          "preview": true
+        }
+      ],
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/d2l-ai/d2l-zh/blob/e6b18ccea71451a55fcd861d7b96fddf2587b09a/LICENSE",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "nlpia-2e",
+      "title": "Natural Language Processing in Action",
+      "authors": "Hobson Lane / Maria Dyshel",
+      "edition": "第二版",
+      "courses": [
+        "nlp"
+      ],
+      "aliases": [
+        "Natural Language Processing in Action",
+        "自然语言处理实战"
+      ],
+      "repository": "https://gitlab.com/tangibleai/nlpia2",
+      "commit": "3ba0bd40007219e8744462da0c4bb3b33a5c80f9",
+      "mirror": false,
+      "environment": "CPU / 后续章节 GPU",
+      "notes": [
+        "出版社第二版页面指向 Tangible AI 的 GitLab 仓库。下载完整代码，按仓库安装说明配置 nlpia2；此处保留官方入口。",
+        "第 2—4 章从分词和向量模型开始。第 5 章之后的神经网络实验需要对应深度学习基础；预出版 PDF 请按章节标题核对。"
+      ],
+      "download_url": "https://gitlab.com/tangibleai/nlpia2/-/archive/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/nlpia2-3ba0bd40007219e8744462da0c4bb3b33a5c80f9.zip",
+      "chapters": [
+        {
+          "id": "ch01",
+          "label": "第 1 章",
+          "title": "能读写的机器",
+          "description": "从本章的文本处理与对话示例入手，观察自然语言输入如何进入程序。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-01_Machines-that-can-read-and-write-NLP-overview.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch02",
+          "label": "第 2 章",
+          "title": "分词与词元",
+          "description": "运行分词与词元处理示例，观察文本清洗如何改变词表和计数。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-02_Tokens-of-thought-natural-language-words.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch03",
+          "label": "第 3 章",
+          "title": "词语的数学：TF-IDF",
+          "description": "把文档转成词频与 TF-IDF 向量，用相似度比较文本。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-03_Math-with-Words-TF-IDF-Vectors.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch04",
+          "label": "第 4 章",
+          "title": "词频中的语义",
+          "description": "从词频表示进入语义分析，观察低维语义结构与文本相似性。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-04_Finding-Meaning-in-Word-Counts-Semantic-Analysis.ipynb",
+          "runtime": "CPU",
+          "preview": false
+        },
+        {
+          "id": "ch05",
+          "label": "第 5 章",
+          "title": "用于 NLP 的神经网络",
+          "description": "运行用于 NLP 的神经网络示例，需要先学过相应网络与训练基础。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-05_Word-Brain-artificial-neural-networks-for-NLP.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch06",
+          "label": "第 6 章",
+          "title": "词嵌入",
+          "description": "使用词向量表示词语，比较嵌入空间中的相似性与关系。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-06_Reasoning-with-word-embeddings-word-vectors.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch07",
+          "label": "第 7 章",
+          "title": "卷积神经网络",
+          "description": "运行文本卷积网络，观察局部词序列如何形成分类特征。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-07_Finding-Kernels-of-Knowledge-in-Text-with-Convolutional-Neural-Networks-CNNs.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch08",
+          "label": "第 8 章",
+          "title": "循环神经网络",
+          "description": "运行循环网络，理解文本序列、隐藏状态与模型输出。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-08_Reduce%2C-Reuse%2C-Recycle-Recurrent-Neural-Networks.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch09",
+          "label": "第 9 章",
+          "title": "Transformer",
+          "description": "跟随本章 Transformer 代码，追踪词元表示与注意力计算。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-09_Stackable-deep-learning-Transformers.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch10",
+          "label": "第 10 章",
+          "title": "大语言模型",
+          "description": "运行本章语言模型案例，先按官方说明准备模型与运行环境。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-10_Large-Language-Models-in-the-Real-World.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch11",
+          "label": "第 11 章",
+          "title": "信息抽取与知识图谱",
+          "description": "运行实体、关系或知识图谱相关示例，对照输入文本核对抽取结果。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-11_Information-extraction-and-knowledge-graphs-grounding.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        },
+        {
+          "id": "ch12",
+          "label": "第 12 章",
+          "title": "对话引擎",
+          "description": "运行本章对话引擎示例，观察会话状态与回答生成过程。",
+          "source_url": "https://gitlab.com/tangibleai/nlpia2/-/blob/3ba0bd40007219e8744462da0c4bb3b33a5c80f9/notebooks/Chapter-12_Getting-chatty-dialog-engines.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": false
+        }
+      ],
+      "license": "作者仓库提供",
+      "license_url": "https://gitlab.com/tangibleai/nlpia2",
+      "source_verified": "2026-10-15"
+    },
+    {
+      "id": "hands-on-llm",
+      "title": "Hands-On Large Language Models",
+      "authors": "Jay Alammar / Maarten Grootendorst",
+      "edition": "2024 版配套代码",
+      "courses": [
+        "llm"
+      ],
+      "aliases": [
+        "HandsOnLargeLanguageModels",
+        "图解大模型",
+        "动手学大语言模型"
+      ],
+      "repository": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models",
+      "commit": "ea3390819997999a51983677b80b3aac4dc50ada",
+      "mirror": true,
+      "environment": "Colab / GPU / 部分 API",
+      "notes": [
+        "作者主要在 Colab T4 16GB GPU 上构建和测试示例。下载仓库或从原始 Notebook 打开 Colab，按该章的安装单元配置环境。",
+        "模型权重和数据按需下载，部分实验使用外部 API。请先查看代码中的模型、下载量及调用配置；预出版 PDF 与当前仓库可能章节编号不同，按标题对应。"
+      ],
+      "download_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/archive/ea3390819997999a51983677b80b3aac4dc50ada.zip",
+      "chapters": [
+        {
+          "id": "ch01",
+          "label": "仓库第 1 章",
+          "title": "语言模型入门",
+          "description": "加载教材所用语言模型与分词器，完成一次文本生成，先准备 GPU 和模型下载空间。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter01/Chapter%201%20-%20Introduction%20to%20Language%20Models.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch02",
+          "label": "仓库第 2 章",
+          "title": "Token 与嵌入",
+          "description": "观察文本如何变成 token 与嵌入，比较词元和向量表示。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter02/Chapter%202%20-%20Tokens%20and%20Token%20Embeddings.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch03",
+          "label": "仓库第 3 章",
+          "title": "理解 Transformer LLM",
+          "description": "查看语言模型内部的数据流，理解 Transformer 层与自回归生成过程。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter03/Chapter%203%20-%20Looking%20Inside%20LLMs.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch04",
+          "label": "仓库第 4 章",
+          "title": "文本分类",
+          "description": "使用书中的模型与提示方法完成文本分类，并比较预测结果。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter04/Chapter%204%20-%20Text%20Classification.ipynb",
+          "runtime": "GPU / API",
+          "preview": true
+        },
+        {
+          "id": "ch05",
+          "label": "仓库第 5 章",
+          "title": "文本聚类与主题建模",
+          "description": "把文本编码后进行聚类和主题建模，观察语义相近的文档如何分组。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter05/Chapter%205%20-%20Text%20Clustering%20and%20Topic%20Modeling.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch06",
+          "label": "仓库第 6 章",
+          "title": "提示词工程",
+          "description": "对同类任务改变提示结构、示例和约束，观察生成结果的差异。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter06/Chapter%206%20-%20Prompt%20Engineering.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch07",
+          "label": "仓库第 7 章",
+          "title": "高级文本生成",
+          "description": "运行本章高级生成方法，按原始 Notebook 配置模型和依赖。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter07/Chapter%207%20-%20Advanced%20Text%20Generation%20Techniques%20and%20Tools.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch08",
+          "label": "仓库第 8 章",
+          "title": "语义搜索与 RAG",
+          "description": "运行语义检索与检索增强生成，查看文档表示、检索结果和生成回答的关系。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter08/Chapter%208%20-%20Semantic%20Search.ipynb",
+          "runtime": "GPU / API",
+          "preview": true
+        },
+        {
+          "id": "ch09",
+          "label": "仓库第 9 章",
+          "title": "多模态大语言模型",
+          "description": "运行视觉与语言结合的案例，按本章要求准备多模态模型和 GPU。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter09/Chapter%209%20-%20Multimodal%20Large%20Language%20Models.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch10",
+          "label": "仓库第 10 章",
+          "title": "训练文本嵌入模型",
+          "description": "训练或调整文本嵌入模型，比较语义表示在任务中的表现。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter10/Chapter%2010%20-%20Creating%20Text%20Embedding%20Models.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch11",
+          "label": "仓库第 11 章",
+          "title": "微调表示模型",
+          "description": "按书中流程微调表示模型并评估文本分类效果。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter11/Chapter%2011%20-%20Fine-Tuning%20BERT.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        },
+        {
+          "id": "ch12",
+          "label": "仓库第 12 章",
+          "title": "微调生成模型",
+          "description": "按本章流程微调生成模型，运行前核对显存、模型下载和训练配置。",
+          "source_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/chapter12/Chapter%2012%20-%20Fine-tuning%20Generation%20Models.ipynb",
+          "runtime": "GPU / 模型下载",
+          "preview": true
+        }
+      ],
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/HandsOnLLM/Hands-On-Large-Language-Models/blob/ea3390819997999a51983677b80b3aac4dc50ada/LICENSE",
+      "source_verified": "2026-10-15"
+    }
+  ]
+}

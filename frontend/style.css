@@ -1047,18 +1047,35 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 @media(max-width:650px) { #home-view { padding:0; }#home-view .application-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }#home-view .application-card { padding:18px;border-radius:18px; }#home-view .application-card.mathematics-application { grid-column:1/-1;height:220px; }#home-view .application-card.library-application,#home-view .application-card.series-application { grid-column:span 1;height:184px;padding:16px; }#home-view .application-card.study-plan-application { grid-column:1/-1;height:124px; }#home-view .application-card.ai-learning-application { grid-column:1/-1;height:188px; }#home-view .application-card h2 { font-size:18px;max-width:calc(100% - 32px); }#home-view .mathematics-application h2 { font-size:22px; }#home-view .application-action { width:28px;height:28px;flex-basis:28px; }#home-view .module-icon { width:34px;height:34px;border-radius:10px; }#home-view .module-icon .icon { width:18px;height:18px; }#home-view .module-math-art { width:100%;height:192px;right:-40px;top:-2px; }#home-view .module-library-art { width:150px;height:140px;top:5px;right:-19px; }#home-view .module-series-art { width:185px;height:140px;top:1px;right:-28px; }#home-view .module-plan-art { width:145px;height:144px;top:-15px;right:18px; }#home-view .study-plan-application .module-caption { max-width:68%; }#home-view .module-ai-art { width:82%;height:155px;right:-20px;top:-5px; } }
 @media(prefers-reduced-motion:reduce) { #home-view .application-card,#home-view .module-art,#home-view .application-action { transition:none; }#home-view .application-card:hover .module-art { transform:none; } }
 
-/* Course experiments: a visible learning sequence and local notebook practice. */
+/* Original textbook companions: chapter navigation beside a read-only code desk. */
 .learning-labs { margin-top:24px; }
-.learning-lab { padding:18px;border:1px solid var(--line);border-radius:12px;background:#f8faff; }
-.lab-heading { display:flex;align-items:center;gap:16px;justify-content:space-between; }
-.lab-heading h4 { margin:0;font-size:18px;line-height:1.5; }
-.lab-count { flex-shrink:0;color:var(--blue);font-size:15px;font-variant-numeric:tabular-nums; }
-.learning-lab p { margin:8px 0;font-size:15px;line-height:1.7; }
-.lab-goal { color:var(--ink); }.lab-book,.lab-prior { color:var(--muted); }
-.lab-stages { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;list-style:none;margin:20px 0;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line); }
-.lab-stages li { min-width:0; }.lab-stages label { display:flex;align-items:center;gap:8px;cursor:pointer;font-size:16px; }.lab-stages input { width:18px;height:18px;accent-color:var(--blue);margin:0;flex-shrink:0; }.lab-stages p { margin-bottom:0; }
-.lab-actions { display:flex;flex-wrap:wrap;gap:8px; }.lab-actions .button[aria-expanded=true] { background:var(--soft-blue);border-color:#aab9e4; }
-.lab-panel { margin-top:16px;padding:16px 0 0;border-top:1px solid var(--line); }.lab-panel h5 { margin:0;font-size:16px; }.lab-panel ol { padding-left:22px;margin:10px 0;font-size:15px; }.lab-panel li+li { margin-top:8px; }
-.learning-lab .lab-status { color:var(--muted);font-size:14px;min-height:24px;margin:12px 0 0; }.lab-reference { margin-top:8px;font-size:14px; }.lab-reference summary { cursor:pointer;color:var(--muted); }.lab-source { display:inline-block;margin-top:6px;color:var(--blue);text-decoration:underline;text-underline-offset:3px; }
-.lab-commands { padding:12px;border-radius:8px;background:var(--soft-blue);font-size:14px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere; }
-@media(max-width:760px) { .lab-stages { grid-template-columns:1fr;gap:16px; }.learning-lab { padding:16px; }.lab-heading { align-items:flex-start; }.lab-actions .button { flex:1 1 130px; } }
+.lab-book-tabs { display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px; }
+.lab-book-tab { padding:7px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:15px;text-align:left; }
+.lab-book-tab[aria-pressed=true] { background:var(--soft-blue);border-color:#d6def7;color:#344cb7; }
+.lab-book-tab:hover { color:var(--blue); }.lab-book-tabs:has(>.lab-book-tab:only-child) { display:none; }
+.textbook-companion { padding:20px;border:1px solid #dbe3f1;border-radius:14px;background:#f8faff;min-width:0; }
+.companion-heading { display:flex;align-items:flex-start;justify-content:space-between;gap:20px; }.companion-heading>div { min-width:0; }
+.companion-heading h4 { margin:0;font-size:18px;line-height:1.5;overflow-wrap:anywhere; }
+.companion-edition { color:var(--muted);font-size:14px;margin:5px 0 0; }
+.lab-count { flex-shrink:0;color:#435cb2;font-size:14px;font-variant-numeric:tabular-nums; }
+.companion-tools { display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0; }.companion-unlinked { font-size:14px;color:var(--muted); }
+.companion-grid { display:grid;grid-template-columns:225px minmax(0,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden;background:white; }
+.companion-chapters { max-height:506px;overflow:auto;padding:8px;background:#f1f4fc;scrollbar-width:thin;scrollbar-color:#c7d2e6 transparent; }
+.companion-chapter { display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:0 0 3px;padding:10px 12px;text-align:left;border:1px solid transparent;border-radius:7px;color:#425674;background:transparent; }
+.companion-chapter>span:first-child { display:grid;gap:2px;min-width:0; }.companion-chapter small { color:var(--muted);font-size:13px;line-height:1.5; }.companion-chapter strong { font-size:15px;font-weight:500;line-height:1.6; }
+.companion-chapter[aria-current] { background:white;border-color:#d8e1f5;box-shadow:0 2px 5px #2b4c8710;color:#304fc5; }
+.companion-chapter:hover:not([aria-current]) { background:#e6ecfa; }.companion-done { color:#278275;font-size:16px; }
+.companion-detail { padding:18px 20px;min-width:0; }.companion-chapter-heading { display:flex;align-items:flex-start;justify-content:space-between;gap:16px; }.companion-chapter-heading h4 { font-size:18px;line-height:1.5;margin:2px 0 0; }.companion-chapter-label { color:#647493;font-size:13px; }
+.companion-completion { display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:14px;cursor:pointer; }.companion-completion input { width:17px;height:17px;margin:0;accent-color:var(--blue); }
+.companion-description { margin:10px 0;font-size:15px;color:#596b84;line-height:1.7; }
+.companion-chapter-actions { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 16px; }.companion-runtime { font-size:13px;color:#61738b; }
+.companion-view-tabs { display:flex;gap:20px;border-bottom:1px solid var(--line);margin-bottom:12px; }.companion-view-tab { border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);padding:5px 0 8px;font-size:15px; }.companion-view-tab[aria-pressed=true] { border-bottom-color:#4d66ca;color:#344cb7; }
+.companion-view { min-width:0; }.companion-view h5 { font-size:16px;margin:12px 0; }.companion-view p { font-size:15px;line-height:1.8;overflow-wrap:anywhere; }.companion-file { width:100%;max-width:100%;padding:6px 8px;border:1px solid #dce3f0;border-radius:7px;background:#f8faff;color:#4b5f7a;font-size:13px; }
+.companion-code { margin-top:8px;max-height:290px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#bdcae0 transparent;border-radius:8px;background:#f5f7fc; }
+.companion-code-cell { display:grid;grid-template-columns:28px minmax(0,1fr);border-bottom:1px solid #e7edf6;padding:12px 10px 12px 0; }.companion-code-cell:last-child { border-bottom:0; }.companion-cell-number { padding-top:2px;color:#8090ad;text-align:center;font-size:11px;user-select:none; }
+.companion-code pre { margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#28446d;font:14px/1.65 Consolas,'Cascadia Code',monospace;tab-size:4; }.companion-code code { font:inherit; }
+.companion-original { padding:16px 0 8px; }.companion-original>.icon { width:24px;height:24px;margin-bottom:10px;color:#6278c6; }.companion-original>strong { display:block;font-size:16px; }.companion-original>p { margin:8px 0 16px;color:var(--muted); }
+.learning-labs .lab-status { color:var(--muted);font-size:14px;margin:9px 0 0; }.lab-status:empty { display:none; }
+.companion-source { margin-top:12px;color:var(--muted);font-size:13px;overflow-wrap:anywhere; }.companion-source summary { cursor:pointer;width:fit-content; }.companion-source>span { display:block;margin:8px 0;white-space:pre-wrap; }.companion-source a { color:var(--blue);text-decoration:underline; }.companion-source p { margin:6px 0 0; }.lab-load-error { padding:16px;background:var(--soft-blue);border-radius:10px; }
+@media(max-width:1050px) { .companion-grid { grid-template-columns:185px minmax(0,1fr); }.companion-detail { padding:16px; }.textbook-companion { padding:16px; } }
+@media(max-width:760px) { .companion-heading { flex-wrap:wrap;gap:6px; }.companion-grid { grid-template-columns:minmax(0,1fr); }.companion-chapters { display:flex;max-height:none;gap:6px;overflow-x:auto; }.companion-chapter { flex:0 0 165px;margin:0; }.companion-chapter small { white-space:nowrap; }.companion-detail { padding:16px 12px; }.companion-chapter-heading { gap:8px; }.companion-completion { margin-top:5px; }.companion-tools .button { flex:1 1 auto; }.companion-code pre { font-size:13px; }.companion-chapter-heading h4 { font-size:17px; } }

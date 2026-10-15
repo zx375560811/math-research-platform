@@ -1,0 +1,39 @@
+{
+  "book": "scratch-1e",
+  "chapter": "ch02",
+  "commit": "07b11618cdb5d5f78ad45464de0730efc07b0a4a",
+  "files": [
+    {
+      "path": "ch02/and_gate.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch02/and_gate.py",
+      "sha256": "126a9bbcb1ea3103fe6fb4107dcfcce4e6fcb3d2bf448bb1d5a648397a8f840d",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\n\n\ndef AND(x1, x2):\n    x = np.array([x1, x2])\n    w = np.array([0.5, 0.5])\n    b = -0.7\n    tmp = np.sum(w*x) + b\n    if tmp <= 0:\n        return 0\n    else:\n        return 1\n\nif __name__ == '__main__':\n    for xs in [(0, 0), (1, 0), (0, 1), (1, 1)]:\n        y = AND(xs[0], xs[1])\n        print(str(xs) + \" -> \" + str(y))\n"
+      ]
+    },
+    {
+      "path": "ch02/nand_gate.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch02/nand_gate.py",
+      "sha256": "4f536f7b62ed39047398d0a0239cd5827f81759c633304e6bca0a55e68039e05",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\n\n\ndef NAND(x1, x2):\n    x = np.array([x1, x2])\n    w = np.array([-0.5, -0.5])\n    b = 0.7\n    tmp = np.sum(w*x) + b\n    if tmp <= 0:\n        return 0\n    else:\n        return 1\n\nif __name__ == '__main__':\n    for xs in [(0, 0), (1, 0), (0, 1), (1, 1)]:\n        y = NAND(xs[0], xs[1])\n        print(str(xs) + \" -> \" + str(y))\n"
+      ]
+    },
+    {
+      "path": "ch02/or_gate.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch02/or_gate.py",
+      "sha256": "ae7e8450e86d57377a94b776fb004e6ab7ee1142a577030adb0b3893e5db0bbf",
+      "cells": [
+        "# coding: utf-8\nimport numpy as np\n\n\ndef OR(x1, x2):\n    x = np.array([x1, x2])\n    w = np.array([0.5, 0.5])\n    b = -0.2\n    tmp = np.sum(w*x) + b\n    if tmp <= 0:\n        return 0\n    else:\n        return 1\n\nif __name__ == '__main__':\n    for xs in [(0, 0), (1, 0), (0, 1), (1, 1)]:\n        y = OR(xs[0], xs[1])\n        print(str(xs) + \" -> \" + str(y))"
+      ]
+    },
+    {
+      "path": "ch02/xor_gate.py",
+      "url": "https://github.com/oreilly-japan/deep-learning-from-scratch/blob/07b11618cdb5d5f78ad45464de0730efc07b0a4a/ch02/xor_gate.py",
+      "sha256": "4130ee69d649377cc63793704630ad16211f54f9888122e276801e84fc53b48e",
+      "cells": [
+        "# coding: utf-8\nfrom and_gate import AND\nfrom or_gate import OR\nfrom nand_gate import NAND\n\n\ndef XOR(x1, x2):\n    s1 = NAND(x1, x2)\n    s2 = OR(x1, x2)\n    y = AND(s1, s2)\n    return y\n\nif __name__ == '__main__':\n    for xs in [(0, 0), (1, 0), (0, 1), (1, 1)]:\n        y = XOR(xs[0], xs[1])\n        print(str(xs) + \" -> \" + str(y))"
+      ]
+    }
+  ]
+}

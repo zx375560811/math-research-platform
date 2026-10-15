@@ -1,0 +1,26 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s2-5",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_preliminaries/autograd.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_preliminaries/autograd.ipynb",
+      "sha256": "4ee61b1d311839f5036171ec49cfe4deead5067067c5bc495f7cb78c251d7323",
+      "cells": [
+        "import torch\n\nx = torch.arange(4.0)\nx",
+        "x.requires_grad_(True)  # 等价于x=torch.arange(4.0,requires_grad=True)\nx.grad  # 默认值是None",
+        "y = 2 * torch.dot(x, x)\ny",
+        "y.backward()\nx.grad",
+        "x.grad == 4 * x",
+        "# 在默认情况下，PyTorch会累积梯度，我们需要清除之前的值\nx.grad.zero_()\ny = x.sum()\ny.backward()\nx.grad",
+        "# 对非标量调用backward需要传入一个gradient参数，该参数指定微分函数关于self的梯度。\n# 本例只想求偏导数的和，所以传递一个1的梯度是合适的\nx.grad.zero_()\ny = x * x\n# 等价于y.backward(torch.ones(len(x)))\ny.sum().backward()\nx.grad",
+        "x.grad.zero_()\ny = x * x\nu = y.detach()\nz = u * x\n\nz.sum().backward()\nx.grad == u",
+        "x.grad.zero_()\ny.sum().backward()\nx.grad == 2 * x",
+        "def f(a):\n    b = a * 2\n    while b.norm() < 1000:\n        b = b * 2\n    if b.sum() > 0:\n        c = b\n    else:\n        c = 100 * b\n    return c",
+        "a = torch.randn(size=(), requires_grad=True)\nd = f(a)\nd.backward()",
+        "a.grad == d / a"
+      ]
+    }
+  ]
+}

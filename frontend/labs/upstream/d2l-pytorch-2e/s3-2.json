@@ -1,0 +1,29 @@
+{
+  "book": "d2l-pytorch-2e",
+  "chapter": "s3-2",
+  "commit": "10243a27370ebfa2bd6c3d8ef127e37c829b3051",
+  "files": [
+    {
+      "path": "chapter_linear-networks/linear-regression-scratch.ipynb",
+      "url": "https://github.com/d2l-ai/d2l-zh-pytorch-colab/blob/10243a27370ebfa2bd6c3d8ef127e37c829b3051/chapter_linear-networks/linear-regression-scratch.ipynb",
+      "sha256": "b68263ccd574d05257c27b909ac00df6676ad47d8a6a13565301aa9ee2c96c5b",
+      "cells": [
+        "!pip install git+https://github.com/d2l-ai/d2l-zh@release  # installing d2l\n",
+        "%matplotlib inline\nimport random\nimport torch\nfrom d2l import torch as d2l",
+        "def synthetic_data(w, b, num_examples):  #@save\n    \"\"\"生成y=Xw+b+噪声\"\"\"\n    X = torch.normal(0, 1, (num_examples, len(w)))\n    y = torch.matmul(X, w) + b\n    y += torch.normal(0, 0.01, y.shape)\n    return X, y.reshape((-1, 1))",
+        "true_w = torch.tensor([2, -3.4])\ntrue_b = 4.2\nfeatures, labels = synthetic_data(true_w, true_b, 1000)",
+        "print('features:', features[0],'\\nlabel:', labels[0])",
+        "d2l.set_figsize()\nd2l.plt.scatter(features[:, (1)].detach().numpy(), labels.detach().numpy(), 1);",
+        "def data_iter(batch_size, features, labels):\n    num_examples = len(features)\n    indices = list(range(num_examples))\n    # 这些样本是随机读取的，没有特定的顺序\n    random.shuffle(indices)\n    for i in range(0, num_examples, batch_size):\n        batch_indices = torch.tensor(\n            indices[i: min(i + batch_size, num_examples)])\n        yield features[batch_indices], labels[batch_indices]",
+        "batch_size = 10\n\nfor X, y in data_iter(batch_size, features, labels):\n    print(X, '\\n', y)\n    break",
+        "w = torch.normal(0, 0.01, size=(2,1), requires_grad=True)\nb = torch.zeros(1, requires_grad=True)",
+        "def linreg(X, w, b):  #@save\n    \"\"\"线性回归模型\"\"\"\n    return torch.matmul(X, w) + b",
+        "def squared_loss(y_hat, y):  #@save\n    \"\"\"均方损失\"\"\"\n    return (y_hat - y.reshape(y_hat.shape)) ** 2 / 2",
+        "def sgd(params, lr, batch_size):  #@save\n    \"\"\"小批量随机梯度下降\"\"\"\n    with torch.no_grad():\n        for param in params:\n            param -= lr * param.grad / batch_size\n            param.grad.zero_()",
+        "lr = 0.03\nnum_epochs = 3\nnet = linreg\nloss = squared_loss",
+        "for epoch in range(num_epochs):\n    for X, y in data_iter(batch_size, features, labels):\n        l = loss(net(X, w, b), y)  # X和y的小批量损失\n        # 因为l形状是(batch_size,1)，而不是一个标量。l中的所有元素被加到一起，\n        # 并以此计算关于[w,b]的梯度\n        l.sum().backward()\n        sgd([w, b], lr, batch_size)  # 使用参数的梯度更新参数\n    with torch.no_grad():\n        train_l = loss(net(features, w, b), labels)\n        print(f'epoch {epoch + 1}, loss {float(train_l.mean()):f}')",
+        "print(f'w的估计误差: {true_w - w.reshape(true_w.shape)}')\nprint(f'b的估计误差: {true_b - b}')"
+      ]
+    }
+  ]
+}
