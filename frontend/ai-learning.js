@@ -1,5 +1,6 @@
 import { mountIcons } from './icons.js';
 import { createLearningLabs } from './learning-labs.js';
+import { createPracticalLearningRoute } from './practical-learning.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
@@ -17,9 +18,9 @@ export function createAiLearning({api,write,planButton}){
     detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context);
     detail.append(el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
     const experiments=labs.section(course);if(experiments)detail.append(experiments);
-    if(updateUrl)history.replaceState(history.state,'','#/apps/math-to-ai?course='+encodeURIComponent(slug));mountIcons();
+    if(updateUrl){const params=new URLSearchParams(location.hash.split('?')[1]||'');params.set('course',slug);history.replaceState(history.state,'','#/apps/math-to-ai?'+params);}mountIcons();
    }
-   root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);
+   root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail,createPracticalLearningRoute(params.get('practice')));selectCourse(chosen.slug);
 
   }catch(error){if(mine===version)root.replaceChildren(el('p',error.message||'加载失败，请刷新重试。','notice error'));}
  }

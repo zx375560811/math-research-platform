@@ -1047,6 +1047,25 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 @media(max-width:650px) { #home-view { padding:0; }#home-view .application-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }#home-view .application-card { padding:18px;border-radius:18px; }#home-view .application-card.mathematics-application { grid-column:1/-1;height:220px; }#home-view .application-card.library-application,#home-view .application-card.series-application { grid-column:span 1;height:184px;padding:16px; }#home-view .application-card.study-plan-application { grid-column:1/-1;height:124px; }#home-view .application-card.ai-learning-application { grid-column:1/-1;height:188px; }#home-view .application-card h2 { font-size:18px;max-width:calc(100% - 32px); }#home-view .mathematics-application h2 { font-size:22px; }#home-view .application-action { width:28px;height:28px;flex-basis:28px; }#home-view .module-icon { width:34px;height:34px;border-radius:10px; }#home-view .module-icon .icon { width:18px;height:18px; }#home-view .module-math-art { width:100%;height:192px;right:-40px;top:-2px; }#home-view .module-library-art { width:150px;height:140px;top:5px;right:-19px; }#home-view .module-series-art { width:185px;height:140px;top:1px;right:-28px; }#home-view .module-plan-art { width:145px;height:144px;top:-15px;right:18px; }#home-view .study-plan-application .module-caption { max-width:68%; }#home-view .module-ai-art { width:82%;height:155px;right:-20px;top:-5px; } }
 @media(prefers-reduced-motion:reduce) { #home-view .application-card,#home-view .module-art,#home-view .application-action { transition:none; }#home-view .application-card:hover .module-art { transform:none; } }
 
+/* A companion route through the six real learning repositories. */
+.practical-learning-route { margin-top:24px;padding:24px;border:1px solid var(--line);border-radius:16px;background:white; }
+.practical-learning-route>h2 { font-size:23px;margin:0 0 18px; }
+.practical-route-map { overflow-x:auto;border-radius:14px;scrollbar-width:thin; }
+.practical-route-map svg { display:block;width:100%;max-width:1080px;min-width:940px;height:auto;margin:auto; }
+.practical-route-canvas .analysis-course-title { font-size:15px; }
+.practical-route-subtitle { fill:#d9e6ff;font:12px system-ui,'Microsoft YaHei',sans-serif; }
+.practical-route-node { cursor:pointer;outline:none; }
+.practical-route-node:focus-visible .analysis-course-card { stroke:#fff;stroke-width:2;stroke-opacity:1; }
+.practical-route-legend { display:flex;justify-content:flex-end;gap:20px;margin:10px 0 18px;color:var(--muted);font-size:14px; }
+.practical-route-legend span { display:inline-flex;align-items:center;gap:7px; }.practical-route-legend span::before { content:'';width:24px;border-top:2px solid #8c9fcb; }.practical-route-legend .practical-support-key::before { border-top-style:dashed; }
+.practical-route-detail { padding:20px;border:1px solid #dce4f3;border-radius:12px;background:#f8faff; }
+.practical-project-heading { display:flex;justify-content:space-between;align-items:center;gap:16px; }.practical-project-heading h3 { font-size:20px;line-height:1.5;margin:0;overflow-wrap:anywhere; }.practical-project-phase { flex-shrink:0;font-size:14px;color:#4c65a4;padding:3px 9px;background:#eaf0ff;border-radius:6px; }
+.practical-project-description { margin:12px 0 18px;font-size:16px;line-height:1.8;max-width:80ch; }
+.practical-project-content { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px; }.practical-project-content h4 { margin:0 0 7px;font-size:16px;font-weight:600; }.practical-project-content h4:not(:first-child) { margin-top:14px; }.practical-project-content ul { margin:0;padding-left:20px;font-size:15px;line-height:1.9; }.practical-project-content p { margin:0;font-size:15px;line-height:1.8; }
+.practical-project-footer { display:flex;align-items:center;gap:20px;margin-top:20px;padding-top:16px;border-top:1px solid #e0e7f3; }.practical-project-actions { display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap; }.practical-project-footer>p { font-size:14px;color:var(--muted);line-height:1.7;margin:0; }
+@media(max-width:1000px) { .practical-project-footer { align-items:flex-start;flex-direction:column;gap:12px; } }
+@media(max-width:650px) { .practical-learning-route { padding:18px; }.practical-learning-route>h2 { font-size:21px; }.practical-route-detail { padding:16px; }.practical-project-heading { align-items:flex-start;flex-direction:column;gap:8px; }.practical-project-heading h3 { font-size:19px; }.practical-project-content { grid-template-columns:minmax(0,1fr);gap:18px; }.practical-project-actions { width:100%; }.practical-project-actions .button { flex:1; }.practical-route-legend { justify-content:flex-start; } }
+
 /* Original textbook companions: chapter navigation beside a read-only code desk. */
 .learning-labs { margin-top:24px; }
 .lab-book-tabs { display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px; }

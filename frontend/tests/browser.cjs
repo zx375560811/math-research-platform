@@ -174,7 +174,7 @@ async function main() {
           res.writeHead(200,headers);return res.end(content);
         }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
-        for (const name of ['learning-labs.js','study-plan.js','ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        for (const name of ['practical-learning.js','learning-labs.js','study-plan.js','ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -676,7 +676,25 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     for(const slug of ['calculus','linear-algebra','probability','python'])assert.equal(await page.locator(`.ai-study-map path[data-from="${slug}"][data-to="machine-learning"]`).count(),1);
     await assertStableRoadmapHover(page,'[data-ai-course="calculus"]');
     const aiMapBefore=await page.locator('.ai-study-map svg').elementHandle(),courseFetchesBefore=aiCourseFetches;
+    const practical=page.locator('.practical-learning-route'),practicalMap=await practical.locator('svg.practical-route-canvas').elementHandle();
+    assert.equal(await practical.locator('h2').textContent(),'实战学习路线');assert.equal(await practical.locator('[data-practical-project]').count(),6);
+    assert.equal(await practical.locator('[data-route-kind="main"]').count(),3);assert.equal(await practical.locator('[data-route-kind="support"]').count(),2);
+    assert.equal(await page.locator('.ai-study-detail').evaluate(node=>Boolean(node.compareDocumentPosition(document.querySelector('.practical-learning-route'))&Node.DOCUMENT_POSITION_FOLLOWING)),true);
+    await practical.locator('[data-practical-project="python"]').scrollIntoViewIfNeeded();await assertStableRoadmapHover(page,'[data-practical-project="python"]');
+    const practicalSources=[['python','jackfrued/Python-100-Days'],['microsoft-ml','microsoft/ML-For-Beginners'],['ailearning','apachecn/AiLearning'],['d2l','d2l-ai/d2l-zh'],['pytorch','datawhalechina/thorough-pytorch'],['happy-llm','datawhalechina/happy-llm']];
+    for(const [id,repo]of practicalSources){
+      await practical.locator(`[data-practical-project="${id}"]`).click();assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),id);assert.equal(await practical.locator('[aria-pressed="true"]').count(),1);
+      const source=practical.getByRole('link',{name:'GitHub 仓库',exact:true});assert.equal(await source.getAttribute('href'),'https://github.com/'+repo);assert.equal(await source.getAttribute('rel'),'noopener noreferrer');assert.equal(await source.getAttribute('target'),'_blank');
+      assert.equal(await practical.locator('.practical-project-content h4').count(),3);assert.ok((await practical.locator('.practical-project-description').textContent()).length>30);
+    }
+    await practical.locator('[data-practical-project="microsoft-ml"]').focus();await page.keyboard.press('Enter');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'microsoft-ml');assert.match(await practical.getByRole('link',{name:'开始学习',exact:true}).getAttribute('href'),/translations\/zh-CN\/README.md/);
+    await practical.locator('[data-practical-project="d2l"]').focus();await page.keyboard.press('Space');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'d2l');
+    assert.equal(await practicalMap.evaluate(node=>node===document.querySelector('.practical-route-canvas')),true);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);assert.equal(aiCourseFetches,courseFetchesBefore);
+    await practical.screenshot({path:path.join(shots,'practical-learning-desktop.png'),animations:'disabled'});
+    await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await practical.locator('.analysis-route-spark').first().evaluate(node=>getComputedStyle(node).display),'none');await page.emulateMedia({reducedMotion:'no-preference'});
+    await page.setViewportSize({width:390,height:844});await practical.screenshot({path:path.join(shots,'practical-learning-mobile.png'),animations:'disabled'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await practical.locator('.practical-route-map').evaluate(node=>node.scrollWidth>node.clientWidth),true);await page.setViewportSize({width:1440,height:900});
     await page.locator('[data-ai-course="machine-learning"]').click();await page.locator('.ai-study-book').waitFor();
+    assert.equal(new URL(page.url()).hash.includes('practice=d2l'),true);assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'d2l');
     assert.equal(aiCourseFetches,courseFetchesBefore,'Course selection must reuse the loaded catalog');
     assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true,'Course selection must preserve the roadmap and its animations');
     assert.equal(await page.locator('[data-ai-course="machine-learning"][aria-current="step"]').count(),1);
@@ -735,6 +753,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.unroute('**/api/learning-labs/catalog');await page.locator('.lab-load-error button').click();await page.locator('.textbook-companion').waitFor();
     await page.route('**/api/learning-labs/progress',route=>route.fulfill({status:503,json:{error:'unavailable'}}));
     await page.goto(base+'/#/apps/math-to-ai?course=pytorch');await page.locator('.companion-file').waitFor();assert.equal(await page.locator('.companion-completion input').isDisabled(),true);assert.equal(await page.locator('.lab-count').textContent(),'进度未读取');await page.unroute('**/api/learning-labs/progress');
+    await page.goto(base+'/#/apps/math-to-ai?course=python&practice=happy-llm');await page.locator('.practical-route-detail[data-project="happy-llm"]').waitFor();await page.reload();await page.locator('.practical-route-detail[data-project="happy-llm"]').waitFor();assert.equal(await page.locator('.ai-study-detail h2').textContent(),'Python 与 NumPy');
     await page.unroute('**/api/ai-learning');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     let planDocument=2;
     if(process.env.MATH_BROWSER_MOCK!=='1'){const added=spawnSync('python3',[path.join(repo,'backend/admin/import_document.py'),'source.pdf','--title','研究资料 2','--subject-id','1'],{cwd:temp,encoding:'utf8'});assert.equal(added.status,0,added.stderr);planDocument=JSON.parse(added.stdout).id;}

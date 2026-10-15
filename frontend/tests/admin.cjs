@@ -63,7 +63,7 @@ async function main() {
         }
         if (/^\/api\/learning\/books\/\d+$/.test(p)) return json({ ...books[0], available: !!books.find(b=>b.id===Number(p.split('/').pop())).document_id });
         if (p === '/admin' && session?.role !== 'ADMIN') return json({ error: 'admin_required' }, 403);
-        const assets = { '/admin': 'admin.html', '/admin.js': 'admin.js', '/admin.css': 'admin.css', '/style.css': 'style.css' }; const name = assets[p] || (['/learning-labs.js','/ai-learning.js','/admin-series.js','/admin-library.js','/admin-organizer.js','/admin-books.js','/icons.js'].includes(p)||p.startsWith('/vendor/morphicons/')?p.slice(1):null);
+        const assets = { '/admin': 'admin.html', '/admin.js': 'admin.js', '/admin.css': 'admin.css', '/style.css': 'style.css' }; const name = assets[p] || (['/practical-learning.js','/learning-labs.js','/ai-learning.js','/admin-series.js','/admin-library.js','/admin-organizer.js','/admin-books.js','/icons.js'].includes(p)||p.startsWith('/vendor/morphicons/')?p.slice(1):null);
         if (!name) return json({ error: 'not_found' }, 404); res.writeHead(200, { 'Content-Type': name.endsWith('.html') ? 'text/html' : name.endsWith('.css') ? 'text/css' : 'text/javascript', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'" }); res.end(fs.readFileSync(path.join(frontend, name)));
       });
       await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));

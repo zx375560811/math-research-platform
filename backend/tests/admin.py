@@ -449,6 +449,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert len(ai_courses)==10 and len([c for c in ai_courses if c['phase']=='foundation'])==4
             assert all(c['slug']!='optimization' for c in ai_courses)
             assert request('/learning-labs.js')[0]==200
+            assert request('/practical-learning.js')[0]==200
             catalog=request('/api/learning-labs/catalog')[1]
             assert len(catalog['books'])==8
             previews=0
