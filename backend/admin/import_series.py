@@ -2,6 +2,8 @@
 
 Run from backend with math-platform stopped. Default: read-only preview.
 --apply backs up the database and atomically imports/associates PDF and DJVU files.
+--apply --move uses same-filesystem hard links, then removes source files only
+after the database commits. It does not require a second copy of the books.
 """
 import argparse
 from collections import Counter
@@ -12,6 +14,7 @@ import os
 from pathlib import Path
 import shutil
 import sqlite3
+import stat
 import tempfile
 
 from document_format import detect
@@ -28,6 +31,13 @@ SERIES = {
     'SMM': 'SMM 系列', 'SMM 系列': 'SMM 系列',
     'UTM': 'UTM 系列', 'UTM 系列': 'UTM 系列',
 }
+
+
+def identity(path):
+    value = os.stat(str(path), follow_symlinks=False)
+    if not stat.S_ISREG(value.st_mode):
+        raise ValueError('Source must remain a regular file: ' + str(path))
+    return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns)
 
 
 def preview(source):
@@ -52,9 +62,13 @@ def preview(source):
             path = relative.parts[:-1]
             for length in range(1, len(path) + 1):
                 folders.add(path[:length])
+            before = identity(entry)
+            checksum = digest(entry)
+            if identity(entry) != before:
+                raise ValueError('Source changed during scan: ' + str(relative))
             rows.append({'path': relative.as_posix(), 'folders': path,
                          'series': SERIES[path[0]], 'title': title,
-                         'format': kind, 'size': size, 'sha256': digest(entry)})
+                         'format': kind, 'size': size, 'sha256': checksum, 'identity': before})
         elif entry.is_file():
             skipped += 1
     if not rows:
@@ -68,7 +82,7 @@ def preview(source):
                         'formats': dict(Counter(r['format'] for r in rows)), 'skipped': skipped}}
 
 
-def apply(plan, database='data/math.db'):
+def apply(plan, database='data/math.db', move=False):
     workspace = Path.cwd().resolve()
     if Path('/proc').is_dir():
         for process in Path('/proc').iterdir():
@@ -85,6 +99,15 @@ def apply(plan, database='data/math.db'):
     database = Path(database).resolve(strict=True)
     if not storage.is_dir() or storage.is_symlink() or inside(root, storage) or inside(storage, root):
         raise ValueError('Source and managed storage must be separate directories')
+    if move:
+        for row in plan['documents']:
+            original = root / row['path']
+            if not inside(original, root) or identity(original) != row['identity']:
+                raise ValueError('Source changed before import: ' + row['path'])
+            if row['identity'][0] != storage.stat().st_dev:
+                raise ValueError('--move requires every source file and data/files on the same filesystem')
+            if not os.access(str(original.parent), os.W_OK | os.X_OK):
+                raise ValueError('--move needs write permission on source folders: ' + str(original.parent))
     created, committed = [], False
     with closing(sqlite3.connect(str(database), timeout=10)) as db:
         db.execute('PRAGMA foreign_keys=ON')
@@ -101,7 +124,7 @@ def apply(plan, database='data/math.db'):
             if not path.is_file() or path.is_symlink() or not inside(path, storage):
                 raise ValueError('Existing document has a missing or unmanaged file: ' + str(doc))
             known.setdefault(digest(path), doc)
-        required = sum(r['size'] for r in plan['documents'] if r['sha256'] not in known) + database.stat().st_size + 64 * 1024 * 1024
+        required = (0 if move else sum(r['size'] for r in plan['documents'] if r['sha256'] not in known)) + database.stat().st_size + 64 * 1024 * 1024
         if shutil.disk_usage(str(storage)).free < required:
             raise ValueError('Not enough disk space')
         backup = workspace / 'data' / 'backups' / ('series-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
@@ -126,12 +149,23 @@ def apply(plan, database='data/math.db'):
             for number, row in enumerate(plan['documents'], 1):
                 doc = known.get(row['sha256'])
                 if doc is None:
-                    with (root / row['path']).open('rb') as original, tempfile.NamedTemporaryFile(prefix='series-', dir=str(storage), delete=False) as output:
-                        saved = Path(output.name)
+                    if move:
+                        if identity(root / row['path']) != row['identity']:
+                            raise ValueError('Source changed during import: ' + row['path'])
+                        # The staging directory is private. Reserving a random name
+                        # keeps retries collision-free; linking allocates no book copy.
+                        with tempfile.NamedTemporaryFile(prefix='series-', dir=str(storage), delete=False) as output:
+                            saved = Path(output.name)
+                        saved.unlink()
+                        os.link(str(root / row['path']), str(saved), follow_symlinks=False)
                         created.append(saved)
-                        shutil.copyfileobj(original, output, 1024 * 1024)
-                        output.flush()
-                        os.fsync(output.fileno())
+                    else:
+                        with (root / row['path']).open('rb') as original, tempfile.NamedTemporaryFile(prefix='series-', dir=str(storage), delete=False) as output:
+                            saved = Path(output.name)
+                            created.append(saved)
+                            shutil.copyfileobj(original, output, 1024 * 1024)
+                            output.flush()
+                            os.fsync(output.fileno())
                     if digest(saved) != row['sha256']:
                         raise ValueError('Source changed during import: ' + row['path'])
                     doc = db.execute('INSERT INTO documents(title,authors,file_path,file_size) VALUES(?,?,?,?)',
@@ -155,8 +189,22 @@ def apply(plan, database='data/math.db'):
                 db.rollback()
                 for path in created:
                     path.unlink()
-        return {'new_documents': added, 'new_series_links': linked, 'reused_files': len(plan['documents']) - added,
-                'backup': str(backup)}
+        removed, pending = 0, []
+        if move:
+            for row in plan['documents']:
+                original = root / row['path']
+                try:
+                    if not inside(original, root) or identity(original) != row['identity']:
+                        raise ValueError('Source changed; retained')
+                    original.unlink()
+                    removed += 1
+                except (OSError, ValueError):
+                    pending.append(row['path'])
+        result = {'new_documents': added, 'new_series_links': linked, 'reused_files': len(plan['documents']) - added,
+                  'backup': str(backup), 'mode': 'move' if move else 'copy',
+                  'source_files_removed': removed, 'source_cleanup_pending': pending}
+        (backup / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
+        return result
 
 
 def main():
@@ -164,10 +212,14 @@ def main():
     parser.add_argument('directory')
     parser.add_argument('--database', default=os.getenv('MATH_DB_PATH') or 'data/math.db')
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--move', action='store_true', help='Use same-filesystem links; remove uploaded source files after commit (requires --apply)')
     args = parser.parse_args()
+    if args.move and not args.apply:
+        parser.error('--move requires --apply')
     try:
+        print('Scanning files and calculating hashes; this may take several minutes...', flush=True)
         plan = preview(args.directory)
-        print(json.dumps(apply(plan, args.database) if args.apply else plan['summary'], ensure_ascii=False))
+        print(json.dumps(apply(plan, args.database, args.move) if args.apply else plan['summary'], ensure_ascii=False))
     except (OSError, ValueError, sqlite3.Error) as error:
         parser.exit(1, 'Series import failed: ' + str(error) + '\n')
 
