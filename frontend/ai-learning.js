@@ -3,33 +3,31 @@ const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.te
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
 const aiProjects={
- numpy:{name:'NumPy 100',repo:'rougier/numpy-100',description:'100 道带答案的数组练习，逐步熟悉索引、广播、矩阵和向量化计算。'},
+ numpy:{name:'NumPy 100',repo:'rougier/numpy-100',description:'用数组创建、索引、切片、广播和向量化练习，熟悉 Python 数值计算的基本操作。'},
+ matrix:{name:'NumPy 矩阵运算与 SVD',repo:'numpy/numpy-tutorials/blob/main/content/tutorial-svd.md',description:'NumPy 官方线性代数教程：用数组表示矩阵，练习转置、矩阵乘法、范数和奇异值分解，再用低秩矩阵重建图像。'},
  homemade:{name:'从零实现机器学习',repo:'trekhleb/homemade-machine-learning',description:'用 Python 从零实现回归、分类和聚类，配合数学说明与交互示例理解算法。'},
- handson:{name:'机器学习实战',repo:'ageron/handson-ml3',description:'完整的机器学习 Notebook，从数据清洗、训练和调参，一直到模型评估。'},
+ handson:{name:'端到端机器学习项目',repo:'ageron/handson-ml3/blob/main/02_end_to_end_machine_learning_project.ipynb',description:'通过房价预测完成数据清洗、特征处理、模型训练、调参和评估，形成完整的机器学习流程。'},
  torch:{name:'PyTorch 从零到项目',repo:'mrdbourke/pytorch-deep-learning',description:'从 Tensor 和训练流程起步，逐步完成分类、计算机视觉和迁移学习项目。'},
  d2l:{name:'动手学深度学习',repo:'d2l-ai/d2l-zh',description:'中文教材与可运行代码相结合，通过回归、神经网络、注意力等例子学习深度学习。'},
- micrograd:{name:'micrograd 自动微分',repo:'karpathy/micrograd',description:'小型自动微分引擎与神经网络库，用精简代码理解计算图、链式法则和反向传播。'},
- examples:{name:'PyTorch 官方示例',repo:'pytorch/examples',description:'独立的 PyTorch 示例项目，覆盖图像、文本和强化学习，适合练习完整训练流程。'},
- makemore:{name:'makemore 字符语言模型',repo:'karpathy/makemore',description:'从字符统计逐步构建自回归语言模型，观察模型怎样学习并生成新的文本。'},
+ micrograd:{name:'micrograd 自动求导',repo:'karpathy/micrograd/blob/master/micrograd/engine.py',description:'从标量运算构建计算图，用链式法则计算复合函数的导数与偏导数。入口直接定位到自动微分引擎源码。'},
+ examples:{name:'PyTorch 官方 MNIST 项目',repo:'pytorch/examples/tree/main/mnist',description:'用 PyTorch 完成手写数字识别，练习数据加载、训练循环、验证、设备选择及模型保存。'},
+ nlp:{name:'自然语言处理：文本分类',repo:'practical-nlp/practical-nlp-code/tree/master/Ch4',description:'《Practical NLP》配套文本分类代码，将文本预处理、特征表示、分类器与评估串成一个自然语言处理项目。'},
+ transformer:{name:'The Annotated Transformer',repo:'harvardnlp/annotated-transformer',description:'带逐步注释的 Transformer 实现，覆盖自注意力、多头注意力、位置编码、编码器与解码器，并用序列任务检验结构。'},
  scratch:{name:'从零构建大语言模型',repo:'rasbt/LLMs-from-scratch',description:'按章节实现分词、注意力、GPT、训练与微调，逐步理解语言模型内部结构。'},
- happy:{name:'Happy LLM',repo:'datawhalechina/happy-llm',description:'面向中文学习者的大模型原理与实践教程，连接 Transformer 知识和模型实现。'},
- handsllm:{name:'大语言模型应用实践',repo:'HandsOnLLM/Hands-On-Large-Language-Models',description:'通过词向量、分类、聚类、语义搜索和 RAG 等实例，理解并使用语言模型。'},
  universe:{name:'LLM Universe 知识库问答',repo:'datawhalechina/llm-universe',description:'面向初学者的大模型应用教程，将文档处理、检索和回答组织成知识库问答应用。'}
 };
 const aiCourseProjects={
- calculus:[['homemade','入门','实现一元线性回归，比较手算梯度与有限差分结果。'],['micrograd','进阶','搭建简单计算图，用自动微分验证链式法则。']],
- 'linear-algebra':[['numpy','入门','练习矩阵乘法、广播、向量范数及线性方程组。'],['handson','进阶','选读线性代数 Notebook，再用 PCA 观察数据降维。']],
- probability:[['handson','入门','划分训练集与测试集，比较分类准确率、精确率和召回率。'],['homemade','进阶','从逻辑回归输出概率入手，观察阈值怎样改变分类结果。']],
- python:[['numpy','入门','先完成前 30 道练习，熟悉数组操作。'],['handson','进阶','完成 NumPy、pandas 和 Matplotlib 工具 Notebook。']],
- optimization:[['homemade','入门','从零写出梯度下降，绘制不同学习率下的损失曲线。'],['d2l','进阶','选读优化算法部分，比较 SGD、动量法与 Adam。']],
+ calculus:[['micrograd','实践','从加法、乘法和幂函数开始，搭建复合函数的计算图；对比手算、自动求导与有限差分，验证链式法则。']],
+ 'linear-algebra':[['matrix','实践','先用 Python 完成矩阵转置、乘法与范数计算，再做 SVD 分解、矩阵重建和低秩近似。']],
+ python:[['numpy','入门','练习数组创建、索引、切片和广播，逐步用向量化操作替代循环。']],
  'machine-learning':[['handson','入门','完成第 2 章端到端项目，记录数据处理、调参和评估结果。'],['homemade','进阶','自己实现回归或聚类，再与库函数的结果比较。']],
- 'deep-learning':[['d2l','入门','用 PyTorch 完成线性回归与多层感知机。'],['micrograd','进阶','实现反向传播，并训练一个小型神经网络。']],
+ 'deep-learning':[['d2l','实践','完成多层感知机与卷积神经网络实验，记录网络结构、损失、训练曲线及过拟合现象。']],
  pytorch:[['torch','入门','按 00—03 节完成 Tensor、训练流程和分类练习。'],['examples','进阶','独立运行 MNIST，练习模型保存、加载和预测。']],
- nlp:[['makemore','入门','先做名字生成器，再替换成自己的小型文本数据。'],['handsllm','进阶','完成文本分类、文本聚类或词向量实验。']],
- transformer:[['happy','入门','对照图解理清注意力、位置编码与 Transformer 结构。'],['scratch','进阶','实现带因果掩码的自注意力，并检查张量维度。']],
- llm:[['handsllm','入门','完成语义搜索与 RAG 示例，检查检索证据和回答是否一致。'],['universe','项目','用少量数学文档搭建带来源的知识库问答。'],['scratch','进阶','构建小型 GPT，再练习加载权重与微调。']]
+ nlp:[['nlp','实践','完成文本预处理、特征向量化与文本分类，比较不同文本表示下的分类效果。']],
+ transformer:[['transformer','实践','逐步实现缩放点积注意力、多头注意力、位置编码和编解码器，运行示例检验掩码与输出维度。']],
+ llm:[['scratch','进阶','构建小型 GPT，完成文本生成、权重加载与指令微调，理解大语言模型的训练和推理。'],['universe','应用','用数学文档搭建带来源的知识库问答，检查检索证据与回答是否一致。']]
 };
-function projectSection(slug){const section=el('section',null,'ai-study-projects'),heading=el('div',null,'ai-study-projects-heading');heading.append(el('h3','配套实践项目'));section.append(heading);const grid=el('div',null,'ai-project-grid');for(const [key,level,task]of aiCourseProjects[slug]||[]){const project=aiProjects[key],card=el('article',null,'ai-project-card'),head=el('div',null,'ai-project-card-heading');card.dataset.project=key;head.append(el('h4',project.name),el('span',level,'ai-project-level'));const link=el('a','打开项目','button compact');link.href='https://github.com/'+project.repo;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','在新标签页打开 '+project.name);const glyph=el('span');glyph.dataset.icon='forward';glyph.setAttribute('aria-hidden','true');link.append(glyph);card.append(head,el('p',project.description,'ai-project-description'),el('p',task,'ai-project-task'),link);grid.append(card);}section.append(grid);return section;}
+function projectSection(slug){const projects=aiCourseProjects[slug];if(!projects?.length)return null;const section=el('section',null,'ai-study-projects'),heading=el('div',null,'ai-study-projects-heading');heading.append(el('h3','配套实践项目'));section.append(heading);const grid=el('div',null,'ai-project-grid');for(const [key,level,task]of projects){const project=aiProjects[key],card=el('article',null,'ai-project-card'),head=el('div',null,'ai-project-card-heading');card.dataset.project=key;head.append(el('h4',project.name),el('span',level,'ai-project-level'));const link=el('a','打开项目','button compact');link.href='https://github.com/'+project.repo;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','在新标签页打开 '+project.name);const glyph=el('span');glyph.dataset.icon='forward';glyph.setAttribute('aria-hidden','true');link.append(glyph);card.append(head,el('p',project.description,'ai-project-description'),el('p',task,'ai-project-task'),link);grid.append(card);}section.append(grid);return section;}
 export function createAiLearning({api,write,planButton}){
  const root=document.getElementById('ai-learning-view');let version=0,stop=null,reading=false;
  function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
@@ -41,7 +39,7 @@ export function createAiLearning({api,write,planButton}){
    const detail=el('section',null,'ai-study-detail');let selected='';
    function selectCourse(slug,updateUrl=false){const course=courses.find(c=>c.slug===slug);if(!course||selected===slug)return;selected=slug;
     for(const node of root.querySelectorAll('[data-ai-course]')){const active=node.dataset.aiCourse===slug;node.classList.toggle('selected',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
-    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context,projectSection(course.slug),el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
+    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context);const projects=projectSection(course.slug);if(projects)detail.append(projects);detail.append(el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
     if(updateUrl)history.replaceState(history.state,'','#/apps/math-to-ai?course='+encodeURIComponent(slug));mountIcons();
    }
    root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);
@@ -68,11 +66,11 @@ function aiRoadmap(courses, chosen, onChoose) {
  const ns='http://www.w3.org/2000/svg';
  const make=(tag,attrs={},text)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};
  const box=document.createElement('nav');box.className='ai-study-map';box.setAttribute('aria-label','数学到人工智能学习路线');
- const svg=make('svg',{viewBox:'0 0 1140 278',class:'analysis-map-canvas ai-map-canvas',role:'group','aria-label':'数学分析、高等代数和概率统计汇入优化基础，再学习机器学习、深度学习、自然语言处理、Transformer 和 LLM。Python 支持机器学习和 PyTorch 实践，PyTorch 与深度学习配合学习。'});
+ const svg=make('svg',{viewBox:'0 0 1140 278',class:'analysis-map-canvas ai-map-canvas',role:'group','aria-label':'数学分析、高等代数和概率统计为机器学习打基础，再学习深度学习、自然语言处理、Transformer 和 LLM。Python 支持机器学习和 PyTorch 实践，PyTorch 与深度学习配合学习。'});
  const defs=make('defs');
  const gradient=(id,colors)=>{const node=make('linearGradient',{id,x1:'0%',y1:'0%',x2:'100%',y2:'100%'});colors.forEach((color,index)=>node.append(make('stop',{offset:index/(colors.length-1)*100+'%','stop-color':color})));defs.append(node);};
  gradient('ai-map-night',['#152a52','#121d3c','#24395d']);
- const palettes={math:['#4867da','#2942aa'],algebra:['#7545b2','#493076'],probability:['#147b7c','#105054'],code:['#23789b','#16455e'],optimization:['#97602b','#68421f'],learning:['#5156b3','#34356f'],deep:['#7545b2','#493076'],language:['#147b7c','#105054'],model:['#395b9a','#243c6b']};
+ const palettes={math:['#4867da','#2942aa'],algebra:['#7545b2','#493076'],probability:['#147b7c','#105054'],code:['#23789b','#16455e'],learning:['#5156b3','#34356f'],deep:['#7545b2','#493076'],language:['#147b7c','#105054'],model:['#395b9a','#243c6b']};
  for(const [kind,colors]of Object.entries(palettes))gradient('ai-node-'+kind,colors);
  const light=make('radialGradient',{id:'ai-map-light'});light.append(make('stop',{offset:'0%','stop-color':'#7097ff','stop-opacity':'.25'}),make('stop',{offset:'100%','stop-color':'#7097ff','stop-opacity':0}));defs.append(light);
  const marker=make('marker',{id:'ai-route-arrow',viewBox:'0 0 8 8',refX:7,refY:4,markerWidth:6,markerHeight:6,orient:'auto'});marker.append(make('path',{d:'M1 1L7 4L1 7',fill:'none',stroke:'#9db7e7','stroke-width':1.4}));defs.append(marker);svg.append(defs);
@@ -81,19 +79,19 @@ function aiRoadmap(courses, chosen, onChoose) {
  for(const [x,y]of [[374,35],[735,204],[1090,47]])backdrop.append(make('path',{d:`M${x-3} ${y}h6M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));svg.append(backdrop);
  const nodes=[
   ['calculus','∫',24,22,'math','foundation'],['linear-algebra','ℝⁿ',24,84,'algebra','foundation'],['probability','ℙ',24,146,'probability','foundation'],
-  ['python','Py',212,208,'code','foundation'],['optimization','∇',212,84,'optimization','core'],['machine-learning','ƒ',400,84,'learning','core'],
-  ['deep-learning','⊗',588,84,'deep','core'],['pytorch','Py',588,208,'code','support'],['nlp','文',776,84,'language','core'],
-  ['transformer','QK',964,84,'model','core'],['llm','✦',964,208,'deep','core']
+  ['python','Py',24,208,'code','foundation'],['machine-learning','ƒ',212,84,'learning','core'],
+  ['deep-learning','⊗',400,84,'deep','core'],['pytorch','Py',400,208,'code','support'],['nlp','文',588,84,'language','core'],
+  ['transformer','QK',776,84,'model','core'],['llm','✦',964,84,'deep','core']
  ];
  const available=new Set(courses.map(course=>course.slug));
  const edges=[
-  ['calculus','optimization','M178 43H186Q194 43 194 51V97Q194 105 202 105H212'],
-  ['linear-algebra','optimization','M178 105H212'],
-  ['probability','optimization','M178 167H186Q194 167 194 159V113Q194 105 202 105H212'],
-  ['optimization','machine-learning','M366 105H400'],['machine-learning','deep-learning','M554 105H588'],
-  ['deep-learning','nlp','M742 105H776'],['nlp','transformer','M930 105H964'],['transformer','llm','M1041 126V208'],
-  ['python','machine-learning','M366 229H374Q382 229 382 221V113Q382 105 390 105H400'],
-  ['python','pytorch','M366 229H588'],['pytorch','deep-learning','M665 208V126',true]
+  ['calculus','machine-learning','M178 43H186Q194 43 194 51V97Q194 105 202 105H212'],
+  ['linear-algebra','machine-learning','M178 105H212'],
+  ['probability','machine-learning','M178 167H186Q194 167 194 159V113Q194 105 202 105H212'],
+  ['machine-learning','deep-learning','M366 105H400'],['deep-learning','nlp','M554 105H588'],
+  ['nlp','transformer','M742 105H776'],['transformer','llm','M930 105H964'],
+  ['python','machine-learning','M178 229H202Q220 229 220 211V126'],
+  ['python','pytorch','M178 229H400'],['pytorch','deep-learning','M477 208V126',true]
  ];
  for(const [index,[from,to,d,optional]]of edges.entries())if(available.has(from)&&available.has(to)){
   svg.append(make('path',{class:'analysis-route-edge',d,fill:'none','marker-end':'url(#ai-route-arrow)','data-from':from,'data-to':to,...(optional?{'stroke-dasharray':'5 5'}:{})}));

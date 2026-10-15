@@ -442,7 +442,9 @@ with tempfile.TemporaryDirectory() as directory:
             response=request('/api/admin/invitations?offset=1000')[1]
             assert response['total']==invitation_count and response['total_pages']==max(1,(invitation_count+19)//20)
             ai_courses=request('/api/ai-learning')[1]['courses']
-            assert len(ai_courses)==11 and len([c for c in ai_courses if c['phase']=='foundation'])==4
+            assert len(ai_courses)==10 and len([c for c in ai_courses if c['phase']=='foundation'])==4
+            assert all(c['slug']!='optimization' for c in ai_courses)
+            assert all(c['slug']!='optimization' for c in request('/api/admin/ai-learning')[1]['courses'])
             ai_path='/api/admin/ai-learning/machine-learning/books'
             assert write(ai_path,{'document_id':managed})[1]['added']==1
             assert write(ai_path,{'document_id':managed})[1]['added']==0

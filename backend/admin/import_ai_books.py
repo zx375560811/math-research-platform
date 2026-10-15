@@ -19,7 +19,7 @@ from replace_library import clean_title, digest, inside
 
 COURSES = {
     'calculus': '数学分析重点', 'linear-algebra': '高等代数重点', 'probability': '概率与统计',
-    'python': 'Python与NumPy', 'optimization': '优化基础', 'machine-learning': '机器学习',
+    'python': 'Python与NumPy', 'machine-learning': '机器学习',
     'deep-learning': '深度学习', 'pytorch': 'PyTorch实践', 'nlp': '自然语言处理',
     'transformer': 'Transformer', 'llm': 'LLM',
 }
@@ -27,7 +27,7 @@ ALIASES = {re.sub(r'\s+', '', name).lower(): slug for slug, name in COURSES.item
 ALIASES.update({slug: slug for slug in COURSES})
 ALIASES.update({'数学分析':'calculus', '高等代数':'linear-algebra', '线性代数':'linear-algebra', '概率统计':'probability', 'python':'python'})
 RULES = [
-    (r'动手学深度学习|Dive\s+into\s+Deep\s+Learning', ['optimization', 'deep-learning', 'pytorch']),
+    (r'动手学深度学习|Dive\s+into\s+Deep\s+Learning', ['deep-learning', 'pytorch']),
     (r'Hands[\s-]*On\s+Large\s+Language\s+Models', ['transformer', 'llm']),
     (r'Natural\s+Language\s+Processing\s+with\s+Transformers', ['transformer']),
     (r'Natural\s+Language\s+Processing\s+in\s+Action|Speech\s+and\s+Language\s+Processing|自然语言处理', ['nlp']),
@@ -37,7 +37,6 @@ RULES = [
     (r'概率论与数理统计|概率统计|Introduction\s+to\s+Probability', ['probability']),
     (r'线性代数|高等代数|Linear\s+Algebra', ['linear-algebra']),
     (r'数学分析|微积分|Calculus', ['calculus']),
-    (r'凸优化|Convex\s+Optimization|Mathematics\s+for\s+Machine\s+Learning', ['optimization']),
     (r'Python编程|Python\s+Crash\s+Course|利用Python进行数据分析|Python\s+for\s+Data\s+Analysis', ['python']),
     (r'机器学习|Machine\s+Learning|Statistical\s+Learning', ['machine-learning']),
 ]

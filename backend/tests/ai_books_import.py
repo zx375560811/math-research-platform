@@ -40,14 +40,14 @@ def main():
                 with redirect_stdout(io.StringIO()):
                     result = apply(plan)
                     retried = apply(preview(source))
-                assert result['new_documents'] == 3 and result['new_course_links'] == 7
+                assert result['new_documents'] == 3 and result['new_course_links'] == 6
                 assert retried['new_documents'] == 0 and retried['new_course_links'] == 0
                 assert db.execute('SELECT count(*) FROM documents').fetchone()[0] == 4
                 assert db.execute('SELECT count(*) FROM series_documents').fetchone()[0] == 0
                 assert db.execute('SELECT page FROM document_progress').fetchone()[0] == 3
                 assert db.execute('SELECT document_id FROM study_plan').fetchone()[0] == 100
-                assert db.execute('SELECT count(*) FROM ai_study_books WHERE document_id=100').fetchone()[0] == 3
-                assert db.execute('SELECT count(*) FROM document_collections WHERE document_id=100').fetchone()[0] == 3
+                assert db.execute('SELECT count(*) FROM ai_study_books WHERE document_id=100').fetchone()[0] == 2
+                assert db.execute('SELECT count(*) FROM document_collections WHERE document_id=100').fetchone()[0] == 2
                 assert db.execute("SELECT count(*) FROM library_collections WHERE parent_id IS NULL AND name='人工智能'").fetchone()[0] == 1
                 with mock.patch('import_series.shutil.copyfileobj', side_effect=AssertionError('Copied a textbook')):
                     with redirect_stdout(io.StringIO()):

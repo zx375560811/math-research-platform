@@ -175,14 +175,18 @@ CREATE TABLE IF NOT EXISTS ai_study_books (
  document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
  sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(course,document_id));
 INSERT OR IGNORE INTO ai_study_courses VALUES
-('calculus','数学分析重点','foundation','极限与连续；多元微积分；偏导数与梯度；链式法则；Taylor 展开','推导线性回归损失的梯度，用有限差分核对结果。',10),
-('linear-algebra','高等代数重点','foundation','向量与矩阵；线性映射；特征值；正交投影；奇异值分解与半正定矩阵','用 NumPy 实现最小二乘，并比较正规方程与数值解。',20),
+('calculus','数学分析重点','foundation','极限与连续；多元微积分；偏导数与梯度；链式法则；Taylor 展开','用计算图实现复合函数的自动求导，对比手算导数与有限差分，验证链式法则。',10),
+('linear-algebra','高等代数重点','foundation','向量与矩阵；线性映射；特征值；正交投影；奇异值分解与半正定矩阵','用 NumPy 练习矩阵转置、乘法、范数和奇异值分解，再做矩阵重建与低秩近似。',20),
 ('probability','概率与统计','foundation','条件概率与 Bayes 公式；随机变量；期望与方差；常用分布；参数估计与抽样','模拟随机样本，比较样本均值、方差与理论值。',30),
 ('python','Python 与 NumPy','foundation','Python 基础；数组与广播；函数与模块；数据处理；可视化与随机种子','用 NumPy 读入小数据集，完成清洗、划分和可视化。',40),
-('optimization','优化基础','core','目标函数与约束；梯度下降；学习率；凸性直觉；数值稳定性','实现梯度下降，观察不同学习率对收敛的影响；可与机器学习入门交叉学习。',50),
 ('machine-learning','机器学习','core','线性与逻辑回归；决策树；训练验证测试划分；过拟合与正则化；评价指标','完成一个分类基线，避免数据泄漏，报告验证和测试结果。',60),
 ('deep-learning','深度学习','core','多层网络；反向传播；激活函数；损失函数；优化器与训练诊断','推导简单网络的反向传播，并与自动微分结果核对。',70),
 ('pytorch','PyTorch 实践','support','Tensor 与设备；自动微分；Dataset 与 DataLoader；训练循环；模型保存与加载','与深度学习并行：训练一个小型网络，保存后重新加载并验证预测。',75),
 ('nlp','自然语言处理','core','文本预处理；分词与词表；向量表示；语言建模；注意力机制与文本评估','训练小型文本分类或语言模型，比较不同分词和表示方法。',80),
 ('transformer','Transformer','core','自注意力与多头注意力；位置表示；掩码；编码器与解码器；自回归训练','实现带因果掩码的注意力，验证未来 token 不影响当前位置。',90),
 ('llm','LLM','core','预训练与指令微调；推理与采样；参数高效微调；检索增强生成；评估与幻觉','使用小模型或 API 完成一个可复现任务，分别评估正确性、成本和失败案例；无需从零训练大模型。',100);
+-- Remove the retired course associations while preserving the shared documents.
+DELETE FROM ai_study_books WHERE course='optimization';
+DELETE FROM ai_study_courses WHERE slug='optimization';
+UPDATE ai_study_courses SET practice='用计算图实现复合函数的自动求导，对比手算导数与有限差分，验证链式法则。' WHERE slug='calculus' AND practice='推导线性回归损失的梯度，用有限差分核对结果。';
+UPDATE ai_study_courses SET practice='用 NumPy 练习矩阵转置、乘法、范数和奇异值分解，再做矩阵重建与低秩近似。' WHERE slug='linear-algebra' AND practice='用 NumPy 实现最小二乘，并比较正规方程与数值解。';

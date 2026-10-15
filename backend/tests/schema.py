@@ -42,6 +42,23 @@ with sqlite3.connect(':memory:') as db:
     db.executescript(sql)
     assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 1
     assert db.execute('SELECT COUNT(*) FROM document_subjects').fetchone()[0] == 2
+    assert db.execute('SELECT COUNT(*) FROM ai_study_courses').fetchone()[0] == 10
+    # Upgrading an old catalog retires only the course, never its shared documents.
+    db.execute("INSERT INTO ai_study_courses VALUES('optimization','优化基础','core','旧课程','旧练习',50)")
+    db.execute("INSERT INTO ai_study_books VALUES('optimization',1,0)")
+    db.execute("INSERT INTO ai_study_books VALUES('deep-learning',1,0)")
+    db.execute("INSERT INTO users(username,password_hash) VALUES('reader','test')")
+    db.execute("INSERT INTO document_progress(username,document_id,page,total_pages) VALUES('reader',1,4,10)")
+    db.execute("UPDATE ai_study_courses SET practice='推导线性回归损失的梯度，用有限差分核对结果。' WHERE slug='calculus'")
+    db.commit()
+    db.executescript(sql)
+    assert db.execute("SELECT COUNT(*) FROM ai_study_courses WHERE slug='optimization'").fetchone()[0] == 0
+    assert db.execute("SELECT COUNT(*) FROM ai_study_books WHERE course='optimization'").fetchone()[0] == 0
+    assert db.execute("SELECT document_id FROM ai_study_books WHERE course='deep-learning'").fetchone()[0] == 1
+    assert db.execute('SELECT COUNT(*) FROM documents').fetchone()[0] == 1
+    assert db.execute('SELECT page FROM document_progress').fetchone()[0] == 4
+    assert '自动求导' in db.execute("SELECT practice FROM ai_study_courses WHERE slug='calculus'").fetchone()[0]
+    assert db.execute('PRAGMA foreign_key_check').fetchall() == []
     try:
         db.execute('INSERT INTO document_subjects VALUES (1,999)')
     except sqlite3.IntegrityError:
