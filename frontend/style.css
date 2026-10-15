@@ -417,7 +417,7 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 
 /* The analysis introduction is a branching course roadmap, not three text cards. */
 .analysis-roadmap { overflow-x:auto;scrollbar-width:thin;padding:4px 0; }
-.analysis-roadmap svg { display:block;width:100%;max-width:940px;min-width:760px;height:auto;margin:0 auto; }
+.analysis-roadmap svg,.ai-study-map svg { display:block;width:100%;max-width:940px;min-width:760px;height:auto;margin:0 auto; }
 .analysis-course { --route-accent:#6478d3;transition:filter .18s ease;transform-box:fill-box;transform-origin:center; }
 .analysis-course-card { fill:url(#analysis-course-fill);stroke:var(--route-accent);stroke-opacity:.25;stroke-width:1; }
 .analysis-course-icon { fill:var(--route-accent);fill-opacity:.12; }
@@ -994,8 +994,7 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 @media(max-width:650px) { .study-plan-heading { flex-wrap:wrap;gap:10px; }.study-plan-heading h1 { width:100%;font-size:25px; }.study-plan-overview { grid-template-columns:repeat(3,minmax(0,1fr));padding:20px 16px;gap:18px 12px; }.study-plan-ring { grid-column:1/-1;justify-self:center; }.study-plan-metric { padding:0;border:0;text-align:center; }.study-plan-metric strong { font-size:28px; }.study-plan-metric span { font-size:15px; }.study-plan-columns { gap:16px; }.study-plan-book,.study-plan-panel-heading { padding:18px 16px; }.study-plan-book-actions .button { font-size:14px; }.study-plan-remove { margin-left:0; }.study-book-actions { justify-content:flex-start; } }
 .ai-study-heading h1 { margin:0;font-size:28px; }
 /* Same constellation canvas and node treatments as the mathematics roadmap. */
-.ai-study-map { width:100%;max-width:930px;background:white;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin:0 auto 20px;overflow-x:auto;scrollbar-width:thin; }
-.ai-study-map svg { display:block;width:100%;min-width:900px;max-width:900px;height:auto; }
+.ai-study-map { background:white;border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 20px;overflow-x:auto;scrollbar-width:thin; }
 .ai-map-canvas .analysis-course-title { font-size:15px; }
 .ai-map-canvas .analysis-course-symbol { font-size:20px; }
 .ai-map-canvas .ai-course-node { text-decoration:none;cursor:pointer;outline:none; }
@@ -1009,7 +1008,7 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .admin-page #ai-learning-view .series-admin-associate { display:flex;gap:12px;flex-wrap:wrap; }
 .admin-page #ai-learning-view .series-admin-associate select { flex:1 1 220px;width:0; }
 .admin-page #ai-learning-view .series-member-actions input { width:80px; }
-@media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-detail { padding:18px; }.ai-study-map { padding:8px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; } }
+@media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-detail { padding:18px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; } }
 /* Workbench: the five applications are the entire page content. */
 #home-view { min-height:calc(100svh - 168px);display:grid;align-content:center;padding:8px 0; }
 #home-view .application-grid { display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px; }
