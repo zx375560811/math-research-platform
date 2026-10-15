@@ -998,8 +998,6 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .ai-study-map svg { display:block;width:100%;min-width:1000px;height:auto; }
 .ai-map-canvas .analysis-course-title { font-size:15px; }
 .ai-map-canvas .analysis-course-symbol { font-size:20px; }
-.ai-map-canvas .ai-course-combined .analysis-course-title { font-size:14px; }
-.ai-map-canvas .ai-course-combined .analysis-course-symbol { font-size:17px; }
 .ai-map-canvas .ai-course-node { text-decoration:none;cursor:pointer;outline:none; }
 .ai-map-canvas .ai-course-node:focus-visible .analysis-course-card { stroke:#fff;stroke-width:2;stroke-opacity:1; }
 .ai-study-detail { background:white;border:1px solid var(--line);border-radius:16px;padding:24px; }
