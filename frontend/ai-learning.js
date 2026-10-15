@@ -1,8 +1,8 @@
 import { mountIcons } from './icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
-function bookRow(book,href){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;row.append(info,link);return row;}
-export function createAiLearning({api,write}){
+function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
+export function createAiLearning({api,write,planButton}){
  const root=document.getElementById('ai-learning-view');let version=0,stop=null,reading=false;
  function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
  async function navigate(hash){close();root.hidden=false;const mine=version,params=new URLSearchParams(hash.split('?')[1]||''),course=params.get('course')||'calculus',match=hash.match(/^#\/apps\/math-to-ai\/read\/(\d+)/);
@@ -11,7 +11,7 @@ export function createAiLearning({api,write}){
   try{const {courses}=await api('/api/ai-learning');if(mine!==version)return;root.replaceChildren();const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1','数学到人工智能'));root.append(header);
    const chosen=courses.find(c=>c.slug===course)||courses[0];if(!chosen){root.append(el('p','课程暂不可用','muted'));return;}
    root.append(aiRoadmap(courses,chosen.slug));
-   const detail=el('section',null,'ai-study-detail');detail.append(el('h2',chosen.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of chosen.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',chosen.practice));context.append(topics,practice);detail.append(context,el('h3','课程教材'));for(const book of chosen.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${chosen.slug}`));if(!chosen.books.length)detail.append(el('p','暂无关联教材','muted'));root.append(detail);mountIcons();
+   const detail=el('section',null,'ai-study-detail');detail.append(el('h2',chosen.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of chosen.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',chosen.practice));context.append(topics,practice);detail.append(context,el('h3','课程教材'));for(const book of chosen.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${chosen.slug}`,planButton));if(!chosen.books.length)detail.append(el('p','暂无关联教材','muted'));root.append(detail);mountIcons();
   }catch(error){if(mine===version)root.replaceChildren(el('p',error.message||'加载失败，请刷新重试。','notice error'));}
  }
  return {navigate,close};

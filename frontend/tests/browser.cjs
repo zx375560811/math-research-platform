@@ -53,7 +53,7 @@ async function main() {
     const documents = Array.from({ length: 21 }, (_, index) => ({ id: index + 1, title: index === 20 ? '定理 "A" <img src=x onerror=alert(1)>' : index === 0 ? 'Test textbook' : `研究资料 ${index + 1}`, authors: '平台维护的参考资料', subject_ids: [1], file_size: pdf.length, module:'mathematics', language:index === 0 ? 'en' : 'und', directions:['algebra'], file_url:`/api/documents/${index+1}/file` }));
     if (process.env.MATH_BROWSER_MOCK === '1') {
       nativeId = 22; const nativeDocument = {id:nativeId,title:'Native DjVu',authors:'Test',subject_ids:[1],file_size:djvu.length,module:'mathematics',language:'en',directions:['algebra'],format:'djvu',file_url:'/api/documents/22/file'};
-      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0;
+      const users = new Map(); const sessions = new Map(); const progress = new Map(); const annotations = new Map(); const selections = new Map(); let annotationId = 0; const plans=new Map();
       const bookValue = (book,user) => {
         const selected = selections.get(user+':'+book.id), doc = documents.find(doc=>doc.id===(selected||book.document_id||(book.id===7?1:null)));
         return {...book,...(doc ? {title:doc.title,authors:doc.authors,source_url:'',available:true,file_url:doc.file_url} : {}),selected_document_id:selected||null,progress:progress.get(user+':doc:'+(selected||1))||null};
@@ -75,6 +75,19 @@ async function main() {
           if (url.pathname.endsWith('/logout')) { delete session.user; return json({ status: 'ok' }); }
           if (users.get(name) !== body.password) return json({ error: 'invalid_credentials' }, 401);
           session.user = { username: name, role: 'USER' }; return json({ user: session.user });
+        }
+        if(url.pathname.startsWith('/api/study-plan')){
+          if(!session?.user)return json({error:'login_required'},401);
+          const user=session.user.username,match=url.pathname.match(/^\/api\/study-plan\/(\d+)$/);
+          const mine=[...plans.values()].filter(p=>p.username===user).map(p=>({...documents.find(d=>d.id===p.id),...p,progress:progress.get(user+':doc:'+p.id)||null,state:p.completed?'completed':progress.has(user+':doc:'+p.id)?'learning':'planned'}));
+          if(req.method==='GET'&&url.pathname==='/api/study-plan/members')return json({document_ids:mine.map(p=>p.id)});
+          if(req.method==='GET'&&url.pathname==='/api/study-plan'){const scope=url.searchParams.get('scope')||'planned',offset=Number(url.searchParams.get('offset')||0),books=mine.filter(p=>scope==='planned'?p.state==='planned':p.state!=='planned'),summary={planned:0,learning:0,completed:0};for(const p of mine)summary[p.state]++;return json({books:books.slice(offset,offset+20),summary,total:books.length,limit:20,offset});}
+          if(match){if(req.headers['x-csrf-token']!==session.token)return json({error:'invalid_csrf'},403);const parts=[];for await(const part of req)parts.push(part);const body=JSON.parse(Buffer.concat(parts).toString()||'{}'),id=Number(match[1]),key=user+':'+id;
+            if(req.method==='PUT'){const added=!plans.has(key);if(added)plans.set(key,{id,username:user,source:body.source,completed:false});return json({added});}
+            if(!plans.has(key))return json({error:'not_found'},404);
+            if(req.method==='PATCH'){plans.get(key).completed=body.completed;return json({status:'ok'});}
+            if(req.method==='DELETE'){plans.delete(key);return json({status:'ok'});}
+          }return json({error:'not_found'},404);
         }
         if (url.pathname.startsWith('/api/library')) {
           if (!session?.user) return json({error:'login_required'},401);
@@ -136,7 +149,7 @@ async function main() {
           res.writeHead(200,headers);return res.end(content);
         }
         const assets = { '/': ['index.html', 'text/html'], '/app.js': ['app.js', 'text/javascript'], '/learning.js': ['learning.js', 'text/javascript'], '/library.js':['library.js','text/javascript'], '/reader.js': ['reader.js', 'text/javascript'], '/reader-ai.js': ['reader-ai.js', 'text/javascript'], '/richtext.js':['richtext.js','text/javascript'], '/vendor/marked/marked.esm.js':['vendor/marked/marked.esm.js','text/javascript'], '/vendor/dompurify/purify.es.mjs':['vendor/dompurify/purify.es.mjs','text/javascript'], '/vendor/katex/katex.mjs':['vendor/katex/katex.mjs','text/javascript'], '/vendor/katex/katex.min.css':['vendor/katex/katex.min.css','text/css'], '/style.css': ['style.css', 'text/css'] };
-        for (const name of ['ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
+        for (const name of ['study-plan.js','ai-learning.js','series.js','reader-djvu.js','vendor/djvu/djvu.js','icons.js', 'vendor/morphicons/dom.js', 'vendor/morphicons/spring-CFHloqPP.js', 'vendor/morphicons/normalize-CYnN3Npw.js']) assets['/' + name] = [name, 'text/javascript'];
         if (/^\/vendor\/pdfjs\/(pdf(?:\.worker)?\.mjs|text_layer\.css|cmaps\/[A-Za-z0-9_-]+\.bcmap|standard_fonts\/[A-Za-z0-9_-]+\.(?:pfb|ttf))$/.test(url.pathname)) assets[url.pathname] = [url.pathname.slice(1), url.pathname.endsWith('.mjs')?'text/javascript':url.pathname.endsWith('.css')?'text/css':'application/octet-stream'];
         if (/^\/vendor\/katex\/fonts\/[A-Za-z0-9_-]+\.woff2$/.test(url.pathname)) assets[url.pathname]=[url.pathname.slice(1),'font/woff2'];
         const asset = assets[url.pathname]; if (!asset) return json({ error: 'not_found' }, 404);
@@ -638,6 +651,23 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.ai-study-book a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/数学到人工智能/);await readerControl(page,'reader-back');await page.locator('[data-ai-course="machine-learning"][aria-current]').waitFor();
     await page.locator('[data-ai-course="pytorch"]').click();await page.waitForFunction(()=>document.querySelector('.ai-study-detail h2')?.textContent==='PyTorch 实践');
     await page.unroute('**/api/ai-learning');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
+    await page.goto(base+'/#/library?q='+encodeURIComponent('研究资料 2'));await page.locator('.library-document').first().waitFor();
+    await page.locator('[data-plan-document="2"]').click();await page.locator('[data-plan-document="2"].in-plan').waitFor();
+    await page.goto(base+'/#/apps/mathematics');await page.locator('.textbook-row:visible .plan-add').first().waitFor();
+    await page.locator('.textbook-row:visible .plan-add').first().click();await page.locator('.textbook-row:visible .plan-add.in-plan').first().waitFor();
+    await page.locator('#study-plan-link').click();await page.locator('.study-plan-columns').waitFor();
+    assert.equal(await page.locator('.study-plan-panel.planned [data-study-document="2"]').count(),1);
+    assert.equal(await page.locator('.study-plan-panel.progress [data-study-document="1"]').count(),1);
+    assert.match(await page.locator('[data-study-document="1"] .study-plan-position').textContent(),/\d+ \/ 12 页/);
+    await page.screenshot({path:path.join(shots,'study-plan-desktop.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'study-plan-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
+    await page.locator('[data-study-document="2"] button', {hasText:'标记学完'}).click();await page.locator('.study-plan-panel.progress [data-study-document="2"] .study-plan-completed').waitFor();
+    await page.reload();await page.locator('[data-study-document="2"] .study-plan-completed').waitFor();
+    await page.locator('[data-study-document="2"] button',{hasText:'恢复学习'}).click();await page.locator('.study-plan-panel.planned [data-study-document="2"]').waitFor();
+    await page.locator('[data-study-document="2"] a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/学习计划/);
+    await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');await scrollToPage(page,3);await page.waitForFunction(async()=>(await(await fetch('/api/library/documents/2')).json()).progress?.page===3);await readerControl(page,'reader-back');await page.locator('.study-plan-panel.progress [data-study-document="2"]').waitFor();assert.match(await page.locator('[data-study-document="2"] .study-plan-position').textContent(),/3 \/ 12 页/);
+    await page.locator('[data-study-document="2"] button',{hasText:'移出计划'}).click();await page.waitForFunction(()=>!document.querySelector('[data-study-document="2"]'));assert.equal((await page.request.get(base+'/api/library/documents/2')).status(),200);
+    await page.goto(base+'/#/library?q=Test');await page.locator('[data-plan-document="1"].in-plan').waitFor();assert.equal(await page.locator('[data-plan-document="1"]').isDisabled(),true);await page.goto(base+'/#/library?q='+encodeURIComponent('研究资料 2'));await page.locator('[data-plan-document="2"]').waitFor();assert.equal(await page.locator('[data-plan-document="2"]').isDisabled(),false);
     await page.route('**/api/documents/1/file',route=>route.fulfill({status:500,contentType:'application/json',body:'{"error":"file_unavailable"}'}));
     await page.goto(base+'/#/library/read/1');
     await page.waitForFunction(()=>document.querySelector('#pdf-pages')?.textContent.includes('无法打开教材：'));

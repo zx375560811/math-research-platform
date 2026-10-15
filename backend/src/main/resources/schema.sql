@@ -78,6 +78,13 @@ document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
 page INTEGER NOT NULL CHECK(page>0), total_pages INTEGER NOT NULL CHECK(total_pages>=page),
 position REAL NOT NULL DEFAULT 0, zoom REAL NOT NULL DEFAULT 1,
 updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')), PRIMARY KEY(username,document_id));
+CREATE TABLE IF NOT EXISTS study_plan (
+username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+source TEXT NOT NULL CHECK(source IN ('library','mathematics','series','math-to-ai')),
+completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)),
+added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+PRIMARY KEY(username,document_id));
 CREATE TABLE IF NOT EXISTS document_marks (
 id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
 document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE, page INTEGER NOT NULL CHECK(page>0),

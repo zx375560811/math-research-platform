@@ -80,7 +80,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   const box=el('div','analysis-roadmap');box.append(svg);
   const layout=el('div','analysis-route-layout');layout.append(box);return layout;
 }
-export function createLearning({ api, write }) {
+export function createLearning({ api, write, planButton }) {
   let generation = 0, stopReader = null, current = '', ownsReader = false;
   function close() { ++generation; if (stopReader) stopReader(); stopReader = null; if (ownsReader) { $('reader-view').hidden = true; document.body.classList.remove('reading-page'); } ownsReader = false; }
   async function navigate(hash) {
@@ -142,7 +142,8 @@ export function createLearning({ api, write }) {
             link.href=`#/apps/mathematics/read/${book.id}`;link.dataset.book=book.id;
             link.setAttribute('aria-label',(book.progress ? '继续学习' : '开始学习')+'：'+book.title);
             if(book.progress) link.title='已读至第 '+book.progress.page+' 页';
-            actions.append(link);
+            const documentId=book.selected_document_id||book.document_id||Number(book.file_url?.match(/\/documents\/(\d+)\//)?.[1]);
+            actions.append(link);if(documentId)actions.append(planButton({id:documentId,title:book.title},'mathematics'));
           }
           row.append(index,info,actions);target.append(row);
         }

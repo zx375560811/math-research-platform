@@ -69,6 +69,8 @@ with tempfile.TemporaryDirectory() as directory:
             for path in ['/api/admin/documents', '/api/admin/books', '/api/admin/invitations', '/api/admin/collections', '/api/library/documents']:
                 assert request(path)[0] == 401
             assert request('/api/ai-learning')[0]==401
+            assert request('/api/study-plan')[0]==401
+            assert request('/api/study-plan/members')[0]==401
             assert b'account-form' in request('/admin')[1]  # anonymous redirect to login shell
             credentials = {'username': 'owner_one', 'password': 'AdministratorPass123!', 'invitation': invitations.create_invitation(database)}
             assert write('/api/auth/register', {**credentials, 'role': 'ADMIN'})[1]['user']['role'] == 'USER'
@@ -455,6 +457,53 @@ with tempfile.TemporaryDirectory() as directory:
             assert request(managed_path)[1]['progress']==position
             assert request(managed_path+'/annotations')[1]['annotations'][0]['id']==kept_mark
             assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
+            # Personal plans share document progress, never copy files or cross user boundaries.
+            plan='/api/study-plan/'+str(managed)
+            waiting='/api/study-plan/'+str(doc)
+            assert request('/study-plan.js')[0]==200
+            assert request('/api/study-plan?scope=invalid')[0]==400
+            assert request('/api/study-plan?offset=-1')[0]==400
+            assert request(plan,'PUT',b'{"source":"library"}',{'Content-Type':'application/json'})[0]==403
+            assert write(plan,{'source':'invalid'},'PUT')[0]==400
+            assert write('/api/study-plan/999999',{'source':'library'},'PUT')[0]==404
+            assert write(plan,{'source':'library'},'PUT')==(200,{'added':True})
+            assert write(plan,{'source':'series'},'PUT')==(200,{'added':False})
+            assert write(waiting,{'source':'math-to-ai'},'PUT')[1]['added'] is True
+            result=request('/api/study-plan?scope=planned')[1]
+            assert result['total']==1 and result['books'][0]['id']==doc
+            assert result['summary']=={'planned':1,'learning':1,'completed':0}
+            result=request('/api/study-plan?scope=progress')[1]
+            assert result['books'][0]['progress']['page']==position['page']
+            assert result['books'][0]['source']=='library'  # duplicate add retains original reference
+            assert write(plan,{},'PATCH')[0]==400
+            assert write(plan,{'completed':True},'PATCH')[0]==200
+            assert request('/api/study-plan?scope=progress')[1]['summary']['completed']==1
+            # A different account cannot view, change or remove the first account's plans.
+            assert write('/api/auth/login',{'username':'invited_reader','password':credentials['password']})[0]==200
+            assert request('/api/study-plan/members')[1]['document_ids']==[]
+            assert request('/api/study-plan?scope=progress')[1]['total']==0
+            assert write(plan,{'completed':False},'PATCH')[0]==404
+            assert write(plan,{},'DELETE')[0]==404
+            assert write(plan,{'source':'mathematics'},'PUT')[1]['added'] is True
+            assert request('/api/study-plan?scope=planned')[1]['total']==1
+            assert write('/api/auth/login',credentials)[0]==200
+            assert write(plan,{'completed':False},'PATCH')[0]==200
+            assert request('/api/study-plan?scope=progress')[1]['books'][0]['state']=='learning'
+            assert write(plan,{},'DELETE')[0]==200
+            assert request(managed_path)[1]['progress']==position
+            assert request(managed_path+'/annotations')[1]['annotations'][0]['id']==kept_mark
+            assert request('/api/documents/'+str(managed)+'/file')==(200,pdf)
+            # Independent page totals and deletion cascades use the owner/document key.
+            with sqlite3.connect(database) as db:
+                db.execute('PRAGMA foreign_keys=ON')
+                db.executemany("INSERT OR IGNORE INTO study_plan(username,document_id,source) VALUES('owner_one',?,'library')",[(r[0],) for r in db.execute("SELECT id FROM documents WHERE title LIKE 'Pagination %'").fetchall()])
+            result=request('/api/study-plan?scope=planned&offset=20')[1]
+            assert result['total']==40 and result['total_pages']==2 and len(result['books'])==20
+            with sqlite3.connect(database) as db:
+                db.execute('PRAGMA foreign_keys=ON')
+                db.execute('DELETE FROM documents WHERE id=?',(doc,))
+                assert db.execute('SELECT count(*) FROM study_plan WHERE document_id=?',(doc,)).fetchone()[0]==0
+                assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
         finally:
             process.terminate(); process.wait(timeout=10)
 print('Administrator permissions, PDF import, textbook bindings and invitation revocation passed.')

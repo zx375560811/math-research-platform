@@ -37,6 +37,7 @@ class PublicBoundary implements Filter {
         learningWrite |= (method.equals("PUT") && path.matches("/api/library/documents/[0-9]+/progress"))
             || (method.equals("POST") && path.matches("/api/library/documents/[0-9]+/annotations"))
             || (java.util.Set.of("PATCH", "DELETE").contains(method) && path.matches("/api/library/documents/[0-9]+/annotations/[0-9]+"));
+        learningWrite |= java.util.Set.of("PUT","PATCH","DELETE").contains(method) && path.matches("/api/study-plan/[0-9]+");
         boolean aiWrite = (method.equals("PUT") && java.util.Set.of("/api/ai/settings", "/api/admin/ai/settings").contains(path))
             || (method.equals("POST") && path.equals("/api/ai/chat"));
         boolean adminUpload = method.equals("POST") && path.equals("/api/admin/documents");

@@ -71,7 +71,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     } catch (error) { if (!closed) { $('reader-save-status').textContent = '阅读位置未保存：' + errorText(error); $('reader-save-status').classList.add('save-error'); } }
     finally { saving = false; }
   }
-  function saveNow() { clearTimeout(saveTimer); if (pdf && book && pages.length && !layingOut) { desired = snapshot(); $('reader-save-status').classList.remove('save-error'); drainSave(); } }
+  let saveTask = Promise.resolve();
+  function saveNow() { clearTimeout(saveTimer); if (pdf && book && pages.length && !layingOut) { desired = snapshot(); $('reader-save-status').classList.remove('save-error'); if (!saving) saveTask = drainSave(); } return saveTask; }
   function paintHighlights() {
     for (const page of pages) {
       if (!page.rendered) continue; page.highlights.replaceChildren();
@@ -378,9 +379,9 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     }
   })();
   function close() {
-    if (closed) return; stopVertical(); if (drag) finishDrag(); saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
+    if (closed) return saveTask; stopVertical(); if (drag) finishDrag(); const flushed = saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
     if (document.fullscreenElement === $('reader-view')) document.exitFullscreen().catch(() => {});
-    if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren();
+    if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren(); return flushed;
   }
   return { ready, close };
 }
