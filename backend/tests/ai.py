@@ -34,7 +34,7 @@ class Provider(BaseHTTPRequestHandler):
         self.send_response(200); self.send_header('Content-Type', 'application/json'); self.end_headers()
         if mode in ('series','series-invalid'):
             catalog=json.loads(received[-1][2]['messages'][-1]['content'])['catalog']
-            content=json.dumps({'summary':'先学习基础教材。','books':[{'id':catalog[0]['id'] if mode=='series' else 999999,'reason':'适合当前基础。'}]})
+            content=json.dumps({'summary':'先学习基础教材。','books':[{'id':catalog[0]['id'] if mode=='series' else 999999,'reason':'推荐理由：衔接现有基础。\n\n学习内容：该领域的基本结构。\n\n所需基础：线性代数与基本证明。\n\n阅读建议：先核对定义，再完成证明习题。\n\n后续衔接：按目标选择后续领域。'}]})
             self.wfile.write(json.dumps({'choices':[{'message':{'content':content}}]}).encode());return
         if mode == 'oversized':
             self.wfile.write(b'X' * 16777217); return
@@ -118,6 +118,11 @@ try:
                 status,result=write('/api/series/recommend',{'source':'default','requirement':'学习代数','series_id':1})
                 assert status == 200 and result['books'][0]['id'] == docid
                 assert received[-1][1] == 'Bearer private-default-key'
+                instructions=received[-1][2]['messages'][0]['content']
+                for label in ['推荐理由','学习内容','所需基础','阅读建议','后续衔接']:
+                    assert label in instructions and label in result['books'][0]['reason']
+                assert '\n\n' in result['books'][0]['reason']
+                assert '不是书籍全文' in instructions and '不虚构章节号' in instructions
                 mode='ok'
                 client = new_client()
                 credentials2 = {'username':'ai_reader','password':'ReaderPassword123!','invitation':invitations.create_invitation(database)}

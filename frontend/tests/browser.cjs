@@ -616,13 +616,14 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     let recommendationInput;
     await page.route('**/api/series**',async route=>{const url=new URL(route.request().url());let body;
       if(url.pathname==='/api/series')body={series:seriesFixture};
-      else if(url.pathname==='/api/series/recommend'){recommendationInput=route.request().postDataJSON();body={summary:'根据你的基础，先阅读这本教材。',books:[{...seriesDoc,reason:'适合当前学习目标。'}]};}
+      else if(url.pathname==='/api/series/recommend'){recommendationInput=route.request().postDataJSON();body={summary:'根据你的基础，先阅读这本教材。',books:[{...seriesDoc,reason:'推荐理由：衔接当前基础。\n\n学习内容：介绍本领域概念。\n\n所需基础：证明与线性代数。\n\n阅读建议：练习定义和证明。\n\n后续衔接：按研究目标选择下一本。'}]};}
       else body={series:seriesFixture[0],books:[seriesDoc],offset:0,limit:20,total:1,total_pages:1};
       await route.fulfill({json:body});
     });
     await page.setViewportSize({width:1440,height:900});await page.locator('.series-application').click();await page.locator('.series-card').first().waitFor();assert.equal(await page.locator('.series-card').count(),6);
     await page.screenshot({path:path.join(shots,'series-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'series-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
     await page.locator('#series-requirement').fill('学过线性代数，希望学习代数。');await page.locator('#series-recommend').click();await page.locator('#series-ai-results .series-book').waitFor();assert.equal(recommendationInput.requirement,'学过线性代数，希望学习代数。');assert.equal(recommendationInput.source,'default');
+    assert.equal(await page.locator('#series-ai-results .series-reason').count(),5);assert.match(await page.locator('#series-ai-results .series-reason').last().textContent(),/后续衔接/);
     await page.locator('#series-ai-results a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/系列书籍/);await readerControl(page,'reader-back');await page.locator('.series-card').first().waitFor();
     await page.locator('.series-card').first().click();await page.locator('#series-catalog .series-book').waitFor();assert.equal(await page.locator('#series-catalog .series-book').count(),1);
     assert.match(await page.locator('#series-catalog .series-pager').textContent(),/第 1 \/ 1 页 · 共 1 本/);
