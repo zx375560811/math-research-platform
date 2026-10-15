@@ -10,8 +10,14 @@ export function createAiLearning({api,write,planButton}){
   root.replaceChildren(el('p','正在加载学习路线…','muted'));
   try{const {courses}=await api('/api/ai-learning');if(mine!==version)return;root.replaceChildren();const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1','数学到人工智能'));root.append(header);
    const chosen=courses.find(c=>c.slug===course)||courses[0];if(!chosen){root.append(el('p','课程暂不可用','muted'));return;}
-   root.append(aiRoadmap(courses,chosen.slug));
-   const detail=el('section',null,'ai-study-detail');detail.append(el('h2',chosen.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of chosen.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',chosen.practice));context.append(topics,practice);detail.append(context,el('h3','课程教材'));for(const book of chosen.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${chosen.slug}`,planButton));if(!chosen.books.length)detail.append(el('p','暂无关联教材','muted'));root.append(detail);mountIcons();
+   const detail=el('section',null,'ai-study-detail');let selected='';
+   function selectCourse(slug,updateUrl=false){const course=courses.find(c=>c.slug===slug);if(!course||selected===slug)return;selected=slug;
+    for(const node of root.querySelectorAll('[data-ai-course]')){const active=node.dataset.aiCourse===slug;node.classList.toggle('selected',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
+    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context,el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
+    if(updateUrl)history.replaceState(history.state,'','#/apps/math-to-ai?course='+encodeURIComponent(slug));mountIcons();
+   }
+   root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);
+
   }catch(error){if(mine===version)root.replaceChildren(el('p',error.message||'加载失败，请刷新重试。','notice error'));}
  }
  return {navigate,close};
@@ -30,7 +36,7 @@ export function createAdminAiLearning({api,write,message}){
 }
 
 // Keep the AI route in the same visual language as the analysis course map.
-function aiRoadmap(courses, chosen) {
+function aiRoadmap(courses, chosen, onChoose) {
  const ns='http://www.w3.org/2000/svg';
  const make=(tag,attrs={},text)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};
  const box=document.createElement('nav');box.className='ai-study-map';box.setAttribute('aria-label','数学到人工智能学习路线');
@@ -70,6 +76,7 @@ function aiRoadmap(courses, chosen) {
   const course=courses.find(item=>item.slug===slug);if(!course)continue;
   const node=make('a',{class:'analysis-course ai-course-node'+(slug===chosen?' selected':''),href:'#/apps/math-to-ai?course='+slug,'data-ai-course':slug,'aria-label':course.name,tabindex:0,...(slug===chosen?{'aria-current':'step'}:{})});
   node.append(make('title',{},course.name),make('rect',{class:'analysis-course-card',x,y,width:154,height:42,rx:11,style:'fill:url(#ai-node-'+kind+')'}),make('path',{class:'analysis-course-shine',d:`M${x+11} ${y+1}H${x+143}M${x+149} ${y+12}V${y+30}`}),make('circle',{class:'analysis-course-orbit',cx:x+25,cy:y+21,r:15.5}),make('circle',{class:'analysis-course-icon',cx:x+25,cy:y+21,r:12}),make('text',{class:'analysis-course-symbol',x:x+25,y:y+21,'text-anchor':'middle','dominant-baseline':'central'},symbol),make('text',{class:'analysis-course-title',x:x+48,y:y+21,'dominant-baseline':'central',...(slug==='python'?{textLength:96,lengthAdjust:'spacingAndGlyphs'}:{})},course.name),make('path',{class:'analysis-course-picked',d:`M${x+144} ${y+6}l3 3-3 3-3-3Z`}));
+  node.addEventListener('click',event=>{if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();onChoose(slug);});
   node.addEventListener('keydown',event=>{if(event.key===' '){event.preventDefault();node.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));}});
   groups[phase].append(node);
  }

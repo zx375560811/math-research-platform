@@ -642,10 +642,17 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.match(await page.locator('#series-catalog .series-pager').textContent(),/第 1 \/ 1 页 · 共 1 本/);
     await page.unroute('**/api/series**');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     const aiCourseNames=[['calculus','数学分析重点','foundation'],['linear-algebra','高等代数重点','foundation'],['probability','概率与统计','foundation'],['python','Python 与 NumPy','foundation'],['optimization','优化基础','core'],['machine-learning','机器学习','core'],['deep-learning','深度学习','core'],['pytorch','PyTorch 实践','support'],['nlp','自然语言处理','core'],['transformer','Transformer','core'],['llm','LLM','core']];
-    await page.route('**/api/ai-learning',route=>route.fulfill({json:{courses:aiCourseNames.map(([slug,name,phase])=>({slug,name,phase,topics:'概念；方法',practice:'完成一个可复现练习。',books:slug==='machine-learning'?[seriesDoc]:[]}))}}));
+    let aiCourseFetches=0;await page.route('**/api/ai-learning',route=>{aiCourseFetches++;return route.fulfill({json:{courses:aiCourseNames.map(([slug,name,phase])=>({slug,name,phase,topics:'概念；方法',practice:'完成一个可复现练习。',books:slug==='machine-learning'?[seriesDoc]:[]}))}});});
     await page.locator('.ai-learning-application').click();await page.locator('.ai-study-map').waitFor();
     assert.equal(await page.locator('.ai-study-foundations .ai-course-node').count(),4);assert.equal(await page.locator('.ai-study-main .ai-course-node').count(),6);
+    const aiMapBefore=await page.locator('.ai-study-map svg').elementHandle(),courseFetchesBefore=aiCourseFetches;
     await page.locator('[data-ai-course="machine-learning"]').click();await page.locator('.ai-study-book').waitFor();
+    assert.equal(aiCourseFetches,courseFetchesBefore,'Course selection must reuse the loaded catalog');
+    assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true,'Course selection must preserve the roadmap and its animations');
+    assert.equal(await page.locator('[data-ai-course="machine-learning"][aria-current="step"]').count(),1);
+    assert.match(await page.url(),/course=machine-learning/);
+    await page.locator('[data-ai-course="machine-learning"]').click();assert.equal(aiCourseFetches,courseFetchesBefore);
+
     await page.screenshot({path:path.join(shots,'ai-learning-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(shots,'ai-learning-mobile.png'),fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
     await page.locator('.ai-study-book a').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]'));assert.match(await page.locator('#reader-back').textContent(),/数学到人工智能/);await readerControl(page,'reader-back');await page.locator('[data-ai-course="machine-learning"][aria-current]').waitFor();
