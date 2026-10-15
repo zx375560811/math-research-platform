@@ -18,6 +18,8 @@ jobs:
         run: python backend/tests/zotero.py
       - name: Check additive series import on older Python
         run: python backend/tests/series_import.py
+      - name: Check additive AI course book import on older Python
+        run: python backend/tests/ai_books_import.py
       - name: Check read-only ZIP duplicate verification
         run: python backend/tests/zip_library.py
   backend:

@@ -374,3 +374,18 @@ systemctl start math-platform
 以上接口需要管理员身份和 CSRF 验证。更新后需重新构建 Java 并重启服务；不需要重新导入文献。
 
 推荐教材的文献选择覆盖数学文献库，按目录和书名搜索，不隐藏未标记课程方向的上传文件。页面新增推荐时发送 `attach_direction:true`，在保存推荐的同一事务中补充文献的课程方向，保留已有方向、目录、语种和个人阅读数据；旧接口调用不传此字段时仍校验原方向匹配。
+
+
+### 数学到人工智能：批量导入教材
+
+从 `backend` 运行 `python3 admin/import_ai_books.py /opt/math-platform/imports/人工智能` 可只读预览。脚本支持 PDF、DJVU、DJV，识别常用教材书名；其他书放入对应课程名或课程 slug 子目录，再执行预览。未知标题会明确报错，不会静默归类。
+
+执行导入前停止服务，使用服务账号运行：
+
+```bash
+systemctl stop math-platform && (runuser -u math-platform -- python3 admin/import_ai_books.py /opt/math-platform/imports/人工智能 --apply --move; task_import_status=$?; systemctl start math-platform; exit "$task_import_status")
+```
+
+`--apply` 增量入库并关联 AI 课程，不替换旧文献与课程配置。`--move` 要求源文件和 `data/files` 同一文件系统且服务账号可写源目录；用硬链接避免再复制一份教材，数据库成功提交后清理服务器上传源文件。省略 `--move` 则复制并保留源文件。导入前备份数据库与 AI 密钥；重复文件按 SHA-256 复用，同一本教材可关联多个课程。文档库显示“人工智能”及课程目录，阅读进度、笔记、学习计划继续关联原文献。
+
+网页流程图每个课程显示配套 GitHub 项目、简介及建议任务。项目在新标签页打开，不在网站服务器上运行或下载代码。

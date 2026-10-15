@@ -2,6 +2,34 @@ import { mountIcons } from './icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
+const aiProjects={
+ numpy:{name:'NumPy 100',repo:'rougier/numpy-100',description:'100 道带答案的数组练习，逐步熟悉索引、广播、矩阵和向量化计算。'},
+ homemade:{name:'从零实现机器学习',repo:'trekhleb/homemade-machine-learning',description:'用 Python 从零实现回归、分类和聚类，配合数学说明与交互示例理解算法。'},
+ handson:{name:'机器学习实战',repo:'ageron/handson-ml3',description:'完整的机器学习 Notebook，从数据清洗、训练和调参，一直到模型评估。'},
+ torch:{name:'PyTorch 从零到项目',repo:'mrdbourke/pytorch-deep-learning',description:'从 Tensor 和训练流程起步，逐步完成分类、计算机视觉和迁移学习项目。'},
+ d2l:{name:'动手学深度学习',repo:'d2l-ai/d2l-zh',description:'中文教材与可运行代码相结合，通过回归、神经网络、注意力等例子学习深度学习。'},
+ micrograd:{name:'micrograd 自动微分',repo:'karpathy/micrograd',description:'小型自动微分引擎与神经网络库，用精简代码理解计算图、链式法则和反向传播。'},
+ examples:{name:'PyTorch 官方示例',repo:'pytorch/examples',description:'独立的 PyTorch 示例项目，覆盖图像、文本和强化学习，适合练习完整训练流程。'},
+ makemore:{name:'makemore 字符语言模型',repo:'karpathy/makemore',description:'从字符统计逐步构建自回归语言模型，观察模型怎样学习并生成新的文本。'},
+ scratch:{name:'从零构建大语言模型',repo:'rasbt/LLMs-from-scratch',description:'按章节实现分词、注意力、GPT、训练与微调，逐步理解语言模型内部结构。'},
+ happy:{name:'Happy LLM',repo:'datawhalechina/happy-llm',description:'面向中文学习者的大模型原理与实践教程，连接 Transformer 知识和模型实现。'},
+ handsllm:{name:'大语言模型应用实践',repo:'HandsOnLLM/Hands-On-Large-Language-Models',description:'通过词向量、分类、聚类、语义搜索和 RAG 等实例，理解并使用语言模型。'},
+ universe:{name:'LLM Universe 知识库问答',repo:'datawhalechina/llm-universe',description:'面向初学者的大模型应用教程，将文档处理、检索和回答组织成知识库问答应用。'}
+};
+const aiCourseProjects={
+ calculus:[['homemade','入门','实现一元线性回归，比较手算梯度与有限差分结果。'],['micrograd','进阶','搭建简单计算图，用自动微分验证链式法则。']],
+ 'linear-algebra':[['numpy','入门','练习矩阵乘法、广播、向量范数及线性方程组。'],['handson','进阶','选读线性代数 Notebook，再用 PCA 观察数据降维。']],
+ probability:[['handson','入门','划分训练集与测试集，比较分类准确率、精确率和召回率。'],['homemade','进阶','从逻辑回归输出概率入手，观察阈值怎样改变分类结果。']],
+ python:[['numpy','入门','先完成前 30 道练习，熟悉数组操作。'],['handson','进阶','完成 NumPy、pandas 和 Matplotlib 工具 Notebook。']],
+ optimization:[['homemade','入门','从零写出梯度下降，绘制不同学习率下的损失曲线。'],['d2l','进阶','选读优化算法部分，比较 SGD、动量法与 Adam。']],
+ 'machine-learning':[['handson','入门','完成第 2 章端到端项目，记录数据处理、调参和评估结果。'],['homemade','进阶','自己实现回归或聚类，再与库函数的结果比较。']],
+ 'deep-learning':[['d2l','入门','用 PyTorch 完成线性回归与多层感知机。'],['micrograd','进阶','实现反向传播，并训练一个小型神经网络。']],
+ pytorch:[['torch','入门','按 00—03 节完成 Tensor、训练流程和分类练习。'],['examples','进阶','独立运行 MNIST，练习模型保存、加载和预测。']],
+ nlp:[['makemore','入门','先做名字生成器，再替换成自己的小型文本数据。'],['handsllm','进阶','完成文本分类、文本聚类或词向量实验。']],
+ transformer:[['happy','入门','对照图解理清注意力、位置编码与 Transformer 结构。'],['scratch','进阶','实现带因果掩码的自注意力，并检查张量维度。']],
+ llm:[['handsllm','入门','完成语义搜索与 RAG 示例，检查检索证据和回答是否一致。'],['universe','项目','用少量数学文档搭建带来源的知识库问答。'],['scratch','进阶','构建小型 GPT，再练习加载权重与微调。']]
+};
+function projectSection(slug){const section=el('section',null,'ai-study-projects'),heading=el('div',null,'ai-study-projects-heading');heading.append(el('h3','配套实践项目'));section.append(heading);const grid=el('div',null,'ai-project-grid');for(const [key,level,task]of aiCourseProjects[slug]||[]){const project=aiProjects[key],card=el('article',null,'ai-project-card'),head=el('div',null,'ai-project-card-heading');card.dataset.project=key;head.append(el('h4',project.name),el('span',level,'ai-project-level'));const link=el('a','打开项目','button compact');link.href='https://github.com/'+project.repo;link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','在新标签页打开 '+project.name);const glyph=el('span');glyph.dataset.icon='forward';glyph.setAttribute('aria-hidden','true');link.append(glyph);card.append(head,el('p',project.description,'ai-project-description'),el('p',task,'ai-project-task'),link);grid.append(card);}section.append(grid);return section;}
 export function createAiLearning({api,write,planButton}){
  const root=document.getElementById('ai-learning-view');let version=0,stop=null,reading=false;
  function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
@@ -13,7 +41,7 @@ export function createAiLearning({api,write,planButton}){
    const detail=el('section',null,'ai-study-detail');let selected='';
    function selectCourse(slug,updateUrl=false){const course=courses.find(c=>c.slug===slug);if(!course||selected===slug)return;selected=slug;
     for(const node of root.querySelectorAll('[data-ai-course]')){const active=node.dataset.aiCourse===slug;node.classList.toggle('selected',active);if(active)node.setAttribute('aria-current','step');else node.removeAttribute('aria-current');}
-    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context,el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
+    detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context,projectSection(course.slug),el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
     if(updateUrl)history.replaceState(history.state,'','#/apps/math-to-ai?course='+encodeURIComponent(slug));mountIcons();
    }
    root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);

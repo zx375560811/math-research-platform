@@ -82,7 +82,7 @@ def preview(source):
                         'formats': dict(Counter(r['format'] for r in rows)), 'skipped': skipped}}
 
 
-def apply(plan, database='data/math.db', move=False):
+def apply(plan, database='data/math.db', move=False, course_import=False):
     workspace = Path.cwd().resolve()
     if Path('/proc').is_dir():
         for process in Path('/proc').iterdir():
@@ -93,7 +93,7 @@ def apply(plan, database='data/math.db', move=False):
             except (OSError, RuntimeError):
                 continue
             if running:
-                raise ValueError('Stop math-platform before importing series')
+                raise ValueError('Stop math-platform before importing books')
     root = Path(plan['source'])
     storage = workspace / 'data' / 'files'
     database = Path(database).resolve(strict=True)
@@ -112,13 +112,18 @@ def apply(plan, database='data/math.db', move=False):
     with closing(sqlite3.connect(str(database), timeout=10)) as db:
         db.execute('PRAGMA foreign_keys=ON')
         tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if not {'book_series', 'series_documents', 'document_formats', 'document_collections'} <= tables:
+        target_table, owner_column = ('ai_study_books', 'course') if course_import else ('series_documents', 'series_id')
+        owners_table = 'ai_study_courses' if course_import else 'book_series'
+        if not {owners_table, target_table, 'document_formats', 'document_collections'} <= tables:
             raise ValueError('Update and start the Java server once to initialize series tables')
-        series_ids = dict(db.execute('SELECT name,id FROM book_series'))
-        if any(row['series'] not in series_ids for row in plan['documents']):
-            raise ValueError('A series is missing or renamed; restore its name in administration first')
+        series_ids = dict(db.execute('SELECT slug,slug FROM ai_study_courses' if course_import else 'SELECT name,id FROM book_series'))
+        if any(group not in series_ids for row in plan['documents'] for group in (row['courses'] if course_import else [row['series']])):
+            raise ValueError('A destination course or series is missing; start the current Java server first')
         known = {}
-        for doc, stored in db.execute('SELECT id,file_path FROM documents'):
+        sizes = {row['size'] for row in plan['documents']}
+        for doc, stored, size in db.execute('SELECT id,file_path,file_size FROM documents'):
+            if course_import and size not in sizes:
+                continue
             path = Path(stored)
             path = path if path.is_absolute() else workspace / path
             if not path.is_file() or path.is_symlink() or not inside(path, storage):
@@ -127,7 +132,7 @@ def apply(plan, database='data/math.db', move=False):
         required = (0 if move else sum(r['size'] for r in plan['documents'] if r['sha256'] not in known)) + database.stat().st_size + 64 * 1024 * 1024
         if shutil.disk_usage(str(storage)).free < required:
             raise ValueError('Not enough disk space')
-        backup = workspace / 'data' / 'backups' / ('series-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+        backup = workspace / 'data' / 'backups' / (('ai-courses-' if course_import else 'series-') + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
         backup.mkdir(mode=0o700, parents=True)
         with closing(sqlite3.connect(str(backup / 'math.db'))) as snapshot:
             backup_database(db, snapshot)
@@ -139,13 +144,13 @@ def apply(plan, database='data/math.db', move=False):
         try:
             db.execute('BEGIN IMMEDIATE')
             folder_ids = {}
-            namespace = 'series-import:' + str(root)
+            namespace = ('ai-course-import:' if course_import else 'series-import:') + str(root)
             for order, path in enumerate(plan['folders']):
                 path_key = json.dumps(path, ensure_ascii=False, separators=(',', ':'))
                 db.execute('INSERT OR IGNORE INTO library_collections(source,path_key,parent_id,name,sort_order) VALUES(?,?,?,?,?)',
                            (namespace, path_key, folder_ids.get(path[:-1]), path[-1], order))
                 folder_ids[path] = db.execute('SELECT id FROM library_collections WHERE source=? AND path_key=?', (namespace, path_key)).fetchone()[0]
-            orders = {sid: db.execute('SELECT COALESCE(MAX(sort_order),0) FROM series_documents WHERE series_id=?', (sid,)).fetchone()[0] for sid in series_ids.values()}
+            orders = {sid: db.execute('SELECT COALESCE(MAX(sort_order),0) FROM '+target_table+' WHERE '+owner_column+'=?', (sid,)).fetchone()[0] for sid in series_ids.values()}
             for number, row in enumerate(plan['documents'], 1):
                 doc = known.get(row['sha256'])
                 if doc is None:
@@ -154,13 +159,13 @@ def apply(plan, database='data/math.db', move=False):
                             raise ValueError('Source changed during import: ' + row['path'])
                         # The staging directory is private. Reserving a random name
                         # keeps retries collision-free; linking allocates no book copy.
-                        with tempfile.NamedTemporaryFile(prefix='series-', dir=str(storage), delete=False) as output:
+                        with tempfile.NamedTemporaryFile(prefix='upload-' if course_import else 'series-', dir=str(storage), delete=False) as output:
                             saved = Path(output.name)
                         saved.unlink()
                         os.link(str(root / row['path']), str(saved), follow_symlinks=False)
                         created.append(saved)
                     else:
-                        with (root / row['path']).open('rb') as original, tempfile.NamedTemporaryFile(prefix='series-', dir=str(storage), delete=False) as output:
+                        with (root / row['path']).open('rb') as original, tempfile.NamedTemporaryFile(prefix='upload-' if course_import else 'series-', dir=str(storage), delete=False) as output:
                             saved = Path(output.name)
                             created.append(saved)
                             shutil.copyfileobj(original, output, 1024 * 1024)
@@ -174,10 +179,12 @@ def apply(plan, database='data/math.db', move=False):
                     db.execute('INSERT INTO document_catalog(document_id) VALUES(?)', (doc,))
                     known[row['sha256']] = doc
                     added += 1
-                db.execute('INSERT OR IGNORE INTO document_collections VALUES(?,?)', (doc, folder_ids[row['folders']]))
-                sid = series_ids[row['series']]
-                orders[sid] += 10
-                linked += db.execute('INSERT OR IGNORE INTO series_documents VALUES(?,?,?)', (sid, doc, orders[sid])).rowcount
+                for path in row.get('collection_paths', [row['folders']]):
+                    db.execute('INSERT OR IGNORE INTO document_collections VALUES(?,?)', (doc, folder_ids[path]))
+                for group in (row['courses'] if course_import else [row['series']]):
+                    sid = series_ids[group]
+                    orders[sid] += 10
+                    linked += db.execute('INSERT OR IGNORE INTO '+target_table+' VALUES(?,?,?)', (sid, doc, orders[sid])).rowcount
                 if number % 100 == 0:
                     print('Processed {}/{}'.format(number, len(plan['documents'])), flush=True)
             if db.execute('PRAGMA foreign_key_check').fetchall():
@@ -200,7 +207,7 @@ def apply(plan, database='data/math.db', move=False):
                     removed += 1
                 except (OSError, ValueError):
                     pending.append(row['path'])
-        result = {'new_documents': added, 'new_series_links': linked, 'reused_files': len(plan['documents']) - added,
+        result = {'new_documents': added, ('new_course_links' if course_import else 'new_series_links'): linked, 'reused_files': len(plan['documents']) - added,
                   'backup': str(backup), 'mode': 'move' if move else 'copy',
                   'source_files_removed': removed, 'source_cleanup_pending': pending}
         (backup / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')

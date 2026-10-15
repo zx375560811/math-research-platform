@@ -664,6 +664,13 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true,'Course selection must preserve the roadmap and its animations');
     assert.equal(await page.locator('[data-ai-course="machine-learning"][aria-current="step"]').count(),1);
     assert.match(await page.url(),/course=machine-learning/);
+    assert.equal(await page.locator('.ai-project-card[data-project="handson"]').count(),1);
+    assert.match(await page.locator('.ai-project-card[data-project="handson"] .ai-project-description').textContent(),/数据清洗/);
+    assert.match(await page.locator('.ai-project-card[data-project="handson"] .ai-project-task').textContent(),/端到端项目/);
+    const linkedProjects=new Set();for(const [slug]of aiCourseNames){await page.locator(`[data-ai-course="${slug}"]`).click();for(const card of await page.locator('.ai-project-card').all()){linkedProjects.add(await card.getAttribute('data-project'));const link=card.locator('a');assert.match(await link.getAttribute('href'),/^https:\/\/github\.com\//);assert.equal(await link.getAttribute('target'),'_blank');assert.equal(await link.getAttribute('rel'),'noopener noreferrer');}}
+    assert.equal(linkedProjects.size,12);assert.equal(aiCourseFetches,courseFetchesBefore);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);
+    await page.locator('[data-ai-course="machine-learning"]').click();
+
     await page.locator('[data-ai-course="machine-learning"]').click();assert.equal(aiCourseFetches,courseFetchesBefore);
 
     await page.screenshot({path:path.join(shots,'ai-learning-desktop.png'),fullPage:true});
