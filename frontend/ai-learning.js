@@ -78,20 +78,20 @@ function aiRoadmap(courses, chosen, onChoose) {
  for(let i=0;i<68;i++)backdrop.append(make('circle',{cx:12+(i*137)%1116,cy:8+(i*47)%262,r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));
  for(const [x,y]of [[374,35],[735,204],[1090,47]])backdrop.append(make('path',{d:`M${x-3} ${y}h6M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));svg.append(backdrop);
  const nodes=[
-  ['calculus','∫',24,22,'math','foundation'],['linear-algebra','ℝⁿ',24,84,'algebra','foundation'],['probability','ℙ',24,146,'probability','foundation'],
-  ['python','Py',24,208,'code','foundation'],['machine-learning','ƒ',212,84,'learning','core'],
-  ['deep-learning','⊗',400,84,'deep','core'],['pytorch','Py',400,208,'code','support'],['nlp','文',588,84,'language','core'],
-  ['transformer','QK',776,84,'model','core'],['llm','✦',964,84,'deep','core']
+  ['calculus','∫',24,22,'math','foundation'],['linear-algebra','ℝⁿ',493,22,'algebra','foundation'],['probability','ℙ',962,22,'probability','foundation'],
+  ['python','Py',24,214,'code','foundation'],['machine-learning','ƒ',24,118,'learning','core'],
+  ['deep-learning','⊗',336,118,'deep','core'],['pytorch','Py',493,214,'code','support'],['nlp','文',650,118,'language','core'],
+  ['transformer','QK',962,118,'model','core'],['llm','✦',962,214,'deep','core']
  ];
  const available=new Set(courses.map(course=>course.slug));
  const edges=[
-  ['calculus','machine-learning','M178 43H186Q194 43 194 51V97Q194 105 202 105H212'],
-  ['linear-algebra','machine-learning','M178 105H212'],
-  ['probability','machine-learning','M178 167H186Q194 167 194 159V113Q194 105 202 105H212'],
-  ['machine-learning','deep-learning','M366 105H400'],['deep-learning','nlp','M554 105H588'],
-  ['nlp','transformer','M742 105H776'],['transformer','llm','M930 105H964'],
-  ['python','machine-learning','M178 229H202Q220 229 220 211V126'],
-  ['python','pytorch','M178 229H400'],['pytorch','deep-learning','M477 208V126',true]
+  ['calculus','machine-learning','M101 64V118'],
+  ['linear-algebra','machine-learning','M570 64V80Q570 88 562 88H109Q101 88 101 96V118'],
+  ['probability','machine-learning','M1039 64V80Q1039 88 1031 88H109Q101 88 101 96V118'],
+  ['machine-learning','deep-learning','M178 139H336'],['deep-learning','nlp','M490 139H650'],
+  ['nlp','transformer','M804 139H962'],['transformer','llm','M1039 160V214'],
+  ['python','machine-learning','M101 214V160'],
+  ['python','pytorch','M178 235H493'],['pytorch','deep-learning','M570 214V195Q570 187 562 187H421Q413 187 413 179V160',true]
  ];
  for(const [index,[from,to,d,optional]]of edges.entries())if(available.has(from)&&available.has(to)){
   svg.append(make('path',{class:'analysis-route-edge',d,fill:'none','marker-end':'url(#ai-route-arrow)','data-from':from,'data-to':to,...(optional?{'stroke-dasharray':'5 5'}:{})}));
