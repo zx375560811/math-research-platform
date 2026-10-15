@@ -996,8 +996,8 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 /* Same constellation canvas and node treatments as the mathematics roadmap. */
 .ai-study-map { background:white;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin-bottom:20px;overflow-x:auto;scrollbar-width:thin; }
 .ai-study-map svg { display:block;width:100%;min-width:1000px;height:auto; }
-.ai-map-canvas .analysis-course-title { font-size:13px; }
-.ai-map-canvas .analysis-course-symbol { font-size:18px; }
+.ai-map-canvas .analysis-course-title { font-size:15px; }
+.ai-map-canvas .analysis-course-symbol { font-size:20px; }
 .ai-map-canvas .ai-course-node { text-decoration:none;cursor:pointer;outline:none; }
 .ai-map-canvas .ai-course-node:focus-visible .analysis-course-card { stroke:#fff;stroke-width:2;stroke-opacity:1; }
 .ai-study-detail { background:white;border:1px solid var(--line);border-radius:16px;padding:24px; }
