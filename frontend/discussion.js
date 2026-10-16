@@ -18,7 +18,7 @@ export function createDiscussion({api,write}) {
   function setUser(user){if(owner!==user){owner=user;drafts.clear();listHash='#/discussions';close();root.replaceChildren();}}
   const get=url=>api(url,{signal:requests.signal});
   function status(text,cls='discussion-status'){const p=el('p',text,cls);p.setAttribute('role','status');return p;}
-  function pager(body,change){const nav=el('nav',null,'discussion-pager');nav.setAttribute('aria-label','讨论分页');const prev=button('上一页',()=>change(body.offset-20)),next=button('下一页',()=>change(body.offset+20));prev.disabled=body.offset===0;next.disabled=body.offset+body.limit>=body.total;nav.append(prev,el('span',`第 ${body.offset/20+1} / ${body.total_pages} 页 · 共 ${body.total} 条`),next);return nav;}
+  function pager(body,change){const nav=el('nav',null,'discussion-pager');nav.setAttribute('aria-label','讨论分页');const prev=button('上一页',()=>change(body.offset-body.limit)),next=button('下一页',()=>change(body.offset+body.limit));prev.disabled=body.offset===0;next.disabled=body.offset+body.limit>=body.total;nav.append(prev,el('span',`第 ${Math.floor(body.offset/body.limit)+1} / ${body.total_pages} 页 · 共 ${body.total} 条`),next);return nav;}
   function metadata(item){const meta=el('div',null,'discussion-meta'),avatar=el('span',item.author.slice(0,1).toUpperCase(),'discussion-avatar');avatar.setAttribute('aria-hidden','true');const time=el('time',date(item.created_at));time.dateTime=item.created_at;time.title=new Date(item.created_at).toLocaleString();meta.append(avatar,el('span',item.author),time);if(item.version>1)meta.append(el('span','已编辑'));return meta;}
   function bookLink(doc){const a=link('',`#/library/preview/${doc.id}`,'discussion-book');a.append(glyph('book'),el('span',doc.title),el('span','预览','discussion-book-action'));return a;}
   function confirmDelete(host,action,topic=false){
@@ -57,7 +57,7 @@ export function createDiscussion({api,write}) {
     root.replaceChildren(heading,form);mountIcons();title.focus();
   }
   async function listing(params,version){
-    listHash=location.hash;const category=params.get('category')||'',scope=params.get('scope')||'all',q=params.get('q')||'',offset=(Math.max(1,Number(params.get('page'))||1)-1)*20;
+    listHash=location.hash;const category=params.get('category')||'',scope=params.get('scope')||'all',q=params.get('q')||'',offset=(Math.max(1,Number(params.get('page'))||1)-1)*9;
     const heading=el('div',null,'discussion-heading'),name=el('div',null,'discussion-title-group');name.append(glyph('chat'),el('h1','讨论'));const add=link('发起讨论','#/discussions/new','button primary');add.prepend(glyph('chat'));heading.append(name,add);
     const toolbar=el('div',null,'discussion-toolbar'),filters=el('nav',null,'discussion-categories');filters.setAttribute('aria-label','讨论分类');
     function href(changes){const p=new URLSearchParams(params);p.delete('page');for(const [key,val] of Object.entries(changes))val?p.set(key,val):p.delete(key);return '#/discussions'+(p.size?'?'+p:'');}
@@ -69,12 +69,13 @@ export function createDiscussion({api,write}) {
     try{
       const data=await get('/api/discussions?'+new URLSearchParams({category,scope,q,offset}));if(version!==generation)return;info.textContent='';
       for(const topic of data.topics){
-        const row=el('article',null,'discussion-row'),body=el('div',null,'discussion-row-body'),labels=el('div',null,'discussion-row-labels');labels.append(badge(topic.category));if(topic.pinned)labels.append(el('span','置顶','discussion-label'));if(topic.locked)labels.append(el('span','已关闭回复','discussion-label'));
-        const h2=el('h2'),a=link(topic.title,'#/discussions/'+topic.id);h2.append(a);body.append(labels,h2,el('p',topic.excerpt.replace(/\s+/g,' '),'discussion-excerpt'),metadata(topic));
-        const replies=link('',a.href,'discussion-reply-count');replies.setAttribute('aria-label',topic.reply_count+' 条回复：'+topic.title);replies.append(glyph('chat'),el('strong',String(topic.reply_count)),el('span','回复'));row.append(body,replies);list.append(row);
+        const row=link('','#/discussions/'+topic.id,'discussion-row'),body=el('div',null,'discussion-row-body'),labels=el('div',null,'discussion-row-labels');labels.append(badge(topic.category));if(topic.pinned)labels.append(el('span','置顶','discussion-label'));if(topic.locked)labels.append(el('span','已关闭回复','discussion-label'));
+        const h2=el('h2',topic.title),footer=el('div',null,'discussion-card-footer');h2.id='discussion-card-title-'+topic.id;footer.id='discussion-card-meta-'+topic.id;row.setAttribute('aria-labelledby',h2.id);row.setAttribute('aria-describedby',footer.id);row.title=topic.title;
+        const forward=glyph('forward');forward.className='discussion-card-open';labels.append(forward);body.append(labels,h2);
+        const replies=el('span',null,'discussion-reply-count');replies.append(glyph('chat'),el('strong',String(topic.reply_count)),el('span','回复'));footer.append(metadata(topic),replies);row.append(body,footer);list.append(row);
       }
       if(!data.topics.length){const empty=el('div',null,'discussion-empty');empty.append(glyph('chat'),el('h2',q?'没有找到相关讨论':'还没有'+(scope==='mine'?'你发起的':scope==='unanswered'?'等待回复的':'')+'话题'),el('p',q?'换个关键词，或发起一个新话题。':'从一道习题、一段证明或一本教材开始交流。'),link('发起讨论','#/discussions/new','button primary'));list.append(empty);}
-      root.append(pager(data,value=>{location.hash=href({page:String(value/20+1)});}));mountIcons();
+      root.append(pager(data,value=>{location.hash=href({page:String(value/data.limit+1)});}));mountIcons();
     }catch(e){if(version===generation){info.textContent=message(e);info.append(button('重试',()=>navigate(location.hash)));}}
   }
   async function detail(id,params,version){

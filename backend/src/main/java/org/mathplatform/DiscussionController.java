@@ -57,11 +57,11 @@ public class DiscussionController {
                 try(var r=count.executeQuery()){r.next();total=r.getLong(1);}
             }
             var topics=new ArrayList<Map<String,Object>>();
-            try(var query=db.prepareStatement(TOPIC+where+"ORDER BY t.pinned DESC,t.activity_at DESC,t.id DESC LIMIT 20 OFFSET ?")){
+            try(var query=db.prepareStatement(TOPIC+where+"ORDER BY t.pinned DESC,t.activity_at DESC,t.id DESC LIMIT 9 OFFSET ?")){
                 query.setString(1,category);query.setString(2,category);query.setString(3,q.strip());query.setString(4,q.strip());query.setString(5,scope);query.setString(6,user.getName());query.setString(7,scope);query.setInt(8,offset);
                 try(var r=query.executeQuery()){while(r.next())topics.add(row(r,user.getName(),admin,false));}
             }
-            db.commit();return Map.of("topics",topics,"total",total,"total_pages",Math.max(1,(total+19)/20),"limit",20,"offset",offset,"can_moderate",admin);
+            db.commit();return Map.of("topics",topics,"total",total,"total_pages",Math.max(1,(total+8)/9),"limit",9,"offset",offset,"can_moderate",admin);
         }
     }
     @GetMapping("/{id}")

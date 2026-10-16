@@ -121,12 +121,19 @@ with tempfile.TemporaryDirectory() as directory:
             for n in range(21):
                 assert request('bob', '/api/discussions', 'POST', {**topic, 'title': 'AI 话题 ' + str(n), 'category': 'math-to-ai', 'document_id': None})[0] == 200
             listing = request('alice', '/api/discussions')[1]
-            assert listing['total'] == 22 and listing['total_pages'] == 2 and listing['topics'][0]['id'] == created['id']
+            assert listing['total'] == 22 and listing['total_pages'] == 3 and listing['topics'][0]['id'] == created['id']
+            assert listing['limit'] == 9 and len(listing['topics']) == 9
+            second_page = request('alice', '/api/discussions?offset=9')[1]
+            last_page = request('alice', '/api/discussions?offset=18')[1]
+            assert len(second_page['topics']) == 9 and len(last_page['topics']) == 4
+            ids = [topic['id'] for page in [listing, second_page, last_page] for topic in page['topics']]
+            assert len(set(ids)) == len(ids) == 22
             assert 'content' not in listing['topics'][0] and listing['topics'][0]['reply_count'] == 23
             assert request('alice', '/api/discussions?scope=mine')[1]['total'] == 1
             assert request('bob', '/api/discussions?scope=mine')[1]['total'] == 21
             assert request('alice', '/api/discussions?scope=unanswered')[1]['total'] == 21
-            assert request('alice', '/api/discussions?category=math-to-ai&offset=20')[1]['total'] == 21
+            filtered = request('alice', '/api/discussions?category=math-to-ai&offset=18')[1]
+            assert filtered['total'] == 21 and filtered['total_pages'] == 3 and len(filtered['topics']) == 3
             assert request('alice', '/api/discussions?q=AI')[1]['total'] == 21
             assert request('alice', '/api/discussions?q=%27%20OR%201%3D1')[1]['total'] == 0
             # A deleted library book detaches the reference, not the discussion.
