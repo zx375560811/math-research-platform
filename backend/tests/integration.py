@@ -1,5 +1,6 @@
 """Read-only HTTP and administrator import, against an isolated database."""
 import concurrent.futures
+from contextlib import closing
 from email.parser import BytesParser
 from email.policy import default as email_policy
 import importlib.util
@@ -83,7 +84,7 @@ with tempfile.TemporaryDirectory() as directory:
     root = Path(directory)
     (root / 'data/files').mkdir(parents=True)
     (root / 'data/files/upload-legacy').write_bytes(pdf)
-    with sqlite3.connect(root / 'data/math.db') as db:
+    with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
         db.executescript((backend / 'tests/fixtures/c-schema.sql').read_text(encoding='utf-8'))
         db.execute("UPDATE subjects SET name='我的代数分类' WHERE id=1")
         db.execute("INSERT INTO documents(id,title,authors,file_path,file_size) VALUES(41,'Existing C library','Original author','data/files/upload-legacy',?)", (len(pdf),))
@@ -104,6 +105,14 @@ with tempfile.TemporaryDirectory() as directory:
             for asset in ['/', '/app.js', '/style.css', '/icons.js', '/vendor/morphicons/dom.js', '/vendor/morphicons/spring-CFHloqPP.js', '/vendor/morphicons/normalize-CYnN3Npw.js']:
                 with urllib.request.urlopen(base + asset) as response:
                     assert response.status == 200 and response.headers['Content-Security-Policy'] and response.read()
+            for name in ['openjpeg.wasm', 'jbig2.wasm', 'qcms_bg.wasm', 'openjpeg_nowasm_fallback.js']:
+                with urllib.request.urlopen(base + '/vendor/pdfjs/wasm/' + name) as response:
+                    expected_type = 'application/wasm' if name.endswith('.wasm') else 'text/javascript'
+                    assert response.status == 200 and response.headers.get_content_type() == expected_type
+                    assert response.read() == (backend.parent / 'frontend/vendor/pdfjs/wasm' / name).read_bytes()
+                    policy = response.headers['Content-Security-Policy']
+                    assert "'wasm-unsafe-eval'" in policy and "'unsafe-eval'" not in policy
+            assert request('/vendor/pdfjs/wasm/not-shipped.wasm')[0] == 404
             for endpoint in ['/api/documents?title=attack&subject_id=1', '/api/documents/1']:
                 for method in ['POST', 'PUT', 'PATCH', 'DELETE']: assert request(endpoint, method, pdf)[0] == 405
             assert request('/api/admin/documents')[0] == 401
@@ -116,7 +125,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert file_response('/api/documents/41/file', headers={'Range':'bytes=0-4'})[0] == 401
             assert file_response('/api/documents/41/file', 'HEAD')[0] == 401
             assert request('/api/auth/me')[1] == {'authenticated': False}
-            with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db: assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0
             code = invitations.create_invitation(str(root / 'data/math.db'))
             credentials = {'username': 'Reader_1', 'password': 'ResearchPass123!', 'invitation': code}
             assert request('/api/auth/register', 'POST', json.dumps(credentials).encode(), {'Content-Type': 'application/json'})[0] == 403
@@ -124,7 +133,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert auth('/api/auth/register', {'username': 'Reader_1', 'password': 'ResearchPass123!'})[0] == 400
             assert auth('/api/auth/register', {**credentials, 'invitation': 'X' * 43})[0] == 400
             expired = invitations.create_invitation(str(root / 'data/math.db'))
-            with sqlite3.connect(root / 'data/math.db') as db: db.execute('UPDATE invitations SET expires_at=0 WHERE code_hash=?', (invitations.hashlib.sha256(expired.encode()).hexdigest(),))
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db: db.execute('UPDATE invitations SET expires_at=0 WHERE code_hash=?', (invitations.hashlib.sha256(expired.encode()).hexdigest(),))
             assert auth('/api/auth/register', {**credentials, 'invitation': expired})[0] == 400
             assert auth('/api/auth/register', credentials)[0] == 201
             assert auth('/api/auth/register', {**credentials, 'username': 'another_reader'})[0] == 400
@@ -159,7 +168,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/7')[1]['available'] is False
             position = {'page':2,'total_pages':10,'position':.35,'zoom':1.25}
             assert auth('/api/learning/books/7/progress',position,'PUT')[0] == 409
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 db.execute('UPDATE learning_books SET document_id=41 WHERE id=7')
             assert request('/api/learning/books/7/progress','PUT',json.dumps(position).encode(),{'Content-Type':'application/json'})[0] == 403
             assert auth('/api/learning/books/7/progress',{**position,'page':11},'PUT')[0] == 400
@@ -201,7 +210,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['note'] == 'Edited note'
             assert auth('/api/learning/books/7/annotations/'+str(mark_id),{},'DELETE')[0] == 200
             assert request('/api/learning/books/7/annotations')[1]['annotations'] == []
-            with sqlite3.connect(root / 'data/math.db') as db: assert db.execute('SELECT COUNT(*) FROM document_mark_rects').fetchone()[0] == 0
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db: assert db.execute('SELECT COUNT(*) FROM document_mark_rects').fetchone()[0] == 0
             retained_mark = auth('/api/learning/books/7/annotations',mark)[1]['id']
             assert request('/api/documents')[1]['documents'][0]['id'] == 41
             assert request('/api/documents/41/file') == (200, pdf)
@@ -235,20 +244,20 @@ with tempfile.TemporaryDirectory() as directory:
             check_ranges(native['file_url'], djvu_content)
             assert file_response(native['file_url'], headers={'Range':'bytes=0-7'})[1].get_content_type() == 'image/vnd.djvu'
             # Both bulk importers use distinct, extensionless managed-file prefixes.
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 stored = db.execute('SELECT file_path FROM documents WHERE id=?', (native['id'],)).fetchone()[0]
             for prefix in ['folder', 'series']:
                 next_path = 'data/files/'+prefix+'-range-test'
                 (root / stored).rename(root / next_path)
-                with sqlite3.connect(root / 'data/math.db') as db:
+                with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                     db.execute('UPDATE documents SET file_path=? WHERE id=?', (next_path,native['id']))
                 stored = next_path
                 check_ranges(native['file_url'], djvu_content)
             for invalid_path in ['data/files/../math.db', '/etc/passwd', 'data/files/unmanaged']:
-                with sqlite3.connect(root / 'data/math.db') as db:
+                with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                     db.execute('UPDATE documents SET file_path=? WHERE id=?', (invalid_path,native['id']))
                 assert file_response(native['file_url'], headers={'Range':'bytes=0-7'})[0] == 500
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 db.execute('UPDATE documents SET file_path=? WHERE id=?', (stored,native['id']))
             assert request(big['file_url']) == (200, large)
             assert request('/api/documents/41')[1]['authors'] == 'Original author'
@@ -257,7 +266,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/../backend/src/main.c')[0] in (400, 404)
             assert request('/api/documents?offset=-1')[0] == 400
             assert request('/api/documents?subject_id=1%20OR%201=1')[0] == 400
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 username, hashed, role = db.execute('SELECT username,password_hash,role FROM users').fetchone()
                 assert username == 'reader_1' and hashed.startswith('$2') and hashed != credentials['password'] and role == 'USER'
             assert request('/api/auth/logout', 'POST', b'{}', {'Content-Type': 'application/json'})[0] == 403
@@ -269,7 +278,7 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/documents/41/file') == (200, pdf)
             process.terminate(); process.wait(timeout=10)
             # Simulate upgrading the previous per-textbook reading schema.
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 db.execute("INSERT OR REPLACE INTO learning_progress SELECT username,7,page,total_pages,position,zoom,updated_at FROM document_progress WHERE document_id=41")
                 db.execute("INSERT OR REPLACE INTO learning_marks SELECT id,username,7,page,quote,note,color,created_at FROM document_marks WHERE document_id=41")
                 db.execute('INSERT OR REPLACE INTO learning_mark_rects SELECT * FROM document_mark_rects')
@@ -285,7 +294,7 @@ with tempfile.TemporaryDirectory() as directory:
             else: raise AssertionError('Restart failed')
             assert request('/api/documents')[0] == 401
             assert auth('/api/auth/login', credentials)[0] == 200
-            with sqlite3.connect(root / 'data/math.db') as db:
+            with closing(sqlite3.connect(root / 'data/math.db')) as db, db:
                 assert db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 3
                 assert db.execute("SELECT COUNT(*) FROM users WHERE username='old_reader'").fetchone()[0] == 0
                 assert db.execute('SELECT code_hash FROM invitations WHERE used_by=?', ('reader_1',)).fetchone()[0] == invitations.hashlib.sha256(code.encode()).hexdigest()

@@ -75,6 +75,8 @@ java -jar target/math-server.jar
 
 PDF 阅读器先以 `Range: bytes=0-0` 校验文件响应状态、Content-Range 和实际字节数。正确的 206 继续由 PDF.js 分段读取；返回完整 200 时使用该响应完整加载，不重复请求整本文件。异常响应、页面绘制失败或加载阶段连续 60 秒没有进展时，错误直接显示在阅读区，提供重新加载、整本加载和下载原文件入口；整本加载会增加浏览器内存用量。文字层失败时保留已绘制页面并显示提示，不再一直显示加载占位。仅显示成功的页面才能更新阅读进度，离开阅读页会取消待处理请求。本次不更换 PDF.js，也不添加浏览器兼容层。前端文件由现有服务直接读取，更新这些文件后强制刷新即可，无需重新打包 Java。
 
+扫描版 PDF 的 JPEG 2000 页面由同版本 PDF.js 的本地 OpenJPEG 解码器绘制，另带 JBIG2/CCITT 和 QCMS 资源。解码文件位于 `frontend/vendor/pdfjs/wasm/`，不依赖外部 CDN，也不修改原文件。OpenJPEG 的 Wasm 加载失败时会使用本地 JavaScript 备用解码器。服务器静态路由及 CSP 同时支持这些资源，因此首次部署扫描页修复需要 `./mvnw -B package && systemctl restart math-platform`，随后浏览器强制刷新；只拉取前端而不更新 Java 可能仍无法获取解码器。
+
 先启动一次服务，初始化数据库。入库必须在 backend 目录执行，并使用服务账号 math-platform，确保新文件可读。
 
 例如管理员已经把 PDF 放在 `/root/paper.pdf`：

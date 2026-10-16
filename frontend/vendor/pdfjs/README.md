@@ -1,6 +1,20 @@
 PDF.js 5.6.205, Apache-2.0. Vendored from the bundled pdfjs-dist distribution.
 Upstream: https://github.com/mozilla/pdf.js
-Includes display/worker modules, text-layer CSS, CMaps and standard fonts.
+Includes display/worker modules, text-layer CSS, CMaps, standard fonts and the
+matching distribution's wasm/ decoders with their original license files.
+
+Scanned PDFs (2026-10-16): the reader supplies wasmUrl=/vendor/pdfjs/wasm/ and
+enables the bundled OpenJPEG (JPEG 2000), JBIG2/CCITT and QCMS decoders. OpenJPEG's
+JavaScript fallback is also self-hosted. No external CDN or server conversion is
+required. The static controller explicitly permits these four decoder assets,
+serves .wasm as application/wasm, and the CSP permits WebAssembly compilation
+with wasm-unsafe-eval while JavaScript eval remains disabled. Rebuild/restart
+the Java backend when deploying this change, then force-refresh the browser.
+
+Regression: node frontend/tests/pdf-images.cjs renders an original synthetic PDF
+with a JPEG first page and JPEG 2000 later pages in the actual continuous reader.
+It checks visible image pixels, scrolling away and back, partial HTTP requests,
+and the automatic JavaScript fallback when the Wasm download fails.
 
 Local modification (2026-10-16): replace the display and worker bundles' native
 Map/WeakMap.getOrInsertComputed calls with a private getCachedValue helper using

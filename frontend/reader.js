@@ -416,7 +416,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       label.textContent = book.format === 'djvu' ? '正在加载 DJVU…' : '正在校验 PDF 分段读取…';
       const source = book.format === 'djvu' ? null : await pdfSource(label); if (closed) return;
       label.textContent = source?.data ? '正在解析 PDF…' : book.format === 'djvu' ? '正在打开 DJVU…' : '正在读取 PDF 页面信息…';
-      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ ...source, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' });
+      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ ...source, isEvalSupported: false, useWasm: true, wasmUrl: '/vendor/pdfjs/wasm/', cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' });
       task.onProgress = progress => { if (Number.isFinite(progress.loaded) && progress.loaded > received) { received = progress.loaded; activity(); } };
       pdf = await (book.format === 'djvu' ? task.promise : waiting(task.promise, '打开文档')); if (closed) return;
       if (pdf.numPages > 100000) throw new Error('教材页数超出支持范围。');
