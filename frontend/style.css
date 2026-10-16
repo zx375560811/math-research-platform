@@ -954,7 +954,7 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 #direction-detail #textbook-list.compact-recommendations .textbook-info h3 { font:600 15px/1.45 system-ui,'Microsoft YaHei','PingFang SC',sans-serif;overflow-wrap:anywhere; }
 #direction-detail #textbook-list.compact-recommendations .textbook-info p { font-size:14px;line-height:1.4;margin:4px 0 0;overflow-wrap:anywhere; }
 #direction-detail #textbook-list.compact-recommendations .textbook-actions { grid-column:auto;display:block;margin:0; }
-#direction-detail #textbook-list.compact-recommendations .textbook-actions .button { white-space:nowrap;min-height:36px;padding:7px 10px;font-size:14px; }
+#direction-detail #textbook-list.compact-recommendations .textbook-actions .button { white-space:nowrap;height:36px;min-height:36px;margin:0;padding:7px 10px;font-size:14px;line-height:20px;vertical-align:middle; }
 #direction-detail #textbook-list.compact-recommendations .recommendation-empty { min-height:54px;padding:12px;display:block;grid-column:1 / -1;font-size:14px;border-radius:12px; }
 .compact-recommendations .recommendation-columns>.button { justify-self:start; }
 #direction-detail>.direction-heading h1 { font:650 26px/1.4 var(--display);letter-spacing:-.025em;margin:0; }
