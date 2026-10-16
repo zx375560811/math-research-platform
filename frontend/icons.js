@@ -48,7 +48,7 @@ export function mountIcons() {
     if (host.querySelector('svg')) continue;
     const initial = host.dataset.icon; host.append(icon(initial));
     const target = host.closest('a,button');
-    const active = { workspace:'book', compass:'algebra', forward:'check', book:'file', fit:'expand', expand:'fit', settings:'refresh', refresh:'check', send:'check', spark:'chat', trophy:'spark' }[initial];
+    const active = { workspace:'book', compass:'algebra', forward:'check', book:'file', fit:'expand', expand:'fit', settings:'refresh', refresh:'check', send:'check', spark:'chat', chat:'spark', trophy:'spark' }[initial];
     if (!target || !active) continue;
     let hovered = false;
     const update = () => changeIcon(host, hovered || target.matches(':focus-visible') ? active : initial);

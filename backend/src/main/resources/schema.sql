@@ -35,6 +35,30 @@ name TEXT PRIMARY KEY,
 applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
 CREATE TABLE IF NOT EXISTS administrators (
 username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS discussion_topics (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+author TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+title TEXT NOT NULL CHECK(length(title) BETWEEN 1 AND 120),
+content TEXT NOT NULL CHECK(length(content) BETWEEN 1 AND 12000),
+category TEXT NOT NULL CHECK(category IN('mathematics','math-to-ai','competition','general')),
+document_id INTEGER REFERENCES documents(id) ON DELETE SET NULL,
+pinned INTEGER NOT NULL DEFAULT 0 CHECK(pinned IN(0,1)),
+locked INTEGER NOT NULL DEFAULT 0 CHECK(locked IN(0,1)),
+version INTEGER NOT NULL DEFAULT 1,
+created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+activity_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
+CREATE TABLE IF NOT EXISTS discussion_replies (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+topic_id INTEGER NOT NULL REFERENCES discussion_topics(id) ON DELETE CASCADE,
+author TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+content TEXT NOT NULL CHECK(length(content) BETWEEN 1 AND 12000),
+version INTEGER NOT NULL DEFAULT 1,
+created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
+CREATE INDEX IF NOT EXISTS idx_discussion_topics_activity ON discussion_topics(pinned DESC,activity_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS idx_discussion_topics_author ON discussion_topics(author,id);
+CREATE INDEX IF NOT EXISTS idx_discussion_replies_topic ON discussion_replies(topic_id,id);
 CREATE TABLE IF NOT EXISTS invitation_revocations (
 code_hash TEXT PRIMARY KEY REFERENCES invitations(code_hash) ON DELETE CASCADE,
 revoked_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));

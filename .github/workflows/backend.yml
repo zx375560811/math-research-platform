@@ -58,6 +58,8 @@ jobs:
         run: python3 backend/tests/admin.py
       - name: Check mathematics competition materials and plan migration
         run: python3 backend/tests/competition.py
+      - name: Check shared discussion permissions and persistence
+        run: python3 backend/tests/discussions.py
       - name: Check reviewed competition PDF import
         run: python3 backend/tests/competition_import.py
       - name: Check AI settings, PDF context and provider boundaries
