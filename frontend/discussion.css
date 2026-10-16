@@ -14,9 +14,15 @@
 #discussion-view input:focus-visible,#discussion-view textarea:focus-visible,#discussion-view select:focus-visible { outline:2px solid var(--blue);outline-offset:2px; }
 .discussion-list { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px; }
 .discussion-row { --card-bg:#e7edff;--card-hover:#dce5ff;--card-border:#cfdbf6;--card-ink:#294478;--card-muted:#4e6289;display:flex;flex-direction:column;align-items:stretch;gap:16px;aspect-ratio:1;min-width:0;min-height:0;overflow:hidden;padding:20px;border:1px solid var(--card-border);border-radius:16px;background:var(--card-bg);color:var(--card-ink);transition:background .18s ease-out,border-color .18s ease-out; }.discussion-row:hover { background:var(--card-hover);border-color:var(--card-muted); }.discussion-row:focus-visible { outline:3px solid var(--blue);outline-offset:4px; }
-.discussion-row[data-category=math-to-ai] { --card-bg:#dcf1e9;--card-hover:#cfeadf;--card-border:#c1dfd0;--card-ink:#255b4d;--card-muted:#466c5e; }
-.discussion-row[data-category=competition] { --card-bg:#fae9da;--card-hover:#f5dfc9;--card-border:#efd3bc;--card-ink:#75452c;--card-muted:#805f49; }
-.discussion-row[data-category=general] { --card-bg:#ece3f6;--card-hover:#e3d7f1;--card-border:#d9cbe9;--card-ink:#64447f;--card-muted:#705b84; }
+/* Nine different backgrounds per page, including when every post shares a category. */
+.discussion-row:nth-child(9n+2) { --card-bg:#dcf1e9;--card-hover:#cfeadf;--card-border:#c1dfd0;--card-ink:#255b4d;--card-muted:#466c5e; }
+.discussion-row:nth-child(9n+3) { --card-bg:#fae9da;--card-hover:#f5dfc9;--card-border:#efd3bc;--card-ink:#75452c;--card-muted:#805f49; }
+.discussion-row:nth-child(9n+4) { --card-bg:#ece3f6;--card-hover:#e3d7f1;--card-border:#d9cbe9;--card-ink:#64447f;--card-muted:#705b84; }
+.discussion-row:nth-child(9n+5) { --card-bg:#f8e2e6;--card-hover:#f1d5db;--card-border:#ebc7d0;--card-ink:#773c4c;--card-muted:#8b5360; }
+.discussion-row:nth-child(9n+6) { --card-bg:#f7efd0;--card-hover:#f0e5b8;--card-border:#e7dcaf;--card-ink:#675322;--card-muted:#756336; }
+.discussion-row:nth-child(9n+7) { --card-bg:#dff1f6;--card-hover:#cfe9f1;--card-border:#c3dfe9;--card-ink:#2a5b70;--card-muted:#466d7e; }
+.discussion-row:nth-child(9n+8) { --card-bg:#e7eedb;--card-hover:#dce8cb;--card-border:#d1dec0;--card-ink:#435c30;--card-muted:#576c42; }
+.discussion-row:nth-child(9n+9) { --card-bg:#eee4e9;--card-hover:#e5d6df;--card-border:#dfced8;--card-ink:#654454;--card-muted:#785b6b; }
 .discussion-row-body { flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:16px; }.discussion-row-labels,.discussion-topic-category { display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:7px; }.discussion-row-labels { margin:0; }.discussion-card-open { margin-left:auto;color:#7487b0; }.discussion-card-open .icon { width:18px;height:18px; }
 .discussion-tag,.discussion-label { display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:14px;line-height:1.6;color:#3c5487;background:#eef2fb; }
 .discussion-tag[data-category=math-to-ai] { background:#edf5f5;color:#296566; }.discussion-tag[data-category=competition] { background:#faf0e7;color:#82532f; }.discussion-tag[data-category=general] { background:#f2edf7;color:#6a4e8b; }
