@@ -62,7 +62,7 @@ public class DocumentReadingRepository {
     }
     private static boolean text(String value, int limit) { return value != null && value.length() <= limit && value.indexOf('\0') < 0; }
     public long createMark(long book, String user, Mark mark) throws SQLException {
-        if (mark.page() < 1 || mark.page() > 100000 || !text(mark.quote(), 4000) || mark.quote().isBlank() || !text(mark.note(), 4000) || !List.of("yellow", "blue", "pink").contains(mark.color() == null ? "" : mark.color()) || mark.rects() == null || mark.rects().isEmpty() || mark.rects().size() > 100) throw new ApiProblem(400, "invalid_annotation");
+        if (mark.page() < 1 || mark.page() > 100000 || !text(mark.quote(), 4000) || mark.quote().isBlank() || !text(mark.note(), 4000) || !List.of("yellow", "blue", "pink", "green", "orange", "purple", "teal", "red").contains(mark.color() == null ? "" : mark.color()) || mark.rects() == null || mark.rects().isEmpty() || mark.rects().size() > 100) throw new ApiProblem(400, "invalid_annotation");
         for (var r : mark.rects()) if (r == null || !Double.isFinite(r.x() + r.y() + r.width() + r.height()) || r.x() < 0 || r.y() < 0 || r.width() <= 0 || r.height() <= 0 || r.x() + r.width() > 1.00001 || r.y() + r.height() > 1.00001) throw new ApiProblem(400, "invalid_annotation");
         try (var c = database.connect(false); var tx = c.createStatement()) {
             tx.execute("BEGIN IMMEDIATE");

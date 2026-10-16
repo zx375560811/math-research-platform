@@ -174,6 +174,11 @@ with tempfile.TemporaryDirectory() as directory:
             assert auth('/api/learning/books/7/annotations',{**mark,'rects':[{'x':.9,'y':.2,'width':.3,'height':.04}]})[0] == 400
             assert auth('/api/learning/books/7/annotations',{**mark,'color':'evil'})[0] == 400
             assert auth('/api/learning/books/7/annotations',{**mark,'note':'a'*4001})[0] == 400
+            for color in ['green', 'orange', 'purple', 'teal', 'red']:
+                status, colored = auth('/api/learning/books/7/annotations', {**mark, 'color':color})
+                assert status == 200
+                assert request('/api/library/documents/41/annotations')[1]['annotations'][0]['color'] == color
+                assert auth('/api/library/documents/41/annotations/' + str(colored['id']), {}, 'DELETE')[0] == 200
             status,created = auth('/api/learning/books/7/annotations',mark);assert status == 200
             mark_id = created['id']
             assert request('/api/learning/books/7/annotations')[1]['annotations'][0]['rects'] == mark['rects']

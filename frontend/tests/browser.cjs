@@ -441,7 +441,10 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
       const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
       return false;
     });
-    await page.locator('#selection-tools').waitFor(); await page.locator('[data-highlight="yellow"]').click();
+    await page.locator('#selection-tools').waitFor();
+    assert.deepEqual(await page.locator('[data-highlight]').evaluateAll(nodes=>nodes.map(node=>node.dataset.highlight)),['yellow','orange','red','pink','purple','blue','teal','green']);
+    await page.screenshot({path:path.join(shots,'reader-highlight-palette.png'),fullPage:true});
+    await page.locator('[data-highlight="yellow"]').click();
     await page.locator('.annotation-item').waitFor(); assert.ok(await page.locator('.pdf-highlight').count()>0);
     const noteText='My proof <img src=x onerror=alert(1)>';
     assert.equal(await page.locator('.annotation-summary').textContent(),'1');
@@ -464,6 +467,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-summary').nth(1).click(); assert.equal(await page.locator('.annotation-note').nth(1).inputValue(),'Unsaved second note');
     await page.screenshot({path:path.join(shots,'reader-numbered-notes.png'),fullPage:true});
     await page.locator('.annotation-delete').nth(1).click(); await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===1);
+    await page.evaluate(()=>{const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span'),range=document.createRange();range.selectNodeContents(span);const selected=getSelection();selected.removeAllRanges();selected.addRange(range);});
+    await page.locator('#selection-tools').waitFor();await page.locator('[data-highlight="purple"]').click();await page.locator('.annotation-summary[data-color="purple"]').waitFor();assert.ok(await page.locator('.pdf-highlight.purple').count()>0);
+    await page.reload();await page.locator('.pdf-page[data-page="1"][data-loaded]').waitFor();await page.locator('.annotation-summary[data-color="purple"]').click();assert.ok(await page.locator('.pdf-highlight.purple').count()>0);await page.locator('.annotation-delete').nth(1).click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===1);
     await readerControl(page, 'reader-outline-toggle'); await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     const dimensions=await page.evaluate(()=>{const rect=id=>document.getElementById(id).getBoundingClientRect();return {outline:rect('reader-outline').width,notes:rect('reader-notes').width,pdf:rect('reader-scroll').width};});
     const handle=await page.locator('#reader-outline-resize').boundingBox();
@@ -473,6 +479,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.mouse.up();await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
     assert.equal(await page.locator('#reader-scroll').getAttribute('data-page'),'1');assert.ok(await page.locator('.pdf-highlight').count()>0);
     const notesHandle=await page.locator('#reader-notes-resize').boundingBox();
+    assert.equal(await page.locator('#reader-notes-resize').evaluate(node=>getComputedStyle(node,'::after').backgroundColor),'rgb(203, 213, 228)');
     await page.mouse.move(notesHandle.x+notesHandle.width/2,notesHandle.y+100);await page.mouse.down();await page.mouse.move(notesHandle.x+notesHandle.width/2-60,notesHandle.y+100,{steps:6});await page.mouse.up();
     await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');assert.ok(await page.locator('#reader-notes').evaluate(node=>node.clientWidth)>dimensions.notes+40);
     await page.locator('#reader-outline-resize').focus();await page.keyboard.press('ArrowLeft');await page.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready');
@@ -528,6 +535,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await second.locator('.annotation-item').evaluate(node=>!node.hidden),false); await second.locator('.annotation-summary').click();
     await second.locator('.annotation-jump').click();await second.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='1' && document.querySelector('.pdf-highlight'));
     await second.waitForFunction(()=>document.getElementById('pdf-pages').dataset.layout==='ready'); assert.equal(await second.locator('#reader-scroll').getAttribute('data-page'),'1'); await second.screenshot({path:path.join(shots,'reader-mobile.png'),fullPage:true});
+    await second.evaluate(()=>{const span=document.querySelector('.pdf-page[data-page="1"] .textLayer span'),range=document.createRange();range.selectNodeContents(span);const selected=getSelection();selected.removeAllRanges();selected.addRange(range);});await second.locator('#selection-tools').waitFor();await second.locator('.highlight-colors').scrollIntoViewIfNeeded();const swatchRows=await second.locator('[data-highlight]').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().top));assert.ok(Math.abs(swatchRows[0]-swatchRows[1])<1,'Narrow panels must fit at least two color swatches per row');await second.screenshot({path:path.join(shots,'reader-highlight-palette-mobile.png'),fullPage:true});await second.evaluate(()=>getSelection().removeAllRanges());await second.locator('.annotation-summary').click();
     await second.setViewportSize({width:320,height:568});assert.equal(await second.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await second.locator('.annotation-delete').click();await second.waitForFunction(()=>!document.querySelector('.annotation-item'));
     await secondContext.close();
