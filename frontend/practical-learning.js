@@ -567,20 +567,22 @@ export function createPracticalLearningRoute(initial,onChoose=()=>{}){
  const backdrop=make('g',{'aria-hidden':'true'});backdrop.append(make('rect',{width:1080,height:226,rx:14,fill:'url(#practical-route-night)'}),make('ellipse',{cx:150,cy:120,rx:210,ry:100,fill:'url(#practical-route-light)'}),make('ellipse',{cx:880,cy:80,rx:230,ry:90,fill:'url(#practical-route-light)'}));
  for(let i=0;i<58;i++)backdrop.append(make('circle',{cx:12+(i*137)%1056,cy:8+(i*47)%210,r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));svg.append(backdrop);
  const edges=[
-  ['python','microsoft-ml','M220 113H248Q258 113 258 103V65Q258 55 268 55H300',false],
-  ['microsoft-ml','d2l','M496 55H578',false],
-  ['d2l','happy-llm','M774 55H802Q812 55 812 65V103Q812 113 822 113H856',false],
-  ['microsoft-ml','ailearning','M398 83V143',true],
-  ['d2l','pytorch','M676 83V143',true]
+  ['python','microsoft-ml','M178 113H237Q247 113 247 103V81Q247 71 257 71H316',false],
+  ['microsoft-ml','d2l','M470 71H608',false],
+  ['d2l','happy-llm','M762 71H821Q831 71 831 81V103Q831 113 841 113H900',false],
+  ['microsoft-ml','ailearning','M393 92V142',true],
+  ['d2l','pytorch','M685 92V142',true]
  ];
  for(const [i,[from,to,path,support]]of edges.entries()){
   svg.append(make('path',{class:'analysis-route-edge',d:path,fill:'none','marker-end':'url(#practical-route-arrow)','data-practical-from':from,'data-practical-to':to,'data-route-kind':support?'support':'main',...(support?{'stroke-dasharray':'5 5'}:{})}));
   if(!support){const spark=make('circle',{class:'analysis-route-spark',r:1.8,fill:'#d7f1ff','aria-hidden':'true'});spark.append(make('animateMotion',{path,dur:'6s',begin:-i*.7+'s',repeatCount:'indefinite'}));svg.append(spark);}
  }
- const positions={'python':[24,85],'microsoft-ml':[300,27],ailearning:[300,143],d2l:[578,27],pytorch:[578,143],'happy-llm':[856,85]},buttons=new Map();
+ const positions={'python':[24,92],'microsoft-ml':[316,50],ailearning:[316,142],d2l:[608,50],pytorch:[608,142],'happy-llm':[900,92]},buttons=new Map();
+ const width=154,height=42;
  for(const project of projects){
   const [x,y]=positions[project.id],node=make('g',{class:'analysis-course practical-route-node',role:'button',tabindex:0,'data-practical-project':project.id,'aria-label':project.title,'aria-pressed':'false','aria-controls':'practical-route-detail'});
-  node.append(make('title',{},project.title+' · '+project.phase),make('rect',{class:'analysis-course-card',x,y,width:196,height:56,rx:11,style:'fill:url(#practical-node-'+project.id+')'}),make('path',{class:'analysis-course-shine',d:`M${x+11} ${y+1}H${x+185}M${x+191} ${y+12}V${y+44}`}),make('circle',{class:'analysis-course-orbit',cx:x+25,cy:y+28,r:16}),make('circle',{class:'analysis-course-icon',cx:x+25,cy:y+28,r:13}),make('text',{class:'analysis-course-symbol',x:x+25,y:y+28,'text-anchor':'middle','dominant-baseline':'central'},project.symbol),make('text',{class:'analysis-course-title',x:x+49,y:y+22,'dominant-baseline':'central'},project.name),make('text',{class:'practical-route-subtitle',x:x+49,y:y+41},project.short),make('path',{class:'analysis-course-picked',d:`M${x+186} ${y+6}l3 3-3 3-3-3Z`}));
+  const cy=y+height/2;
+  node.append(make('title',{},project.title+' · '+project.short+' · '+project.phase),make('rect',{class:'analysis-course-card',x,y,width,height,rx:11,style:'fill:url(#practical-node-'+project.id+')'}),make('path',{class:'analysis-course-shine',d:`M${x+11} ${y+1}H${x+width-11}M${x+width-5} ${y+12}V${y+height-12}`}),make('circle',{class:'analysis-course-orbit',cx:x+25,cy,r:15}),make('circle',{class:'analysis-course-icon',cx:x+25,cy,r:12}),make('text',{class:'analysis-course-symbol',x:x+25,y:cy,'text-anchor':'middle','dominant-baseline':'central'},project.symbol),make('text',{class:'analysis-course-title',x:x+48,y:cy,'dominant-baseline':'central',...(project.id==='d2l'?{textLength:96,lengthAdjust:'spacingAndGlyphs'}:{})},project.name),make('path',{class:'analysis-course-picked',d:`M${x+width-10} ${y+6}l3 3-3 3-3-3Z`}));
   node.addEventListener('click',()=>choose(project.id,true));node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose(project.id,true);}});svg.append(node);buttons.set(project.id,node);
  }
  map.append(svg);const legend=el('div',null,'practical-route-legend');legend.append(el('span','主线','practical-main-key'),el('span','配套练习','practical-support-key'));
