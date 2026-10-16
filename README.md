@@ -87,6 +87,22 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 ## 数学竞赛
 
+**上传本地竞赛教材**：文件名或子目录包含“数学分析”“高等代数”“解析几何”时，使用 `admin/import_competition_books.py` 自动入库并关联共同基础。包含“高等代数与解析几何”的合订教材只保存一份，同时关联两门课，不写入人工智能课程或系列书籍。文件按原体积导入，没有 20 MB 限制，已有文献按哈希复用。
+
+在 **Windows PowerShell** 上传整个文件夹（不要在 SSH 服务器窗口执行）：
+
+```powershell
+scp -r "C:\Users\zx375\Desktop\数学文献\数学竞赛" root@8.137.178.73:/opt/math-platform/imports/
+```
+
+上传结束后，在 **服务器 SSH 终端** 执行：
+
+```bash
+cd /opt/math-platform && git pull --ff-only && chown -R math-platform:math-platform /opt/math-platform/imports/数学竞赛 && cd backend && (systemctl stop math-platform && (sudo -u math-platform python3 admin/import_competition_books.py /opt/math-platform/imports/数学竞赛 --apply --move; task_import_status=$?; systemctl start math-platform; exit "$task_import_status"))
+```
+
+此更新只有管理脚本，无需重新编译 Java。脚本先备份数据库，导入成功后移除服务器暂存副本，保留正式文献与电脑原文件；脚本失败也会执行服务启动。导入后 Ctrl+F5，在“数学竞赛 → 共同基础”点击三科节点查看教材，后台仍可调整关联和顺序。只查看匹配结果可运行 `python3 admin/import_competition_books.py /opt/math-platform/imports/数学竞赛`，不加 `--apply`。
+
 2026-10-16：新增“共同基础 / 考试大纲 / 初赛真题 / 决赛真题”四个页签。初赛按数学 A、B 类和年份筛选，决赛按低、高年级组筛选；阅读返回保留页签、组别和年份。原三科路线、专题题集及旧关联保留在共同基础。
 
 资料目录根据用户提供的[大纲栏目](https://www.cmathc.org.cn/dg/)、[初赛栏目](https://www.cmathc.org.cn/csst/)、[决赛栏目](https://www.cmathc.org.cn/jsst/)核对，当前共 19 项：17 份已核对 PDF（考试内容大纲 1 份、第 12—17 届数学 A/B 类及部分补赛试题与参考答案 16 份），约 16.1 MiB；另外 2 项是第十六届决赛低/高年级的图片网页。试卷和答案合并的原文件标记为“试题与参考答案”，不伪造拆分文件；年份以原卷标注为准，保留届次和补赛标题，不能以网页发布日期替代。第 1—17 届汇总页保留为外部入口。来源站为汇集资料的平台，赛事规则仍以中国数学会原通知为准。

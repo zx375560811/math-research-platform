@@ -54,7 +54,9 @@ def classify(relative):
     raise ValueError('Cannot assign book; place it in a named course folder: ' + str(relative))
 
 
-def preview(source):
+def preview(source, course_names=None, classifier=None, library_root='人工智能'):
+    course_names = COURSES if course_names is None else course_names
+    classifier = classify if classifier is None else classifier
     root = Path(source).resolve(strict=True)
     if not root.is_dir():
         raise ValueError('Source must be a directory')
@@ -68,7 +70,7 @@ def preview(source):
             skipped += 1
             continue
         relative = path.relative_to(root)
-        courses = classify(relative)
+        courses = classifier(relative)
         before = identity(path)
         with path.open('rb') as stream:
             kind = detect(stream.read(16))
@@ -77,8 +79,8 @@ def preview(source):
         checksum = digest(path)
         if identity(path) != before or before[2] <= 0:
             raise ValueError('Empty or changed source: ' + str(relative))
-        locations = [('人工智能', COURSES[slug]) for slug in courses]
-        folders.add(('人工智能',))
+        locations = [(library_root, course_names[slug]) for slug in courses]
+        folders.add((library_root,))
         folders.update(locations)
         rows.append({'path':relative.as_posix(), 'folders':locations[0], 'collection_paths':locations,
                      'courses':courses, 'title':title, 'format':kind, 'size':before[2],
@@ -87,9 +89,9 @@ def preview(source):
         raise ValueError('No valid PDF or DJVU files found')
     return {'source':str(root), 'documents':rows, 'folders':sorted(folders, key=lambda p:(len(p),p)),
             'summary':{'files':len(rows), 'unique_files':len({r['sha256'] for r in rows}),
-                       'courses':dict(Counter(COURSES[c] for r in rows for c in r['courses'])),
+                       'courses':dict(Counter(course_names[c] for r in rows for c in r['courses'])),
                        'skipped':skipped,
-                       'assignments':[{'title':r['title'], 'courses':[COURSES[c] for c in r['courses']]} for r in rows]}}
+                       'assignments':[{'title':r['title'], 'courses':[course_names[c] for c in r['courses']]} for r in rows]}}
 
 
 def apply(plan, database='data/math.db', move=False):

@@ -29,6 +29,8 @@ jobs:
         run: python backend/tests/series_import.py
       - name: Check additive AI course book import on older Python
         run: python backend/tests/ai_books_import.py
+      - name: Check local competition textbook import on older Python
+        run: python backend/tests/competition_books.py
       - name: Check read-only ZIP duplicate verification
         run: python backend/tests/zip_library.py
   backend:

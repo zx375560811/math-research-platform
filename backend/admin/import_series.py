@@ -82,7 +82,9 @@ def preview(source):
                         'formats': dict(Counter(r['format'] for r in rows)), 'skipped': skipped}}
 
 
-def apply(plan, database='data/math.db', move=False, course_import=False):
+def apply(plan, database='data/math.db', move=False, course_import=False, course_namespace='ai_study'):
+    if course_namespace not in ('ai_study', 'competition'):
+        raise ValueError('Unknown course namespace')
     workspace = Path.cwd().resolve()
     if Path('/proc').is_dir():
         for process in Path('/proc').iterdir():
@@ -112,11 +114,11 @@ def apply(plan, database='data/math.db', move=False, course_import=False):
     with closing(sqlite3.connect(str(database), timeout=10)) as db:
         db.execute('PRAGMA foreign_keys=ON')
         tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        target_table, owner_column = ('ai_study_books', 'course') if course_import else ('series_documents', 'series_id')
-        owners_table = 'ai_study_courses' if course_import else 'book_series'
+        target_table, owner_column = (course_namespace + '_books', 'course') if course_import else ('series_documents', 'series_id')
+        owners_table = course_namespace + '_courses' if course_import else 'book_series'
         if not {owners_table, target_table, 'document_formats', 'document_collections'} <= tables:
             raise ValueError('Update and start the Java server once to initialize series tables')
-        series_ids = dict(db.execute('SELECT slug,slug FROM ai_study_courses' if course_import else 'SELECT name,id FROM book_series'))
+        series_ids = dict(db.execute('SELECT slug,slug FROM ' + owners_table if course_import else 'SELECT name,id FROM book_series'))
         if any(group not in series_ids for row in plan['documents'] for group in (row['courses'] if course_import else [row['series']])):
             raise ValueError('A destination course or series is missing; start the current Java server first')
         known = {}
@@ -132,7 +134,8 @@ def apply(plan, database='data/math.db', move=False, course_import=False):
         required = (0 if move else sum(r['size'] for r in plan['documents'] if r['sha256'] not in known)) + database.stat().st_size + 64 * 1024 * 1024
         if shutil.disk_usage(str(storage)).free < required:
             raise ValueError('Not enough disk space')
-        backup = workspace / 'data' / 'backups' / (('ai-courses-' if course_import else 'series-') + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+        course_prefix = 'competition-courses-' if course_namespace == 'competition' else 'ai-courses-'
+        backup = workspace / 'data' / 'backups' / ((course_prefix if course_import else 'series-') + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
         backup.mkdir(mode=0o700, parents=True)
         with closing(sqlite3.connect(str(backup / 'math.db'))) as snapshot:
             backup_database(db, snapshot)
@@ -144,7 +147,8 @@ def apply(plan, database='data/math.db', move=False, course_import=False):
         try:
             db.execute('BEGIN IMMEDIATE')
             folder_ids = {}
-            namespace = ('ai-course-import:' if course_import else 'series-import:') + str(root)
+            course_source = 'competition-course-import:' if course_namespace == 'competition' else 'ai-course-import:'
+            namespace = (course_source if course_import else 'series-import:') + str(root)
             for order, path in enumerate(plan['folders']):
                 path_key = json.dumps(path, ensure_ascii=False, separators=(',', ':'))
                 db.execute('INSERT OR IGNORE INTO library_collections(source,path_key,parent_id,name,sort_order) VALUES(?,?,?,?,?)',
