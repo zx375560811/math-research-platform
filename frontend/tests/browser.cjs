@@ -683,47 +683,38 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await practical.locator('[data-practical-project="python"]').scrollIntoViewIfNeeded();await assertStableRoadmapHover(page,'[data-practical-project="python"]');
     const practicalSources=[['python','jackfrued/Python-100-Days'],['microsoft-ml','microsoft/ML-For-Beginners'],['ailearning','apachecn/AiLearning'],['d2l','d2l-ai/d2l-zh'],['pytorch','datawhalechina/thorough-pytorch'],['happy-llm','datawhalechina/happy-llm']];
     for(const [id,repo]of practicalSources){
-      await practical.locator(`[data-practical-project="${id}"]`).click();assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),id);assert.equal(await practical.locator('[aria-pressed="true"]').count(),1);
+      await practical.locator(`[data-practical-project="${id}"]`).click();assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),id);assert.equal(await practical.locator('[data-practical-project][aria-pressed="true"]').count(),1);
       const source=practical.getByRole('link',{name:'GitHub 仓库',exact:true});assert.equal(await source.getAttribute('href'),'https://github.com/'+repo);assert.equal(await source.getAttribute('rel'),'noopener noreferrer');assert.equal(await source.getAttribute('target'),'_blank');
       assert.equal(await practical.locator('.practical-project-content h4').count(),3);assert.ok((await practical.locator('.practical-project-description').textContent()).length>30);
     }
-    const guidePagesBefore=page.context().pages().length;
-    for(const [id]of practicalSources){
-      await practical.locator(`[data-practical-project="${id}"]`).click();
-      const chosenGuideUrl=page.url();await practical.getByRole('button',{name:'开始学习',exact:true}).click();assert.equal(page.url(),chosenGuideUrl,'Starting a lesson stays on the current page');
-      const guide=practical.locator('.practical-beginner-guide'),steps=guide.locator('.practical-guide-steps button');
-      assert.equal(await steps.count(),4);assert.equal(await steps.first().getAttribute('aria-current'),'step');
-      assert.match(await guide.getByRole('link',{name:'下载课程 ZIP',exact:true}).getAttribute('href'),/\/archive\/[a-f0-9]{40}\.zip$/);
-      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('windows');
-      await guide.getByRole('button',{name:'下一步',exact:true}).click();
-      const version=id==='happy-llm'?'3.11':'3.12';assert.match(await guide.locator('.practical-command pre').nth(1).textContent(),new RegExp('py -'+version.replace('.','\\.')+' -m venv \\.venv'));
-      assert.match(await guide.locator('.practical-guide-panel').textContent(),/自己的电脑/);
-      if(id==='ailearning')assert.match(await guide.locator('.practical-guide-panel').textContent(),/numpy==1\.26\.4/);
-      if(id==='happy-llm')assert.match(await guide.locator('.practical-guide-panel').textContent(),/docs\/chapter2\/code\/requirements\.txt/);
-      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('linux');assert.match(await guide.locator('.practical-command pre').nth(1).textContent(),/python3\.1[12] -m venv/);assert.doesNotMatch(await guide.locator('.practical-guide-panel').textContent(),/Scripts/);
-      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('macos');if(['d2l','pytorch','happy-llm'].includes(id))assert.doesNotMatch(await guide.locator('.practical-guide-panel').textContent(),/--index-url/);
-      await guide.getByRole('combobox',{name:'我的电脑'}).selectOption('windows');
-      await guide.getByRole('button',{name:'下一步',exact:true}).click();assert.equal(await steps.nth(2).getAttribute('aria-current'),'step');const lessonHeadingBox=await guide.locator('.practical-guide-panel h4').boundingBox();assert.ok(lessonHeadingBox.y>=0&&lessonHeadingBox.y<900,'The new step heading must be brought into view');
-      const lessonText=await guide.locator('.practical-guide-panel').textContent();
-      assert.match(lessonText,({'python':/hello\.py/,'microsoft-ml':/2-Regression\/1-Tools\/solution\/notebook\.ipynb/,ailearning:/runpy\.run_path/,d2l:/chapter_preliminaries\/ndarray\.ipynb/,pytorch:/sum\(dim=1\)/,'happy-llm':/bert-base-chinese/})[id]);
-      await guide.getByRole('button',{name:'下一步',exact:true}).click();assert.equal(await guide.locator('.practical-guide-result').count(),1);assert.equal(await guide.getByRole('button',{name:'下一步',exact:true}).isDisabled(),true);
-      if(id==='happy-llm')assert.match(await guide.locator('.practical-guide-result').textContent(),/没有经过语言训练/);
-      await guide.getByRole('button',{name:'上一步',exact:true}).click();await guide.getByRole('button',{name:'返回项目介绍',exact:true}).click();
-      await practical.getByRole('button',{name:'开始学习',exact:true}).click();assert.equal(await practical.locator('.practical-guide-steps button').nth(2).getAttribute('aria-current'),'step','Reopening retains the current project step');
-      await practical.getByRole('button',{name:'返回项目介绍',exact:true}).click();
+    const practicalCounts={python:100,'microsoft-ml':27,ailearning:15,d2l:123,pytorch:54,'happy-llm':8},practicalGroupCounts={python:9,'microsoft-ml':9,ailearning:3,d2l:18,pytorch:11,'happy-llm':2};
+    for(const [id,repo]of practicalSources){
+      await practical.locator(`[data-practical-project="${id}"]`).click();const catalog=practical.locator('.practical-course-catalog'),groups=catalog.locator('[data-course-group]');assert.equal(await groups.count(),practicalGroupCounts[id]);assert.equal(await catalog.locator('.practical-course-total').textContent(),'共 '+practicalCounts[id]+' 课');
+      assert.equal(await catalog.locator('.practical-git-setup').getAttribute('open'),null);const collected=[],numbers=[];
+      for(let index=0;index<practicalGroupCounts[id];index++){
+        await groups.nth(index).click();assert.equal(await groups.nth(index).getAttribute('aria-pressed'),'true');
+        const lessonLinks=catalog.locator('[data-course-lesson]'),expected=Number((await groups.nth(index).locator('small').textContent()).match(/\d+/)[0]);assert.equal(await lessonLinks.count(),expected);
+        for(const lesson of await lessonLinks.evaluateAll(nodes=>nodes.map(node=>({url:node.href,number:Number(node.dataset.courseLesson),target:node.target,rel:node.rel})))){assert.match(lesson.url,/^https:\/\/github\.com\/.+\/blob\/[a-f0-9]{40}\/.+\.(md|ipynb)$/);assert.ok(lesson.url.startsWith('https://github.com/'+(id==='d2l'?'d2l-ai/d2l-zh-pytorch-colab':repo)+'/'));assert.equal(lesson.target,'_blank');assert.equal(lesson.rel,'noopener noreferrer');collected.push(lesson.url);numbers.push(lesson.number);}
+        for(const code of await catalog.locator('.practical-lesson-code').evaluateAll(nodes=>nodes.map(node=>node.href)))assert.match(code,/^https:\/\/github\.com\/.+\/(blob|tree)\/[a-f0-9]{40}\/.+/);for(const title of await catalog.locator('.practical-lesson-link strong').allTextContents())assert.ok(!['README','index','model_design','rtmdet_description','yolov5_description'].includes(title),'Lesson titles must be understandable to beginners');
+      }
+      assert.equal(new Set(collected).size,practicalCounts[id]);assert.deepEqual(numbers,Array.from({length:practicalCounts[id]},(_,index)=>index+1));
+      const search=catalog.getByRole('searchbox',{name:'搜索本项目课程'});await search.fill('第一课');assert.equal(await catalog.locator('[data-course-lesson]').count(),1);assert.equal(await catalog.locator('.practical-lesson-number').textContent(),'第一课');
+      await search.fill('__missing_course__');assert.equal(await catalog.locator('[data-course-lesson]').count(),0);await catalog.getByRole('button',{name:'清空搜索',exact:true}).click();assert.equal(await search.inputValue(),'');
+      await groups.nth(1).click();assert.equal(await catalog.locator('.practical-lesson-panel').evaluate(node=>node.scrollTop),0);
     }
-    assert.equal(page.context().pages().length,guidePagesBefore,'Starting a lesson must not open GitHub');
-    await practical.locator('[data-practical-project="microsoft-ml"]').focus();await page.keyboard.press('Enter');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'microsoft-ml');
-    await practical.getByRole('button',{name:'开始学习',exact:true}).click();const firstGuide=practical.locator('.practical-beginner-guide');
-    await firstGuide.locator('.practical-guide-steps button').nth(1).click();
-    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__guideCopied=value;}}}));
-    await firstGuide.getByRole('button',{name:'复制创建本课环境',exact:true}).click();assert.equal(await page.evaluate(()=>window.__guideCopied),'py -3.12 -m venv .venv');
+    await practical.locator('[data-practical-project="microsoft-ml"]').focus();await page.keyboard.press('Enter');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'microsoft-ml');assert.equal(await practical.locator('[data-course-group="1"]').getAttribute('aria-pressed'),'true','Project selection retains the chosen chapter');
+    const practicalCatalog=practical.locator('.practical-course-catalog');await practicalCatalog.locator('[data-course-group="0"]').click();
+    const firstLesson=practicalCatalog.locator('[data-course-lesson="1"]'),firstLessonUrl=await firstLesson.getAttribute('href'),courseUrlBefore=page.url();
+    await page.context().route('https://github.com/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Official course file</title>'}));
+    const lessonPopupPromise=page.waitForEvent('popup');await firstLesson.click();const lessonPopup=await lessonPopupPromise;await lessonPopup.waitForLoadState('domcontentloaded');assert.equal(lessonPopup.url(),firstLessonUrl);assert.equal(page.url(),courseUrlBefore);await lessonPopup.close();await page.context().unroute('https://github.com/**');
+    const setup=practicalCatalog.locator('.practical-git-setup');await setup.locator('summary').click();assert.equal(await setup.locator('.practical-command').count(),4);assert.match(await setup.locator('.practical-command pre').nth(1).textContent(),/git clone https:\/\/github.com\/microsoft\/ML-For-Beginners.git learning-microsoft-ml/);assert.match(await setup.locator('.practical-command pre').nth(3).textContent(),/^git checkout --detach [a-f0-9]{40}$/);assert.equal(await setup.getByRole('link',{name:'安装 Git',exact:true}).getAttribute('href'),'https://git-scm.com/install/');
+    await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__courseCopied=value;}}}));
+    await setup.getByRole('button',{name:'复制克隆课程代码',exact:true}).click();assert.match(await page.evaluate(()=>window.__courseCopied),/^git clone https:\/\/github.com\/microsoft\/ML-For-Beginners.git/);
     await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('Clipboard denied');}}}));
-    await firstGuide.getByRole('button',{name:'复制创建本课环境',exact:true}).click();assert.equal(await page.evaluate(()=>getSelection().toString()),'py -3.12 -m venv .venv');assert.match(await firstGuide.locator('.practical-copy-status').nth(1).textContent(),/内容已选中/);await page.evaluate(()=>delete navigator.clipboard);
-    await firstGuide.locator('.practical-guide-steps button').nth(2).click();
-    await practical.locator('.practical-route-detail').screenshot({path:path.join(shots,'practical-first-lesson-desktop.png'),animations:'disabled'});
-    await page.setViewportSize({width:390,height:844});await practical.locator('.practical-route-detail').screenshot({path:path.join(shots,'practical-first-lesson-mobile.png'),animations:'disabled'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:1440,height:900});
-    await firstGuide.getByRole('button',{name:'返回项目介绍',exact:true}).click();
+    await setup.getByRole('button',{name:'复制克隆课程代码',exact:true}).click();assert.match(await page.evaluate(()=>getSelection().toString()),/^git clone/);assert.match(await setup.locator('.practical-copy-status').nth(1).textContent(),/内容已选中/);await page.evaluate(()=>delete navigator.clipboard);await setup.locator('summary').click();
+    await practical.locator('[data-practical-project="python"]').click();await practical.locator('[data-course-group="0"]').click();
+    await practical.locator('.practical-route-detail').screenshot({path:path.join(shots,'practical-courses-desktop.png'),animations:'disabled'});
+    await page.setViewportSize({width:390,height:844});await practical.locator('.practical-route-detail').screenshot({path:path.join(shots,'practical-courses-mobile.png'),animations:'disabled'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await practical.locator('.practical-course-groups').evaluate(node=>node.scrollWidth>node.clientWidth),true);await page.setViewportSize({width:1440,height:900});
     await practical.locator('[data-practical-project="d2l"]').focus();await page.keyboard.press('Space');assert.equal(await practical.locator('.practical-route-detail').getAttribute('data-project'),'d2l');
     assert.equal(await practicalMap.evaluate(node=>node===document.querySelector('.practical-route-canvas')),true);assert.equal(await aiMapBefore.evaluate(node=>node===document.querySelector('.ai-study-map svg')),true);assert.equal(aiCourseFetches,courseFetchesBefore);
     await practical.screenshot({path:path.join(shots,'practical-learning-desktop.png'),animations:'disabled'});
