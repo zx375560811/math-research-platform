@@ -461,7 +461,8 @@ main:has(#direction-detail:not([hidden])) { padding-top:20px;padding-bottom:20px
 
 .analysis-route-content { margin:0; }
 
-#direction-detail .direction-intro-section:has(.analysis-roadmap) { padding:10px 14px; }
+#direction-detail .direction-intro-section:has(.analysis-roadmap) { padding:10px 14px;border-color:#24395d;background:linear-gradient(135deg,#152a52,#121d3c 50%,#24395d);overflow:hidden; }
+#direction-detail .analysis-roadmap .analysis-map-backdrop { fill:none; }
 
 .analysis-course[role=button] { cursor:pointer;outline:none; }
 .analysis-course.selected .analysis-course-card,.analysis-course:focus-visible .analysis-course-card { stroke-opacity:1;stroke-width:2; }

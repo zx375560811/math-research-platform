@@ -31,7 +31,7 @@ function analysisRoadmap(onChoose, courses = analysisCourses, custom = false) {
   const mapHeight=custom ? 226 : 170;
   svg.classList.add('analysis-map-canvas');
   const backdrop=make('g',{'aria-hidden':'true'});
-  backdrop.append(make('rect',{x:0,y:0,width:940,height:mapHeight,rx:14,fill:'url(#analysis-map-night)'}),make('ellipse',{cx:180,cy:85,rx:180,ry:80,fill:'url(#analysis-map-light)'}),make('ellipse',{cx:730,cy:90,rx:220,ry:80,fill:'url(#analysis-map-light)'}));
+  backdrop.append(make('rect',{class:'analysis-map-backdrop',x:0,y:0,width:940,height:mapHeight,rx:14,fill:'url(#analysis-map-night)'}),make('ellipse',{cx:180,cy:85,rx:180,ry:80,fill:'url(#analysis-map-light)'}),make('ellipse',{cx:730,cy:90,rx:220,ry:80,fill:'url(#analysis-map-light)'}));
   for(let i=0;i<48;i++)backdrop.append(make('circle',{cx:12+(i*137)%916,cy:8+(i*47)%(mapHeight-16),r:i%7===0?1.2:.65,fill:'#b2caff',opacity:i%3===0?.42:.2}));
   for(const [x,y]of [[380,20],[752,157],[903,30]])if(y<mapHeight)backdrop.append(make('path',{d:`M${x-3} ${y}h6 M${x} ${y-3}v6`,stroke:'#adceff','stroke-width':.7,opacity:.4}));
   svg.append(backdrop);
