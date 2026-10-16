@@ -30,6 +30,18 @@ async function assertTransparentSelection(page, selector) {
   const channels=style.background.match(/[\d.]+/g).map(Number);assert.equal(channels.length,4);assert.ok(channels[3]>0&&channels[3]<1,'The selection tint must leave the document visible');
 }
 
+async function assertAnswerStart(page) {
+  await page.evaluate(()=>document.fonts.ready);
+  const position=await page.locator('#ai-messages').evaluate(list=>{
+    const reply=list.querySelector('.ai-assistant:last-child'),box=list.getBoundingClientRect(),top=box.top+list.clientTop,first=reply.querySelector('.ai-rich-text p').getBoundingClientRect();
+    return {offset:reply.getBoundingClientRect().top-top,first:first.top-top,height:reply.getBoundingClientRect().height,viewport:list.clientHeight,remaining:list.scrollHeight-list.clientHeight-list.scrollTop};
+  });
+  assert.ok(position.height>position.viewport,'The fixture must be longer than the chat viewport');
+  assert.ok(Math.abs(position.offset)<2,'A new answer must start at the top of the AI conversation');
+  assert.ok(position.first>=0&&position.first<position.viewport,'The first paragraph must be visible');
+  assert.ok(position.remaining>100,'The conversation must not jump to the end of the answer');
+}
+
 async function assertStableRoadmapHover(page, selector) {
   await page.evaluate(()=>document.fonts.ready);await page.mouse.move(0,0);
   const node=page.locator(selector),before=await node.evaluate(n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};});
@@ -222,7 +234,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
 - 核对假设
 - 检查结论
 
-<img src=x onerror=alert(1)><a href="javascript:alert(1)">危险链接</a>`})});}
+<img src=x onerror=alert(1)><a href="javascript:alert(1)">危险链接</a>`+'\n\n'+Array.from({length:24},(_,i)=>`第 ${i+1} 步：结合定义与假设，逐项说明数学推导，并核对每一步的适用条件。`).join('\n\n')})});}
       if(req.method()==='PUT'){body=req.postDataJSON();aiConfig.source=body.source;aiConfig.custom={...aiConfig.custom,base_url:body.base_url,model:body.model,enabled:body.enabled,available:body.enabled,has_key:body.clear_key?false:!!body.api_key||aiConfig.custom.has_key};}
       return route.fulfill({contentType:'application/json',body:JSON.stringify(aiConfig)});
     });
@@ -409,9 +421,12 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('#ai-context').isVisible(),true); assert.match(await page.locator('#ai-context-quote').textContent(),/Mathematics/);
     const naturalWrap=await page.evaluate(()=>['selection-quote','ai-context-quote'].map(id=>{const node=document.getElementById(id),original=node.textContent;node.textContent='measure\nintegral';const range=document.createRange();range.selectNodeContents(node);const lines=range.getClientRects().length;node.textContent=original;return lines===1;})); assert.ok(naturalWrap.every(Boolean));
 
+    const beforeAiReply=await page.locator('#reader-scroll').evaluate(node=>({top:node.scrollTop,page:node.dataset.page,window:scrollY}));
     await page.locator('#ai-question').fill('解释这个选段 <img src=x onerror=alert(1)>'); await page.locator('#ai-send').click();
     assert.equal(await page.locator('#ai-context').isVisible(),false); assert.equal(await page.locator('#selection-tools').isVisible(),false);
     await page.locator('.ai-assistant').waitFor(); assert.match(await page.locator('.ai-assistant').textContent(),/基于选段/); assert.equal(await page.locator('#ai-messages img').count(),0); assert.ok(await page.locator('.ai-assistant .katex').count()>=3); assert.ok(await page.locator('.ai-assistant .katex-display').count()>0); assert.equal(await page.locator('.ai-assistant table').count(),1); assert.equal(await page.locator('.ai-assistant strong').count(),1); assert.equal(await page.locator('.ai-assistant a[href^="javascript:"]').count(),0);
+    await assertAnswerStart(page);const afterAiReply=await page.locator('#reader-scroll').evaluate(node=>({top:node.scrollTop,page:node.dataset.page,window:scrollY}));assert.equal(afterAiReply.page,beforeAiReply.page);assert.equal(afterAiReply.window,beforeAiReply.window);assert.ok(Math.abs(afterAiReply.top-beforeAiReply.top)<2,'Showing an AI answer must not scroll the PDF');
+    const manualAiScroll=await page.locator('#ai-messages').evaluate(async list=>{const before=list.scrollTop;list.scrollTop+=120;for(let i=0;i<2;i++)await new Promise(requestAnimationFrame);return list.scrollTop-before;});assert.ok(manualAiScroll>100,'Readers must be able to scroll down through the answer manually');
     assert.equal(chatCalls.at(-1).context.document_id,1); assert.equal(chatCalls.at(-1).context.page,1); assert.match(chatCalls.at(-1).context.quote,/Mathematics/);
     assert.equal(chatCalls.at(-1).source,'default'); assert.equal(chatCalls.at(-1).api_key,undefined);
     const compose = await page.evaluate(()=>{const a=document.getElementById('reader-ask-ai'),b=document.getElementById('ai-send');return {same:a.parentElement===b.parentElement,left:Math.abs(a.getBoundingClientRect().left-b.getBoundingClientRect().left)<1 && b.getBoundingClientRect().top-a.getBoundingClientRect().bottom<=3};}); assert.equal(compose.same,true);assert.equal(compose.left,true);
@@ -429,7 +444,9 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.equal(await page.locator('#ai-api-key').inputValue(),''); assert.equal(await page.locator('#ai-source').inputValue(),'custom');
     await page.locator('#ai-settings-toggle').click(); assert.equal(await page.locator('#ai-context').isVisible(),false); await page.locator('#ai-question').fill('继续解释'); await page.locator('#ai-send').click();
     await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===2); assert.equal(chatCalls.at(-1).source,'custom'); assert.equal(chatCalls.at(-1).context,null);
+    await assertAnswerStart(page);assert.equal(chatCalls.at(-1).messages.length,3);assert.equal(chatCalls.at(-1).messages[1].role,'assistant');
     await page.screenshot({path:path.join(frontend,'tests/artifacts/reader-ai.png'),fullPage:true});
+    await page.setViewportSize({width:390,height:844});await page.locator('#ai-question').fill('继续说明证明的第一步');await page.locator('#ai-send').click();await page.waitForFunction(()=>document.querySelectorAll('.ai-assistant').length===3);await assertAnswerStart(page);await page.screenshot({path:path.join(shots,'reader-ai-answer-start-mobile.png'),fullPage:true});await page.setViewportSize({width:1440,height:1100});
     await page.locator('#ai-source').selectOption('default'); await page.waitForFunction(()=>document.getElementById('ai-status').textContent.includes('设置已保存'));
     // API settings and pane changes can trigger PDF reflow after the first text span attaches.
     // Select only in a ready layout, and retry if a later reflow clears the native selection.

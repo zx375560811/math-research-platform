@@ -93,7 +93,8 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
       const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(result.reply)); list.append(assistant);
       const remembered = attached ? `PDF 第 ${attached.page} 页选段：\n${attached.quote}\n问题：${question}` : question;
       history.push({ role: 'user', content: remembered }, { role: 'assistant', content: result.reply });
-      $('ai-question').value = ''; status(result.warning || ''); list.scrollTop = list.scrollHeight;
+      $('ai-question').value = ''; status(result.warning || '');
+      list.scrollTop += assistant.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientTop;
     } catch (error) { if (!closed) { user.remove(); if (attached && !context) setContext(attached); if (!history.length) list.append(node('p', '提问未完成，输入内容已保留，可以重试。', 'ai-empty')); status(error.message); } }
     finally { busy = false; controls(); }
   });
