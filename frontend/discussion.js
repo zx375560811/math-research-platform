@@ -9,6 +9,19 @@ function button(text,action,cls='button compact',icon){const b=el('button',null,
 function date(value){const d=new Date(value);return Number.isNaN(d.getTime())?value:new Intl.DateTimeFormat('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(d);}
 function badge(category){const b=el('span',categories[category],'discussion-tag');b.dataset.category=category;return b;}
 function message(error){return errors[error.code]||(error instanceof TypeError?'连接失败，请检查连接后重试。':error.message)||'连接失败，请重试。';}
+// Original mathematical linework; decorative geometry never carries post information.
+const cardMotifs=[
+  ['M18 126H146M30 142V26','M35 108C61 108 59 48 88 48S116 113 142 34','M54 87H126'],
+  ['M30 91L91 29L151 91L91 152ZM30 91H151M91 29V152','M61 60L122 121M61 121L122 60'],
+  ['M32 91A58 58 0 1 0 148 91A58 58 0 1 0 32 91','M90 33V150M32 91H148','M90 91L137 57M117 91A27 27 0 0 0 112 76'],
+  ['M24 91C24 29 156 29 156 91S24 153 24 91Z','M36 122C-6 65 101-13 143 45S78 180 36 122Z','M90 29V152'],
+  ['M35 43L90 91L143 38M35 43L43 143L90 91L143 142L143 38M43 143H143','M35 43H143M90 91V153'],
+  ['M23 137H151M29 145V25','M39 121C55 102 67 76 72 32M84 130C89 95 115 69 146 55','M41 45C62 54 108 94 143 128'],
+  ['M24 126L89 27L151 126ZM24 126L90 91L151 126M89 27L90 91','M90 91V153M24 126L90 153L151 126'],
+  ['M31 126A72 72 0 0 1 127 31','M46 140A72 72 0 0 1 142 46','M61 154A72 72 0 0 1 156 61','M36 120L95 61L144 110'],
+  ['M90 90C58 26 12 43 21 90S67 141 90 90C122 26 168 43 159 90S113 141 90 90Z','M32 128C58 142 118 140 146 122','M32 52C62 37 117 38 146 56']
+];
+function cardArt(index){const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 180 180');svg.setAttribute('class','discussion-card-art');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');for(const d of cardMotifs[index%cardMotifs.length]){const path=document.createElementNS(ns,'path');path.setAttribute('d',d);svg.append(path);}return svg;}
 
 export function createDiscussion({api,write}) {
   const root=document.getElementById('discussion-view');
@@ -68,11 +81,11 @@ export function createDiscussion({api,write}) {
     const list=el('div',null,'discussion-list'),info=status('正在加载讨论…');root.replaceChildren(heading,toolbar,info,list);mountIcons();
     try{
       const data=await get('/api/discussions?'+new URLSearchParams({category,scope,q,offset}));if(version!==generation)return;info.textContent='';
-      for(const topic of data.topics){
-        const row=link('','#/discussions/'+topic.id,'discussion-row'),body=el('div',null,'discussion-row-body'),labels=el('div',null,'discussion-row-labels');labels.append(badge(topic.category));if(topic.pinned)labels.append(el('span','置顶','discussion-label'));if(topic.locked)labels.append(el('span','已关闭回复','discussion-label'));
+      for(const [index,topic] of data.topics.entries()){
+        const row=link('','#/discussions/'+topic.id,'discussion-row'),body=el('div',null,'discussion-row-body'),labels=el('div',null,'discussion-row-labels'),categoryTag=badge(topic.category);categoryTag.prepend(glyph({mathematics:'compass','math-to-ai':'spark',competition:'trophy',general:'chat'}[topic.category]));labels.append(categoryTag);if(topic.pinned)labels.append(el('span','置顶','discussion-label'));if(topic.locked)labels.append(el('span','已关闭回复','discussion-label'));
         const h2=el('h2',topic.title),footer=el('div',null,'discussion-card-footer');h2.id='discussion-card-title-'+topic.id;footer.id='discussion-card-meta-'+topic.id;row.setAttribute('aria-labelledby',h2.id);row.setAttribute('aria-describedby',footer.id);row.title=topic.title;row.dataset.category=topic.category;
-        const forward=glyph('forward');forward.className='discussion-card-open';labels.append(forward);body.append(labels,h2);
-        const replies=el('span',null,'discussion-reply-count');replies.append(glyph('chat'),el('strong',String(topic.reply_count)),el('span','回复'));footer.append(metadata(topic),replies);row.append(body,footer);list.append(row);
+        const forward=glyph('forward');forward.className='discussion-card-open';body.append(labels,h2);
+        const replies=el('span',null,'discussion-reply-count');replies.append(glyph('chat'),el('strong',String(topic.reply_count)),el('span','回复','sr-only'));footer.append(metadata(topic),replies,forward);row.append(cardArt(index),body,footer);list.append(row);
       }
       if(!data.topics.length){const empty=el('div',null,'discussion-empty');empty.append(glyph('chat'),el('h2',q?'没有找到相关讨论':'还没有'+(scope==='mine'?'你发起的':scope==='unanswered'?'等待回复的':'')+'话题'),el('p',q?'换个关键词，或发起一个新话题。':'从一道习题、一段证明或一本教材开始交流。'),link('发起讨论','#/discussions/new','button primary'));list.append(empty);}
       root.append(pager(data,value=>{location.hash=href({page:String(value/data.limit+1)});}));mountIcons();
