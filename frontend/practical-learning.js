@@ -554,7 +554,7 @@ function createCourseCatalog(project,state){
 
 function link(text,url,glyph){const node=el('a',text,'button compact');node.href=url;node.target='_blank';node.rel='noopener noreferrer';const icon=el('span');icon.dataset.icon=glyph;icon.setAttribute('aria-hidden','true');node.append(icon);return node;}
 
-export function createPracticalLearningRoute(initial){
+export function createPracticalLearningRoute(initial,onChoose=()=>{}){
  const root=el('section',null,'practical-learning-route');root.id='practical-learning-route';root.setAttribute('aria-label','实战学习路线');
  const map=el('div',null,'practical-route-map'),ns='http://www.w3.org/2000/svg';map.setAttribute('role','group');map.setAttribute('aria-label','实战学习路线图');
  const make=(tag,attrs={},text)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};
@@ -589,7 +589,7 @@ export function createPracticalLearningRoute(initial){
  function choose(id,updateUrl=false){
   const project=projects.find(item=>item.id===id)||projects[0];if(selected===project.id)return;selected=project.id;
   for(const [key,node]of buttons){const active=key===selected;node.classList.toggle('selected',active);node.setAttribute('aria-pressed',String(active));}
-  detail.dataset.project=selected;renderProject(project);
+  detail.dataset.project=selected;renderProject(project);onChoose(selected);
   if(updateUrl){const params=new URLSearchParams(location.hash.split('?')[1]||'');params.set('practice',selected);history.replaceState(history.state,'','#/apps/math-to-ai/practice?'+params);}
  }
  function renderProject(project){

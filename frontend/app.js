@@ -36,11 +36,12 @@ function route() {
   if (!state.ready) { $('study-plan-view').hidden=true; $('ai-learning-view').hidden=true;document.body.classList.add('auth-page'); $('series-view').hidden=true; $('library-view').hidden = true; $('home-view').hidden = true; $('module-view').hidden = true; $('auth-view').hidden = true; $('reader-view').hidden = true; return; }
   ++state.generation;
   const [legacyPath,legacyQuery]=location.hash.split('?');
-  if(legacyPath==='#/apps/math-to-ai'&&new URLSearchParams(legacyQuery).has('practice'))history.replaceState(history.state,'','#/apps/math-to-ai/practice?'+legacyQuery);
+  if(legacyPath==='#/apps/math-to-ai'){const params=new URLSearchParams(legacyQuery);if(params.has('practice'))history.replaceState(history.state,'','#/apps/math-to-ai/practice?'+params);else if(params.has('course'))history.replaceState(history.state,'','#/apps/math-to-ai/theory?'+params);}
   const inApp = location.hash.startsWith('#/apps/mathematics'); const inLibrary = location.hash.startsWith('#/library');
   const inPlan=location.hash.startsWith('#/study-plan');
   const inSeries=location.hash.startsWith('#/series');const inAi=location.hash.startsWith('#/apps/math-to-ai');
   const inPractical=location.hash.split('?')[0]==='#/apps/math-to-ai/practice';
+  const inTheory=location.hash.startsWith('#/apps/math-to-ai/theory')||location.hash.startsWith('#/apps/math-to-ai/read/');
   if (!state.user && !['#/login', '#/register'].includes(location.hash)) { state.returnTo = location.hash || '#/'; location.replace('#/login'); route(); return; }
   if (location.hash === '#/admin' && state.user) { if (state.user.role === 'ADMIN') { location.replace('/admin'); return; } $('notice').textContent = '此账号没有管理员权限。'; $('notice').hidden = false; location.replace('#/'); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
@@ -51,11 +52,11 @@ function route() {
   $('confirm-label').hidden = !registering; $('account-confirm').hidden = !registering; $('account-confirm').required = registering; $('password-hint').hidden = !registering;
   $('account-password').autocomplete = registering ? 'new-password' : 'current-password'; $('account-password').minLength = registering ? 12 : 1;
   $('login-tab').classList.toggle('active', !registering); $('register-tab').classList.toggle('active', registering);
-  $('breadcrumb').textContent = inPlan?'我的学习计划':inPractical?'实战学习路线':inAi?'数学到人工智能':inSeries?'系列书籍':inLibrary ? '文档库' : inApp ? '数学与应用数学' : '应用工作台';
+  $('breadcrumb').textContent = inPlan?'我的学习计划':inPractical?'实战学习':inTheory?'理论学习':inAi?'数学到人工智能':inSeries?'系列书籍':inLibrary ? '文档库' : inApp ? '数学与应用数学' : '应用工作台';
   for (const [id, active] of [['home-link', !inApp && !inLibrary&&!inSeries&&!inAi&&!inPlan], ['library-link', inLibrary], ['math-app-link', inApp],['series-link',inSeries],['ai-learning-link',inAi],['study-plan-link',inPlan]]) { $(id).classList.toggle('active', active); if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current'); }
   document.title = inAuth ? `${registering ? '注册' : '登录'} · 公理` : inLibrary ? '文档库 · 公理' : inApp ? '数学与应用数学 · 公理' : '公理 · 数学研究平台';
   if(inPlan&&state.user){learning.close();library.close();series.close();aiStudy.close();document.title='我的学习计划 · 公理';studyPlan.navigate(location.hash);}else{studyPlan.close();
-  if(inAi&&state.user){learning.close();library.close();series.close();document.title=(inPractical?'实战学习路线':'数学到人工智能')+' · 公理';aiStudy.navigate(location.hash);}else{aiStudy.close();
+  if(inAi&&state.user){learning.close();library.close();series.close();document.title=(inPractical?'实战学习':inTheory?'理论学习':'数学到人工智能')+' · 公理';aiStudy.navigate(location.hash);}else{aiStudy.close();
   if(inSeries&&state.user){learning.close();library.close();document.title='系列书籍 · 公理';series.navigate(location.hash);}else{series.close();if (inLibrary && state.user) { learning.close(); library.navigate(location.hash); } else { library.close(); if (inApp && state.user) learning.navigate(location.hash); else learning.close(); }}
   }
   }
