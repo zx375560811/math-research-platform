@@ -4,7 +4,7 @@ import { getDocument, GlobalWorkerOptions, TextLayer } from './vendor/pdfjs/pdf.
 GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
 const $ = id => document.getElementById(id);
 function el(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
-export function openReader(id, { api, write, basePath = '/api/learning/books', backHref, backLabel = '← 返回教材', fullLoad = false }) {
+export function openReader(id, { api, write, basePath = '/api/learning/books', backHref, backLabel = '← 返回教材', fullLoad = false, trackProgress = true }) {
   const endpoint = `${basePath}/${id}`;
   let closed = false, pdf = null, task = null, book = null, csrf = null, successor = null;
   const requests = new AbortController(), loadingWatchers = new Set();
@@ -56,7 +56,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const errorText = error => error?.message || '文件加载失败，请重试。';
   function restart(whole = fullLoad) {
     if (closed) return;
-    close(); successor = openReader(id, { api, write, basePath, backHref, backLabel, fullLoad: whole });
+    close(); successor = openReader(id, { api, write, basePath, backHref, backLabel, fullLoad: whole, trackProgress });
   }
   function failure(error, page = null, textOnly = false) {
     if (closed) return;
@@ -93,6 +93,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     return { url: book.file_url, withCredentials: true, disableStream: true, disableAutoFetch: true };
   }
   stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
+  $('reader-save-status').textContent = trackProgress ? '' : '预览模式 · 不保存进度'; $('reader-save-status').classList.remove('save-error');
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
   $('reader-title').textContent = '正在打开教材…';
   $('reader-outline').hidden = true; $('reader-notes').hidden = false;
@@ -112,7 +113,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     return { page: page?.number || pageNumber, total_pages: pdf.numPages, position: page ? Math.min(1, Math.max(0, (scroll.scrollTop - top(page.frame)) / page.frame.clientHeight)) : 0, zoom };
   }
   async function drainSave() {
-    if (saving || !csrf) return; saving = true;
+    if (!trackProgress || saving || !csrf) return; saving = true;
     try {
       while (desired) {
         const value = desired; desired = null; const json = JSON.stringify(value); if (json === saved) continue;
@@ -124,7 +125,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     finally { saving = false; }
   }
   let saveTask = Promise.resolve();
-  function saveNow() { clearTimeout(saveTimer); if (pdf && book && currentPage()?.rendered && !layingOut) { desired = snapshot(); $('reader-save-status').classList.remove('save-error'); if (!saving) saveTask = drainSave(); } return saveTask; }
+  function saveNow() { clearTimeout(saveTimer); if (trackProgress && pdf && book && currentPage()?.rendered && !layingOut) { desired = snapshot(); $('reader-save-status').classList.remove('save-error'); if (!saving) saveTask = drainSave(); } return saveTask; }
   function paintHighlights() {
     for (const page of pages) {
       if (!page.rendered) continue; page.highlights.replaceChildren();
@@ -408,6 +409,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     try {
       const label = loading('正在读取文献信息…');
       book = await waiting(api(`${endpoint}`, { signal: requests.signal }), '读取文献信息'); if (closed) return;
+      const progress = trackProgress ? book.progress : null;
       $('reader-title').textContent = book.title; $('reader-back').href = backHref || `#/apps/mathematics/directions/${book.direction}`; $('reader-back').textContent = backLabel;
       if (!book.available) throw new Error('这本教材的 文档尚未接入，请先选择其他教材。');
       csrf = await waiting(api('/api/auth/csrf', { signal: requests.signal }), '读取登录状态'); if (closed) return;
@@ -422,14 +424,14 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       const first = await waiting(pdf.getPage(1), '读取第一页信息'); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
       scroll.dataset.totalPages = String(pdf.numPages);
       marks = (await waiting(api(`${endpoint}/annotations`, { signal: requests.signal }), '读取高亮笔记')).annotations; if (closed) return;
-      notes(); zoom = book.progress?.zoom || 1; if (!Number.isFinite(zoom) || zoom < .25 || zoom > 4) zoom = 1; zoomControls();
+      notes(); zoom = progress?.zoom || 1; if (!Number.isFinite(zoom) || zoom < .25 || zoom > 4) zoom = 1; zoomControls();
       const fragment = document.createDocumentFragment();
       for (let number = 1; number <= pdf.numPages; number++) {
         const frame = el('div', 'pdf-page'), canvas = el('canvas', 'pdf-canvas'), highlights = el('div', 'pdf-highlights'), text = el('div', 'textLayer');
         frame.dataset.page = String(number); frame.dataset.loadingMessage = `正在加载第 ${number} 页…`; frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`);
         frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false });
       }
-      stack.replaceChildren(fragment); await layout({ page: book.progress?.page || 1, position: book.progress?.position || 0 });
+      stack.replaceChildren(fragment); await layout({ page: progress?.page || 1, position: progress?.position || 0 });
       if (!closed) {
         try { await outline(); }
         catch (error) { if (!closed) $('reader-outline').replaceChildren(el('p', 'muted', '目录加载失败：' + errorText(error))); }

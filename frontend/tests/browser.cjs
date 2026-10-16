@@ -567,18 +567,27 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('#library-query').fill('Test textbook'); await page.locator('#library-filter button').click(); await page.locator('[data-document="1"]').waitFor();
     await page.screenshot({path:path.join(shots,'library-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844}); await page.screenshot({path:path.join(shots,'library-mobile.png'),fullPage:true});await page.locator('#library-folders-toggle').click();assert.equal(await page.locator('#library-folders').isVisible(),true);await page.screenshot({path:path.join(shots,'library-collections-mobile.png'),fullPage:true});await chooseCollection(page,'102');await page.locator('[data-document="1"]').waitFor();assert.equal(await page.locator('#library-folders').isVisible(),false);await page.setViewportSize({width:320,height:844});await page.locator('.library-extra-filters summary').click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.locator('.library-extra-filters summary').click(); assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false); await page.setViewportSize({width:1440,height:1100});
-    await page.locator('[data-document="1"]').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')); assert.match(await page.locator('#reader-back').textContent(),/文档库/);
+    const originalLibraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress,previewProgressWrites=[];
+    const collectPreviewProgress=request=>{if(request.method()==='PUT'&&/^\/api\/library\/documents\/\d+\/progress$/.test(new URL(request.url()).pathname))previewProgressWrites.push(request.url());};
+    page.on('request',collectPreviewProgress);
+    assert.equal(await page.locator('.library-read').textContent(),'预览');
+    await page.locator('.library-read').click(); await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')); assert.match(await page.locator('#reader-back').textContent(),/文档库/);assert.match(page.url(),/#\/library\/preview\/1\?/);
+    assert.equal(await page.locator('#reader-scroll').getAttribute('data-page'),'1');assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'100');assert.match(await page.locator('#reader-save-status').textContent(),/预览模式/);
     await scrollToPage(page,3); await page.waitForFunction(()=>document.getElementById('reader-scroll').dataset.page==='3');
     await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="3"] .textLayer span')?.textContent==='Mathematics 3');
-    let libraryProgress;
-    for(let attempt=0;attempt<100;attempt++){libraryProgress=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;if(libraryProgress?.page===3)break;await page.waitForTimeout(100);}
-    assert.equal(libraryProgress.page,3); assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,libraryProgress);
+    await zoomTo(page,125);await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));await page.waitForTimeout(700);
+    assert.deepEqual((await(await page.request.get(base+'/api/library/documents/1')).json()).progress,originalLibraryProgress);
+    await page.reload();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="1"][data-loaded]')&&document.getElementById('pdf-pages').dataset.layout==='ready');
+    assert.equal(await page.locator('#reader-scroll').getAttribute('data-page'),'1');assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'100');
     assert.equal(await page.locator('.sidebar').isVisible(),true);
     assert.equal((await page.locator('.sidebar').boundingBox()).width,64);
     assert.equal((await page.locator('.workspace').boundingBox()).width,page.viewportSize().width-64);
     await readerControl(page, 'reader-back'); await page.locator('#library-view').waitFor();assert.match(page.url(),/collection=102/);await page.locator('[data-collection="102"]').waitFor();
+    assert.deepEqual(previewProgressWrites,[],'Preview must never write progress, including on reload, pagehide and close');page.off('request',collectPreviewProgress);
+    assert.deepEqual((await(await page.request.get(base+'/api/library/documents/1')).json()).progress,originalLibraryProgress);assert.deepEqual((await(await page.request.get(base+'/api/learning/books/7')).json()).progress,originalLibraryProgress);
     assert.equal(await page.locator('.sidebar').isVisible(),true);
-    await page.goto(base+'/#/apps/mathematics/directions/algebra'); await page.locator('[data-book="7"]').waitFor(); assert.match(await page.locator('[data-book="7"]').getAttribute('title'),/第 3 页/);
+    await page.goto(base+'/#/apps/mathematics/directions/algebra'); await page.locator('[data-book="7"]').waitFor();await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelector('.pdf-page[data-loaded]')&&document.getElementById('pdf-pages').dataset.layout==='ready');await scrollToPage(page,3);
+    await page.waitForFunction(async()=>(await(await fetch('/api/learning/books/7')).json()).progress?.page===3);await readerControl(page,'reader-back');await page.locator('[data-book="7"]').waitFor();await page.reload();await page.locator('[data-book="7"]').waitFor();assert.match(await page.locator('[data-book="7"]').getAttribute('title'),/第 3 页/);
     const noteCsrf=await(await page.request.get(base+'/api/auth/csrf')).json();
     for(let i=1;i<=31;i++){const created=await page.request.post(base+'/api/learning/books/7/annotations',{headers:{[noteCsrf.header]:noteCsrf.token},data:{page:1,quote:`Marker ${i}`,note:`Note ${i}`,color:'blue',rects:[{x:.1,y:.1,width:.1,height:.02}]}});assert.ok(created.ok());assert.ok((await created.json()).id);}
     await page.locator('[data-book="7"]').click();await page.waitForFunction(()=>document.querySelectorAll('.annotation-summary').length===31);
@@ -591,7 +600,7 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('.annotation-more').click();assert.equal(await page.locator('.annotation-summary:visible').count(),30);assert.equal(await page.locator('.annotation-note').nth(30).isVisible(),false);
     await readerControl(page, 'reader-back'); await page.locator('[data-book="7"]').waitFor();
     if(process.env.MATH_BROWSER_MOCK !== '1'){fs.writeFileSync(path.join(temp,'source.djvu'),djvu);const nativeImport=spawnSync('python3',[path.join(repo,'backend/admin/import_document.py'),'source.djvu','--title','Native DjVu','--subject-id','1'],{cwd:temp,encoding:'utf8'});assert.equal(nativeImport.status,0,nativeImport.stderr);nativeId=JSON.parse(nativeImport.stdout).id;}
-    await page.goto(base + '/#/library/read/' + nativeId);
+    page.on('request',collectPreviewProgress);await page.goto(base + '/#/library/read/' + nativeId);
     await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="1"][data-loaded] .djvu-text-layer span')?.textContent==='Native DjVu mathematics');
     assert.equal(await page.locator('.pdf-page').count(),3);
     assert.equal(await page.locator('.pdf-page[data-page="1"] canvas').evaluate(c=>c.getContext('2d').getImageData(10,10,1,1).data[3]),255);
@@ -605,11 +614,11 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.locator('[data-highlight="yellow"]').click();await page.waitForFunction(()=>document.querySelector('.annotation-summary'));
     await page.locator('.annotation-note').fill('Native note');await page.locator('.annotation-actions button').first().click();
     await zoomTo(page,125);await page.waitForTimeout(650);await page.reload();
-    await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="2"][data-loaded]'));
-    assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'125');
+    await page.waitForFunction(()=>document.querySelector('.pdf-page[data-page="1"][data-loaded]')&&document.getElementById('pdf-pages').dataset.layout==='ready');
+    assert.equal(await page.locator('#reader-scroll').getAttribute('data-page'),'1');assert.equal(await page.locator('#reader-scroll').getAttribute('data-zoom'),'100');assert.equal((await(await page.request.get(base+'/api/library/documents/'+nativeId)).json()).progress,null);
     await page.locator('.annotation-summary').click();assert.equal(await page.locator('.annotation-note').inputValue(),'Native note');
     await page.screenshot({path:path.join(shots,'reader-djvu.png'),fullPage:true});
-    await readerControl(page,'reader-back'); await page.locator('#library-view').waitFor();
+    await readerControl(page,'reader-back'); await page.locator('#library-view').waitFor();assert.deepEqual(previewProgressWrites,[],'PDF and legacy DJVU preview routes must both avoid recording progress');page.off('request',collectPreviewProgress);
     const folderCourses=['分析','复分析','实分析','测度论','泛函分析','偏微分方程'];
     await page.route('**/api/learning/directions/analysis',async route=>{
       const response=await route.fetch(),body=await response.json();
@@ -828,10 +837,11 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     await page.route(filePath,route=>{fullRequests.push(route.request().headers().range||'full');return route.fulfill({status:200,contentType:'application/pdf',headers:{'Accept-Ranges':'bytes','Content-Length':String(pdf.length)},body:pdf});});
     await page.goto(base+'/#/library/read/1');await page.locator('.pdf-page[data-loaded]').first().waitFor();assert.deepEqual(fullRequests,['bytes=0-0']);assert.equal(await page.locator('.reader-load-error').count(),0);await readerControl(page,'reader-back');await page.locator('#library-view').waitFor();await page.unroute(filePath);
     // A malformed 206 must produce an actionable error; full loading bypasses ranges.
-    const recoveryRequests=[];
+    const recoveryRequests=[],progressBeforeRecovery=(await(await page.request.get(base+'/api/library/documents/1')).json()).progress;page.on('request',collectPreviewProgress);
     await page.route(filePath,route=>{const range=route.request().headers().range;recoveryRequests.push(range||'full');return range?route.fulfill({status:206,contentType:'application/pdf',headers:{'Accept-Ranges':'bytes','Content-Range':`bytes 1-1/${pdf.length}`,'Content-Length':'1'},body:pdf.subarray(0,1)}):route.fulfill({status:200,contentType:'application/pdf',body:pdf});});
     await page.goto(base+'/#/library/read/1');await page.locator('#pdf-pages>.reader-load-error').waitFor();assert.match(await page.locator('#pdf-pages').textContent(),/文件分段响应异常/);await page.getByRole('button',{name:'整本加载',exact:true}).click();await page.locator('.pdf-page[data-loaded]').first().waitFor();assert.deepEqual(recoveryRequests,['bytes=0-0','full']);
-    await readerControl(page,'reader-back');await page.locator('#library-view').waitFor();assert.equal(await page.locator('#pdf-pages').textContent(),'','Closing a retried reader must close its replacement');await page.unroute(filePath);
+    assert.equal(await page.locator('#reader-scroll').getAttribute('data-page'),'1');assert.match(await page.locator('#reader-save-status').textContent(),/预览模式/);await scrollToPage(page,2);await page.waitForTimeout(700);
+    await readerControl(page,'reader-back');await page.locator('#library-view').waitFor();assert.equal(await page.locator('#pdf-pages').textContent(),'','Closing a retried reader must close its replacement');assert.deepEqual(previewProgressWrites,[],'Retry and whole-file fallback must preserve preview mode');page.off('request',collectPreviewProgress);assert.deepEqual((await(await page.request.get(base+'/api/library/documents/1')).json()).progress,progressBeforeRecovery);await page.unroute(filePath);
     // Header-only success is insufficient: a one-byte probe must actually contain one byte.
     await page.route(filePath,route=>route.fulfill({status:206,contentType:'application/pdf',headers:{'Content-Range':`bytes 0-0/${pdf.length}`,'Content-Length':'2'},body:pdf.subarray(0,2)}));
     await page.goto(base+'/#/library/read/1');await page.locator('#pdf-pages>.reader-load-error').waitFor();assert.match(await page.locator('#pdf-pages').textContent(),/字节数不正确/);await page.goto(base+'/#/');await page.locator('#home-view').waitFor();await page.unroute(filePath);

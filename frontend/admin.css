@@ -75,7 +75,7 @@
 @media(max-width:800px) {
  #admin-folders-toggle { display:inline-flex; }.admin-library-browser { display:flex;flex-direction:column;height:auto;min-height:400px; }.admin-library-folders { display:none;border-right:0;border-bottom:1px solid var(--line);max-height:45dvh; }.admin-library-folders.open { display:block; }
  .admin-library-content { gap:12px;padding:12px; }.admin-library-heading { padding:20px 0; }.admin-library-heading h1 { font-size:26px; }.admin-library-heading .admin-actions { gap:6px; }.admin-library-heading .button { padding:8px 10px; }
- .admin-library-scroll { max-height:65dvh;min-height:200px; }.admin-library-table th:first-child { width:28px; }.admin-library-table .library-format-column { width:50px; }.admin-library-table th:last-child { width:106px; }.admin-library-table td,.admin-library-table th { padding:10px 4px; }.admin-document-actions .button { padding:7px 8px; }.admin-document-actions .button+.button { margin-left:4px; }
+ .admin-library-scroll { max-height:65dvh;min-height:200px; }.admin-library-table th:first-child { width:28px; }.admin-library-table .library-format-column { width:62px; }.admin-library-table th:last-child { width:106px; }.admin-library-table td,.admin-library-table th { padding:10px 4px; }.admin-document-actions .button { padding:7px 8px; }.admin-document-actions .button+.button { margin-left:4px; }
  .admin-dialog { padding:20px; }.admin-library-toolbar form { max-width:none; }.admin-library-table .library-document-title { font-size:15px; }
 }
 
