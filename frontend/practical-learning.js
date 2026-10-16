@@ -531,7 +531,7 @@ function createGitSetup(project){
 function createCourseCatalog(project,state){
  const groups=courseCatalog[project.id],root=el('section',null,'practical-course-catalog');root.setAttribute('aria-label',project.title+'课程目录');
  let number=0;const lessons=groups.flatMap((group,index)=>group.lessons.map(lesson=>({title:lesson[0],path:lesson[1],code:lesson[2],kind:lesson[3]||'blob',group:index,number:++number})));
- const toolbar=el('div',null,'practical-catalog-toolbar'),heading=el('h4','课程目录'),count=el('span','共 '+lessons.length+' 课','practical-course-total'),search=el('input');search.type='search';search.placeholder='搜索课程';search.setAttribute('aria-label','搜索本项目课程');search.value=state.query;heading.append(count);toolbar.append(heading,search);root.append(toolbar);
+ const toolbar=el('div',null,'practical-catalog-toolbar'),heading=el('h3','课程目录'),count=el('span','共 '+lessons.length+' 课','practical-course-total'),search=el('input');search.type='search';search.placeholder='搜索课程';search.setAttribute('aria-label','搜索本项目课程');search.value=state.query;heading.append(count);toolbar.append(heading,search);root.append(toolbar);
  const actions=el('div',null,'practical-catalog-actions');actions.append(createGitSetup(project),link('GitHub 仓库',project.repository,'forward'));root.append(actions);
  const grid=el('div',null,'practical-catalog-grid'),nav=el('nav',null,'practical-course-groups');nav.setAttribute('aria-label','课程分组');
  const panel=el('div',null,'practical-lesson-panel'),result=el('p',null,'practical-catalog-result'),list=el('ol',null,'practical-lesson-list');result.setAttribute('role','status');result.setAttribute('aria-live','polite');list.id='practical-course-lessons';list.setAttribute('aria-label','课程列表');panel.append(result,list);grid.append(nav,panel);root.append(grid);
@@ -555,8 +555,7 @@ function createCourseCatalog(project,state){
 function link(text,url,glyph){const node=el('a',text,'button compact');node.href=url;node.target='_blank';node.rel='noopener noreferrer';const icon=el('span');icon.dataset.icon=glyph;icon.setAttribute('aria-hidden','true');node.append(icon);return node;}
 
 export function createPracticalLearningRoute(initial){
- const root=el('section',null,'practical-learning-route');root.id='practical-learning-route';root.setAttribute('aria-labelledby','practical-route-title');
- const title=el('h2','实战学习路线');title.id='practical-route-title';root.append(title);
+ const root=el('section',null,'practical-learning-route');root.id='practical-learning-route';root.setAttribute('aria-label','实战学习路线');
  const map=el('div',null,'practical-route-map'),ns='http://www.w3.org/2000/svg';map.setAttribute('role','group');map.setAttribute('aria-label','实战学习路线图');
  const make=(tag,attrs={},text)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);if(text!==undefined)node.textContent=text;return node;};
  const svg=make('svg',{viewBox:'0 0 1080 226',class:'analysis-map-canvas practical-route-canvas','aria-label':'主线从左向右：Python 基础、微软机器学习、动手学深度学习、Happy-LLM。AiLearning 与深入浅出 PyTorch 为虚线连接的配套练习。',role:'group'});
@@ -591,14 +590,14 @@ export function createPracticalLearningRoute(initial){
   const project=projects.find(item=>item.id===id)||projects[0];if(selected===project.id)return;selected=project.id;
   for(const [key,node]of buttons){const active=key===selected;node.classList.toggle('selected',active);node.setAttribute('aria-pressed',String(active));}
   detail.dataset.project=selected;renderProject(project);
-  if(updateUrl){const params=new URLSearchParams(location.hash.split('?')[1]||'');params.set('practice',selected);history.replaceState(history.state,'','#/apps/math-to-ai?'+params);}
+  if(updateUrl){const params=new URLSearchParams(location.hash.split('?')[1]||'');params.set('practice',selected);history.replaceState(history.state,'','#/apps/math-to-ai/practice?'+params);}
  }
  function renderProject(project){
   detail.replaceChildren();
-  const heading=el('div',null,'practical-project-heading'),name=el('h3',project.title);name.id='practical-project-title';detail.setAttribute('aria-labelledby',name.id);heading.append(name,el('span',project.phase,'practical-project-phase'));
+  const heading=el('div',null,'practical-project-heading'),name=el('h2',project.title);name.id='practical-project-title';detail.setAttribute('aria-labelledby',name.id);heading.append(name,el('span',project.phase,'practical-project-phase'));
   detail.append(heading);let state=catalogStates.get(project.id);if(!state){state={group:0,query:''};catalogStates.set(project.id,state);}
-  const description=el('p',project.description,'practical-project-description'),content=el('div',null,'practical-project-content'),topics=el('div'),list=el('ul');topics.append(el('h4','学习内容'));for(const text of project.topics)list.append(el('li',text));topics.append(list);
-  const target=el('div');target.append(el('h4','开始前'),el('p',project.prior),el('h4','完成目标'),el('p',project.goal));content.append(topics,target);
+  const description=el('p',project.description,'practical-project-description'),content=el('div',null,'practical-project-content'),topics=el('div'),list=el('ul');topics.append(el('h3','学习内容'));for(const text of project.topics)list.append(el('li',text));topics.append(list);
+  const target=el('div');target.append(el('h3','开始前'),el('p',project.prior),el('h3','完成目标'),el('p',project.goal));content.append(topics,target);
   const overview=el('details',null,'practical-project-overview');overview.append(el('summary','学习说明'),content,el('p',project.focus));detail.append(description,createCourseCatalog(project,state),overview);mountIcons();
  }
  choose(initial);return root;

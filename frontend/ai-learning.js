@@ -4,13 +4,24 @@ import { createPracticalLearningRoute } from './practical-learning.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
+function pageHeading(practical,course){
+ const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1',practical?'实战学习路线':'数学到人工智能'));
+ const navigation=el('nav',null,'ai-study-pages');navigation.setAttribute('aria-label','学习页面');
+ for(const [key,label,path]of [['courses','课程学习','#/apps/math-to-ai'],['practice','实战学习路线','#/apps/math-to-ai/practice']]){
+  const active=(key==='practice')===practical,item=el(active?'span':'a',label,'button compact');item.dataset.aiPage=key;
+  if(active)item.setAttribute('aria-current','page');else{item.href=path+'?course='+encodeURIComponent(course);const icon=el('span');icon.dataset.icon='forward';icon.setAttribute('aria-hidden','true');item.append(icon);}navigation.append(item);
+ }
+ header.append(navigation);return header;
+}
 export function createAiLearning({api,write,planButton}){
  const root=document.getElementById('ai-learning-view'),labs=createLearningLabs({api,write});let version=0,stop=null,reading=false;
  function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
  async function navigate(hash){close();root.hidden=false;const mine=version,params=new URLSearchParams(hash.split('?')[1]||''),course=params.get('course')||'calculus',match=hash.match(/^#\/apps\/math-to-ai\/read\/(\d+)/);
   if(match){root.hidden=true;reading=true;document.getElementById('reader-view').hidden=false;document.body.classList.add('reading-page');const {openReader}=await import('./reader.js');if(mine!==version)return;const control=openReader(Number(match[1]),{api,write,basePath:'/api/library/documents',backHref:'#/apps/math-to-ai?course='+encodeURIComponent(course),backLabel:'← 返回数学到人工智能'});stop=control.close;await control.ready;return;}
-  root.replaceChildren(el('p','正在加载学习路线…','muted'));
-  try{const [{courses}]=await Promise.all([api('/api/ai-learning'),labs.load()]);if(mine!==version)return;root.replaceChildren();const header=el('div',null,'ai-study-heading'),back=el('a','← 应用工作台','back-link');back.href='#/';header.append(back,el('h1','数学到人工智能'));root.append(header);
+  const practical=hash.split('?')[0]==='#/apps/math-to-ai/practice';root.setAttribute('aria-label',practical?'实战学习路线':'数学到人工智能');root.replaceChildren(pageHeading(practical,course));mountIcons();
+  if(practical){root.append(createPracticalLearningRoute(params.get('practice')));return;}
+  const loading=el('p','正在加载学习路线…','muted');root.append(loading);
+  try{const [{courses}]=await Promise.all([api('/api/ai-learning'),labs.load()]);if(mine!==version)return;loading.remove();
    const chosen=courses.find(c=>c.slug===course)||courses[0];if(!chosen){root.append(el('p','课程暂不可用','muted'));return;}
    const detail=el('section',null,'ai-study-detail');let selected='';
    function selectCourse(slug,updateUrl=false){const course=courses.find(c=>c.slug===slug);if(!course||selected===slug)return;selected=slug;
@@ -18,11 +29,11 @@ export function createAiLearning({api,write,planButton}){
     detail.replaceChildren(el('h2',course.name));const context=el('div',null,'ai-study-context'),topics=el('div'),list=el('ul');topics.append(el('h3','学习重点'));for(const text of course.topics.split('；'))list.append(el('li',text));topics.append(list);const practice=el('div');practice.append(el('h3','动手练习'),el('p',course.practice));context.append(topics,practice);detail.append(context);
     detail.append(el('h3','课程教材'));for(const book of course.books)detail.append(bookRow(book,`#/apps/math-to-ai/read/${book.id}?course=${course.slug}`,planButton));if(!course.books.length)detail.append(el('p','暂无关联教材','muted'));
     const experiments=labs.section(course);if(experiments)detail.append(experiments);
-    if(updateUrl){const params=new URLSearchParams(location.hash.split('?')[1]||'');params.set('course',slug);history.replaceState(history.state,'','#/apps/math-to-ai?'+params);}mountIcons();
+    if(updateUrl){const params=new URLSearchParams(location.hash.split('?')[1]||'');params.set('course',slug);history.replaceState(history.state,'','#/apps/math-to-ai?'+params);}root.querySelector('[data-ai-page="practice"]').href='#/apps/math-to-ai/practice?course='+encodeURIComponent(slug);mountIcons();
    }
-   root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail,createPracticalLearningRoute(params.get('practice')));selectCourse(chosen.slug);
+   root.append(aiRoadmap(courses,chosen.slug,slug=>selectCourse(slug,true)),detail);selectCourse(chosen.slug);
 
-  }catch(error){if(mine===version)root.replaceChildren(el('p',error.message||'加载失败，请刷新重试。','notice error'));}
+  }catch(error){if(mine===version){loading.remove();root.append(el('p',error.message||'加载失败，请刷新重试。','notice error'));}}
  }
  return {navigate,close};
 }
