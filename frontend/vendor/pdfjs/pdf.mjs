@@ -24,6 +24,8 @@
  * pdfjsVersion = 5.6.205
  * pdfjsBuild = ada343803
  */
+/* Local modification (math-research-platform): use explicit cache reads/writes
+ * instead of requiring native Map/WeakMap.getOrInsertComputed. */
 /******/ // The require scope
 /******/ var __webpack_require__ = {};
 /******/ 
@@ -49,6 +51,14 @@
 var __webpack_exports__ = {};
 
 ;// ./src/shared/util.js
+function getCachedValue(map, key, create) {
+  if (map.has(key)) {
+    return map.get(key);
+  }
+  const value = create(key);
+  map.set(key, value);
+  return value;
+}
 const isNodeJS = typeof process === "object" && process + "" === "[object process]" && !process.versions.nw && !(process.versions.electron && process.type && process.type !== "browser");
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 const LINE_FACTOR = 1.35;
@@ -6913,7 +6923,7 @@ class AnnotationStorage {
         if (key === "type") {
           continue;
         }
-        const counters = map.getOrInsertComputed(key, makeMap);
+        const counters = getCachedValue(map, key, makeMap);
         counters.set(val, (counters.get(val) ?? 0) + 1);
       }
     }
@@ -7046,7 +7056,7 @@ class BBoxReader {
     return (this.#coords[i * 4 + 3] + 1) / 256;
   }
 }
-const ensureDebugMetadata = (map, key) => map?.getOrInsertComputed(key, () => ({
+const ensureDebugMetadata = (map, key) => map == null ? undefined : getCachedValue(map, key, () => ({
   dependencies: new Set(),
   isRenderingOperation: false
 }));
@@ -11047,7 +11057,7 @@ class CanvasGraphics {
     if ((img.bitmap || img.data) && img.count > 1) {
       const mainKey = img.bitmap || img.data.buffer;
       cacheKey = JSON.stringify(isPatternFill ? currentTransform : [currentTransform.slice(0, 4), fillColor]);
-      cache = this._cachedBitmapsMap.getOrInsertComputed(mainKey, makeMap);
+      cache = getCachedValue(this._cachedBitmapsMap, mainKey, makeMap);
       const cachedImage = cache.get(cacheKey);
       if (cachedImage && !isPatternFill) {
         const offsetX = Math.round(Math.min(currentTransform[0], currentTransform[2]) + currentTransform[4]);
@@ -14181,7 +14191,7 @@ class PagesMapper {
     const usedIds = new Map();
     for (let i = 0, ii = extractedPageNumbers.length; i < ii; i++) {
       const id = this.getPageId(extractedPageNumbers[i]);
-      const usedPageNumbers = usedIds.getOrInsertComputed(id, makeArr);
+      const usedPageNumbers = getCachedValue(usedIds, id, makeArr);
       usedPageNumbers.push(i + 1);
     }
     return this.getPageMappingForSaving(usedIds);
@@ -14219,7 +14229,7 @@ class PDFObjects {
   #objs = new Map();
   get(objId, callback = null) {
     if (callback) {
-      const obj = this.#objs.getOrInsertComputed(objId, dataObj);
+      const obj = getCachedValue(this.#objs, objId, dataObj);
       obj.promise.then(() => callback(obj.data));
       return null;
     }
@@ -14242,7 +14252,7 @@ class PDFObjects {
     return true;
   }
   resolve(objId, data = null) {
-    const obj = this.#objs.getOrInsertComputed(objId, dataObj);
+    const obj = getCachedValue(this.#objs, objId, dataObj);
     if (obj.data !== INITIAL_DATA) {
       throw new Error(`Object already resolved ${objId}.`);
     }
@@ -15127,7 +15137,7 @@ class PDFPageProxy {
     } = intentArgs;
     this.#pendingCleanup = false;
     optionalContentConfigPromise ||= this._transport.getOptionalContentConfig(renderingIntent);
-    const intentState = this._intentStates.getOrInsertComputed(cacheKey, makeObj);
+    const intentState = getCachedValue(this._intentStates, cacheKey, makeObj);
     if (intentState.streamReaderCancelTimeout) {
       clearTimeout(intentState.streamReaderCancelTimeout);
       intentState.streamReaderCancelTimeout = null;
@@ -15246,7 +15256,7 @@ class PDFPageProxy {
       }
     }
     const intentArgs = this._transport.getRenderingIntent(intent, annotationMode, printAnnotationStorage, isEditing, true);
-    const intentState = this._intentStates.getOrInsertComputed(intentArgs.cacheKey, makeObj);
+    const intentState = getCachedValue(this._intentStates, intentArgs.cacheKey, makeObj);
     let opListTask;
     if (!intentState.opListReadCapability) {
       opListTask = Object.create(null);
@@ -15715,7 +15725,7 @@ class WorkerTransport {
     this.#pagePromises.set(_pageIndex, Promise.resolve(page));
   }
   #cacheSimpleMethod(name, data = null) {
-    return this.#methodPromises.getOrInsertComputed(name, () => this.messageHandler.sendWithPromise(name, data));
+    return getCachedValue(this.#methodPromises, name, () => this.messageHandler.sendWithPromise(name, data));
   }
   #onProgress({
     loaded,
@@ -16195,7 +16205,7 @@ class WorkerTransport {
   }
   getMetadata() {
     const name = "GetMetadata";
-    return this.#methodPromises.getOrInsertComputed(name, () => this.messageHandler.sendWithPromise(name, null).then(results => ({
+    return getCachedValue(this.#methodPromises, name, () => this.messageHandler.sendWithPromise(name, null).then(results => ({
       info: results[0],
       metadata: results[1] ? new Metadata(results[1]) : null,
       contentDispositionFilename: this.#fullReader?.filename ?? null,
@@ -19970,7 +19980,7 @@ class AnnotationLayer {
       if (!isPopupAnnotation) {
         this.#elements.push(element);
         if (data.popupRef) {
-          popupToElements.getOrInsertComputed(data.popupRef, makeArr).push(element);
+          getCachedValue(popupToElements, data.popupRef, makeArr).push(element);
         }
       }
       const rendered = element.render();

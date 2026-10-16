@@ -24,6 +24,8 @@
  * pdfjsVersion = 5.6.205
  * pdfjsBuild = ada343803
  */
+/* Local modification (math-research-platform): use explicit cache reads/writes
+ * instead of requiring native Map/WeakMap.getOrInsertComputed. */
 /******/ // The require scope
 /******/ var __webpack_require__ = {};
 /******/ 
@@ -49,6 +51,14 @@
 var __webpack_exports__ = {};
 
 ;// ./src/shared/util.js
+function getCachedValue(map, key, create) {
+  if (map.has(key)) {
+    return map.get(key);
+  }
+  const value = create(key);
+  map.set(key, value);
+  return value;
+}
 const isNodeJS = typeof process === "object" && process + "" === "[object process]" && !process.versions.nw && !(process.versions.electron && process.type && process.type !== "browser");
 const FONT_IDENTITY_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
 const LINE_FACTOR = 1.35;
@@ -1722,7 +1732,7 @@ function getNewAnnotationsMap(annotationStorage) {
     if (!key.startsWith(AnnotationEditorPrefix)) {
       continue;
     }
-    newAnnotationsByPage.getOrInsertComputed(value.pageIndex, makeArr).push(value);
+    getCachedValue(newAnnotationsByPage, value.pageIndex, makeArr).push(value);
   }
   return newAnnotationsByPage.size > 0 ? newAnnotationsByPage : null;
 }
@@ -39670,7 +39680,7 @@ class StructTreeRoot {
     for (const element of elements) {
       if (element.structTreeParentId) {
         const id = parseInt(element.structTreeParentId.split("_mc")[1], 10);
-        idToElements.getOrInsertComputed(id, makeArr).push(element);
+        getCachedValue(idToElements, id, makeArr).push(element);
       }
     }
     const id = pageDict.get("StructParents");
@@ -42113,7 +42123,7 @@ class FontFinder {
   addPdfFont(pdfFont) {
     const cssFontInfo = pdfFont.cssFontInfo;
     const name = cssFontInfo.fontFamily;
-    const font = this.fonts.getOrInsertComputed(name, makeObj);
+    const font = getCachedValue(this.fonts, name, makeObj);
     this.defaultFont ??= font;
     let property = "";
     const fontWeight = parseFloat(cssFontInfo.fontWeight);
@@ -42561,7 +42571,7 @@ function searchNode(root, container, expr, dotDotAllowed = true, useCache = true
       }
       let children, cached;
       if (useCache) {
-        cached = somCache.getOrInsertComputed(node, makeMap);
+        cached = getCachedValue(somCache, node, makeMap);
         children = cached.get(cacheName);
       }
       if (!children) {
@@ -52080,7 +52090,7 @@ class Builder {
       value
     } of prefixes) {
       const namespace = this._searchNamespace(value);
-      this._namespacePrefixes.getOrInsertComputed(prefix, makeArr).push(namespace);
+      getCachedValue(this._namespacePrefixes, prefix, makeArr).push(namespace);
     }
   }
   _getNamespaceToUse(prefix) {
@@ -59548,7 +59558,7 @@ class PDFDocument {
     if (parentRef && !field.has("Parent") && isName(field.get("Subtype"), "Widget")) {
       orphanFields.put(fieldRef, parentRef);
     }
-    promises.getOrInsertComputed(name, makeArr).push(AnnotationFactory.create(xref, fieldRef, annotationGlobals, null, true, orphanFields, null, null).then(annotation => annotation?.getFieldObject()).catch(function (reason) {
+    getCachedValue(promises, name, makeArr).push(AnnotationFactory.create(xref, fieldRef, annotationGlobals, null, true, orphanFields, null, null).then(annotation => annotation?.getFieldObject()).catch(function (reason) {
       warn(`#collectFieldObjects: "${reason}".`);
       return null;
     }));
@@ -62008,7 +62018,7 @@ class PDFEditor {
         }
         let resources = value.dict.getRaw("Resources");
         if (!resources) {
-          const newResourcesRef = await resourcesValuesCache.getOrInsertComputed(acroFormDefaultResources, () => this.#cloneObject(acroFormDefaultResources, xref));
+          const newResourcesRef = await getCachedValue(resourcesValuesCache, acroFormDefaultResources, () => this.#cloneObject(acroFormDefaultResources, xref));
           value.dict.set("Resources", newResourcesRef);
           continue;
         }
@@ -62019,7 +62029,7 @@ class PDFEditor {
             if (resValue instanceof Ref) {
               newResValue = await this.#collectDependencies(resValue, true, xref);
             } else if (resValue instanceof Dict || resValue instanceof BaseStream || Array.isArray(resValue)) {
-              newResValue = await resourcesValuesCache.getOrInsertComputed(resValue, () => this.#cloneObject(resValue, xref));
+              newResValue = await getCachedValue(resourcesValuesCache, resValue, () => this.#cloneObject(resValue, xref));
             }
             resources.set(resKey, newResValue);
           }
