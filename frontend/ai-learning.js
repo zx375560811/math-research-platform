@@ -5,7 +5,7 @@ const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.te
 const option=(text,value)=>{const n=el('option',text);n.value=value;return n;};
 function bookRow(book,href,planButton){const row=el('article',null,'ai-study-book'),info=el('div');info.append(el('h3',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));const link=el('a',book.progress?'继续学习':'开始阅读','button compact');link.href=href;const actions=el('div',null,'study-book-actions');actions.append(link,planButton(book,'math-to-ai'));row.append(info,actions);return row;}
 function pageHeading(page){
- const entry=page==='entry',header=el('div',null,'ai-study-heading'),back=el('a',entry?'← 应用工作台':'← 学习入口','back-link'),title=el('h1',entry?'数学到人工智能':page==='practice'?'实战学习':'理论学习');back.href=entry?'#/':'#/apps/math-to-ai';if(entry)title.className='sr-only';header.append(back,title);return header;
+ const entry=page==='entry',header=el('div',null,'ai-study-heading'),back=el('a',entry?'← 应用工作台':'← 学习入口','back-link'),title=el('h1',entry?'数学到人工智能':page==='practice'?'实战学习':'理论学习');back.href=entry?'#/':'#/apps/math-to-ai';if(entry)header.classList.add('ai-entry-heading');header.append(back,title);return header;
 }
 function learningChoices(course,practice){
  const choices=el('div',null,'ai-learning-choices');
