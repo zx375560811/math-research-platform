@@ -70,7 +70,7 @@ export function createDiscussion({api,write}) {
       const data=await get('/api/discussions?'+new URLSearchParams({category,scope,q,offset}));if(version!==generation)return;info.textContent='';
       for(const topic of data.topics){
         const row=link('','#/discussions/'+topic.id,'discussion-row'),body=el('div',null,'discussion-row-body'),labels=el('div',null,'discussion-row-labels');labels.append(badge(topic.category));if(topic.pinned)labels.append(el('span','置顶','discussion-label'));if(topic.locked)labels.append(el('span','已关闭回复','discussion-label'));
-        const h2=el('h2',topic.title),footer=el('div',null,'discussion-card-footer');h2.id='discussion-card-title-'+topic.id;footer.id='discussion-card-meta-'+topic.id;row.setAttribute('aria-labelledby',h2.id);row.setAttribute('aria-describedby',footer.id);row.title=topic.title;
+        const h2=el('h2',topic.title),footer=el('div',null,'discussion-card-footer');h2.id='discussion-card-title-'+topic.id;footer.id='discussion-card-meta-'+topic.id;row.setAttribute('aria-labelledby',h2.id);row.setAttribute('aria-describedby',footer.id);row.title=topic.title;row.dataset.category=topic.category;
         const forward=glyph('forward');forward.className='discussion-card-open';labels.append(forward);body.append(labels,h2);
         const replies=el('span',null,'discussion-reply-count');replies.append(glyph('chat'),el('strong',String(topic.reply_count)),el('span','回复'));footer.append(metadata(topic),replies);row.append(body,footer);list.append(row);
       }
