@@ -81,10 +81,23 @@ updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')), PRIMARY
 CREATE TABLE IF NOT EXISTS study_plan (
 username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
 document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-source TEXT NOT NULL CHECK(source IN ('library','mathematics','series','math-to-ai')),
+source TEXT NOT NULL CHECK(source IN ('library','mathematics','series','math-to-ai','competition')),
 completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)),
 added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
 PRIMARY KEY(username,document_id));
+CREATE TABLE IF NOT EXISTS competition_courses (
+slug TEXT PRIMARY KEY, name TEXT NOT NULL, phase TEXT NOT NULL,
+topics TEXT NOT NULL, practice TEXT NOT NULL, sort_order INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS competition_books (
+course TEXT NOT NULL REFERENCES competition_courses(slug) ON DELETE CASCADE,
+document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(course,document_id));
+INSERT OR IGNORE INTO competition_courses VALUES
+('analysis','数学分析','foundation','极限与连续：用定义、等价无穷小和数列方法分析收敛；微分与中值定理：构造辅助函数，运用 Taylor 展开与极值条件；积分与级数：判断收敛，掌握估计、换元与逐项运算条件；多元分析：偏导与可微、重积分、含参积分与一致收敛','先按教材补齐定义与定理条件，再做极限、中值定理、积分和级数专题。每题先独立写完整证明，核对答案后重写关键步骤。',10),
+('algebra','高等代数','foundation','多项式：整除、根、重因式与因式分解；矩阵与方程组：行列式、秩、线性相关与解空间；向量空间与线性变换：基、维数、核与像、不变子空间；特征值与二次型：相似、对角化、内积与正定性','从计算题进入结构证明，优先练习秩与维数、线性变换和矩阵多项式。用低阶例子检查猜想，再给一般情形的证明，不能以算例代替证明。',20),
+('geometry','解析几何','foundation','向量与坐标：数量积、向量积及坐标变换；直线与平面：位置关系、夹角、距离和投影；二次曲线与曲面：标准形、几何性质与截面；代数化处理：在几何条件和方程之间转化','先画示意图并选合适坐标系，再列方程计算。重点练习直线与平面、二次曲面及坐标变换，完成后用几何意义核对结果。',30),
+('training','专题训练','practice','分析专题：极限估计、中值定理、积分不等式与级数；代数专题：矩阵秩、特征值、线性空间与多项式；几何专题：空间位置、二次曲面与坐标变换；复盘方法：区分概念缺漏、方法选择、计算失误与证明漏洞','每次只选一个专题，先独立完成一组题，再对照解析归纳共同方法。把错题写成“卡在哪里、为什么、如何改”，隔一段时间不看答案重做。',40),
+('past-papers','历年真题','practice','分卷练习：选数学专业类初赛试卷，核对届次与组别；限时整卷：按试卷标明的时间独立完成，记录未完成题；对照解析：检查定理条件、关键推理与表达完整性；回到专题：把失分点对应回三科基础，复习后重做','先做较早的真题熟悉题型，再留近年的试卷检验备赛效果。第一遍独立限时做，第二遍对照解析补全，第三遍重做错题；不把打开试卷当作完成训练。',50);
 CREATE TABLE IF NOT EXISTS document_marks (
 id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
 document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE, page INTEGER NOT NULL CHECK(page>0),

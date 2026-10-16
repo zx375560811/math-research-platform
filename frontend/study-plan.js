@@ -1,6 +1,6 @@
 import { mountIcons } from './icons.js';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
-const sources={library:'文档库',mathematics:'数学与应用数学',series:'系列书籍','math-to-ai':'数学到人工智能'};
+const sources={library:'文档库',mathematics:'数学与应用数学',series:'系列书籍','math-to-ai':'数学到人工智能',competition:'数学竞赛'};
 const glyph=name=>{const n=el('span');n.dataset.icon=name;n.setAttribute('aria-hidden','true');return n;};
 
 export function createStudyPlan({api,write}) {

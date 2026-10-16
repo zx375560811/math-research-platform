@@ -54,7 +54,7 @@ public class StudyPlanController {
     public record Entry(String source,Boolean completed) {}
     @PutMapping("/{document}")
     public Map<String,Object> add(Authentication user,@PathVariable long document,@RequestBody Entry value) throws SQLException {
-        if(value==null||value.source()==null||!Set.of("library","mathematics","series","math-to-ai").contains(value.source())) throw new ApiProblem(400,"invalid_query");
+        if(value==null||value.source()==null||!Set.of("library","mathematics","series","math-to-ai","competition").contains(value.source())) throw new ApiProblem(400,"invalid_query");
         try(var db=library.connect(false)) {
             try(var q=db.prepareStatement("SELECT 1 FROM documents WHERE id=?")) { q.setLong(1,document);try(var row=q.executeQuery()){if(!row.next())throw new ApiProblem(404,"not_found");} }
             try(var q=db.prepareStatement("INSERT OR IGNORE INTO study_plan(username,document_id,source) VALUES(?,?,?)")) {

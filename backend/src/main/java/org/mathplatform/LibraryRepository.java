@@ -70,6 +70,13 @@ public class LibraryRepository {
                         for (String sql : new String(courses.readAllBytes(), StandardCharsets.UTF_8).split(";")) if (!sql.isBlank()) statement.execute(sql);
                     }
                 }
+                if (statement.executeUpdate("INSERT OR IGNORE INTO account_migrations(name) VALUES('study_plan_competition_v1')") == 1) {
+                    // SQLite cannot extend a CHECK in place. Preserve every personal entry atomically.
+                    statement.execute("CREATE TABLE study_plan_next(username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,source TEXT NOT NULL CHECK(source IN ('library','mathematics','series','math-to-ai','competition')),completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)),added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),PRIMARY KEY(username,document_id))");
+                    statement.execute("INSERT INTO study_plan_next SELECT username,document_id,source,completed,added_at FROM study_plan");
+                    statement.execute("DROP TABLE study_plan");
+                    statement.execute("ALTER TABLE study_plan_next RENAME TO study_plan");
+                }
                 statement.execute("COMMIT");
             } catch (SQLException | IOException failure) { statement.execute("ROLLBACK"); throw failure; }
             CollectionRepository.backfill(connection);

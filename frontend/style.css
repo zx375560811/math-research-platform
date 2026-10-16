@@ -1044,9 +1044,9 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 .ai-study-book { display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 0;border-top:1px solid var(--line); }.ai-study-book>div:first-child { min-width:0; }.ai-study-book h3 { margin:0;font-size:16px;overflow-wrap:anywhere; }.ai-study-book p { margin:4px 0 0;font-size:14px; }.ai-study-book>a { flex-shrink:0; }
 .ai-study-detail>.ai-study-book { padding:16px 18px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft-blue); }
 .ai-admin-courses { display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px; }.ai-admin-courses [aria-pressed=true] { background:var(--blue);color:white;border-color:var(--blue); }
-.admin-page #ai-learning-view .series-admin-associate { display:flex;gap:12px;flex-wrap:wrap; }
-.admin-page #ai-learning-view .series-admin-associate select { flex:1 1 220px;width:0; }
-.admin-page #ai-learning-view .series-member-actions input { width:80px; }
+.admin-page :is(#ai-learning-view,#competition-view) .series-admin-associate { display:flex;gap:12px;flex-wrap:wrap; }
+.admin-page :is(#ai-learning-view,#competition-view) .series-admin-associate select { flex:1 1 220px;width:0; }
+.admin-page :is(#ai-learning-view,#competition-view) .series-member-actions input { width:80px; }
 @media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-detail { padding:18px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; } }
 /* Workbench: the five applications are the entire page content. */
 #home-view { min-height:calc(100svh - 168px);display:grid;align-content:center;padding:8px 0; }
@@ -1144,3 +1144,50 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 .companion-source { margin-top:12px;color:var(--muted);font-size:13px;overflow-wrap:anywhere; }.companion-source summary { cursor:pointer;width:fit-content; }.companion-source>span { display:block;margin:8px 0;white-space:pre-wrap; }.companion-source a { color:var(--blue);text-decoration:underline; }.companion-source p { margin:6px 0 0; }.lab-load-error { padding:16px;background:var(--soft-blue);border-radius:10px; }
 @media(max-width:1050px) { .companion-grid { grid-template-columns:185px minmax(0,1fr); }.companion-detail { padding:16px; }.textbook-companion { padding:16px; } }
 @media(max-width:760px) { .companion-heading { flex-wrap:wrap;gap:6px; }.companion-grid { grid-template-columns:minmax(0,1fr); }.companion-chapters { display:flex;max-height:none;gap:6px;overflow-x:auto; }.companion-chapter { flex:0 0 165px;margin:0; }.companion-chapter small { white-space:nowrap; }.companion-detail { padding:16px 12px; }.companion-chapter-heading { gap:8px; }.companion-completion { margin-top:5px; }.companion-tools .button { flex:1 1 auto; }.companion-code pre { font-size:13px; }.companion-chapter-heading h4 { font-size:17px; } }
+
+/* Competition application: preserve the course-map world and shared reading controls. */
+#competition-view { min-width:0; }
+.competition-heading { display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0 22px; }
+.competition-heading>div { display:flex;align-items:center;gap:16px;flex-wrap:wrap; }
+.competition-heading h1 { margin:0;font-size:28px;line-height:1.35; }
+.competition-scope,.competition-phase { font-size:14px;color:#4d5f83;background:#eaf0fb;border-radius:6px;padding:4px 9px; }
+.competition-source { font-size:14px;color:#3d59a6;text-underline-offset:4px; }
+.competition-map { background:white;border:1px solid var(--line);border-radius:16px;padding:14px;overflow-x:auto;margin-bottom:20px;scrollbar-width:thin;scrollbar-color:#9baaca transparent; }
+.competition-map-canvas { display:block;width:100%;max-width:1080px;min-width:940px;margin:auto; }
+.competition-course { cursor:pointer;outline:none; }
+.competition-node-body { stroke:#a8bfea;stroke-width:1;stroke-opacity:.3;transition:stroke-opacity .2s,stroke-width .2s; }
+.competition-course:hover .competition-node-body { stroke-opacity:.9; }
+.competition-course.selected .competition-node-body { stroke:#dceaff;stroke-opacity:1;stroke-width:2; }
+.competition-course:focus-visible .competition-node-body { stroke:white;stroke-opacity:1;stroke-width:3; }
+.competition-node-title { fill:#fff;font:600 15px var(--font-sans,system-ui,sans-serif); }
+.competition-symbol { fill:#ecf3ff;font:italic 20px Georgia,serif; }
+.competition-detail { padding:22px 24px;background:white;border:1px solid var(--line);border-radius:16px; }
+.competition-detail-heading { display:flex;align-items:center;gap:14px;margin-bottom:18px; }
+.competition-detail-heading h2 { margin:0;font-size:22px; }
+.competition-context { display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px; }
+.competition-context h3,.competition-books>h3 { margin:0 0 10px;font-size:16px; }
+.competition-context ul { padding-left:20px;margin:0;font-size:16px;line-height:1.65; }
+.competition-context li+li { margin-top:4px; }
+.competition-context p { margin:0 0 12px;font-size:16px;line-height:1.65; }
+.competition-books { margin-top:22px;padding-top:18px;border-top:1px solid var(--line); }
+.competition-books .competition-book { display:flex;align-items:center;justify-content:space-between;gap:20px;background:#f6f8fe;border:1px solid var(--line);border-radius:12px;padding:14px 16px; }
+.competition-books .competition-book+.competition-book { margin-top:10px; }
+.competition-book>div:first-child { min-width:0; }.competition-book p { margin:4px 0 0;font-size:14px; }.competition-books h4 { margin:0;font-size:16px;overflow-wrap:anywhere; }
+.competition-books .button { height:36px;min-height:36px;padding:7px 10px;line-height:20px;font-size:14px;white-space:nowrap; }
+.competition-empty { margin:0;color:var(--muted);font-size:15px; }
+.competition-finals { margin-top:20px;border-top:1px solid var(--line);padding:16px 0;font-size:15px; }
+.competition-finals summary { width:fit-content;cursor:pointer;font-weight:600; }
+.competition-finals>div { padding-top:12px; }
+.competition-finals p { margin:0 0 10px;max-width:75ch; }
+.competition-finals .button { margin-right:16px; }
+#home-view .application-card.competition-application { background:#f7eee8;--module-ink:#86543c;border-color:#e9dacd; }
+.module-competition-orbits { fill:none;stroke:currentColor;stroke-width:1;opacity:.23; }
+.module-competition-triangle { fill:none;stroke:currentColor;stroke-width:1.8;opacity:.65; }
+.module-competition-core { fill:#f7eee8;stroke:currentColor;stroke-width:1.5; }
+.module-competition-mark { fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round; }
+.module-competition-points { fill:currentColor; }
+/* Six entries keep a balanced two-row workbench, with the existing artwork and interactions. */
+@media(min-width:1101px) { #home-view .application-card { grid-column:span 4;height:248px; }#home-view .application-card.mathematics-application,#home-view .application-card.library-application,#home-view .application-card.series-application,#home-view .application-card.study-plan-application,#home-view .application-card.ai-learning-application { grid-column:span 4;height:248px; } }
+@media(min-width:651px) and (max-width:1100px) { #home-view .application-card.competition-application { grid-column:span 3;height:220px; } }
+@media(max-width:650px) { .competition-heading { align-items:flex-start;flex-direction:column;gap:10px;margin-top:14px; }.competition-heading h1 { font-size:25px; }.competition-heading>div { gap:10px; }.competition-context { grid-template-columns:1fr;gap:20px; }.competition-detail { padding:18px; }.competition-map { padding:10px; }.competition-books .competition-book { gap:12px;align-items:flex-start;flex-wrap:wrap; }.competition-finals .competition-source { display:block;margin-top:12px; }#home-view .application-card.competition-application { grid-column:span 2;height:190px; } }
+@media(prefers-reduced-motion:reduce) { .competition-node-body { transition:none; } }

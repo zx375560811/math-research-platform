@@ -59,11 +59,12 @@ $('admin-ai-remove').addEventListener('click', () => action($('admin-ai-form'), 
   showAi(await write('/api/admin/ai/settings', { ...aiSettings, enabled: false, clear_key: true }, 'PUT')); message('默认密钥已删除，默认 API 已停用。');
 }));
 const adminAiStudy=createAdminAiLearning({api,write,message});
+const adminCompetition=createAdminAiLearning({api,write,message,rootId:"competition-view",endpoint:"/api/admin/competition",title:"数学竞赛 · 备赛资料",idPrefix:"competition-study-",materialLabel:"资料"});
 async function route() {
-  if (!state.ready) return; const view = ['ai-learning','series','books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
-  for (const name of ['ai-learning','series','documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
+  if (!state.ready) return; const view = ['competition','ai-learning','series','books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
+  for (const name of ['competition','ai-learning','series','documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;
   for (const link of document.querySelectorAll('[data-view]')) { if (link.dataset.view === view) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); }
-  try { if(view==='ai-learning')await adminAiStudy.load();else if(view==='series')await adminSeries.load();else if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
+  try { if(view==='competition')await adminCompetition.load();else if(view==='ai-learning')await adminAiStudy.load();else if(view==='series')await adminSeries.load();else if (view === 'documents') await loadDocuments(); else if (view === 'books') await loadBooks(); else if (view === 'ai') await loadAi(); else await loadInvitations(); } catch (error) { message(error.message, true); }
 }
 $('document-form').addEventListener('submit', event => { event.preventDefault(); action(event.currentTarget, async () => {
   const title = $('document-title').value.trim(), authors = $('document-authors').value.trim();

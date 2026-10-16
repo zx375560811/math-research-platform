@@ -13,6 +13,7 @@
 │  ├─ 方向介绍与中英文递进教材
 │  └─ PDF 学习：个人进度、高亮与笔记
 ├─ 后续研发应用（规划中）
+├─ 数学竞赛：大学生数学竞赛数学专业类备赛
 └─ 共享底层（不在公共网页提供管理功能）
    ├─ 文献元数据与 PDF
    ├─ 研究方向分类
@@ -83,6 +84,22 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 ```
 
 浏览器访问 `http://127.0.0.1:18080/`。
+
+## 数学竞赛
+
+入口 `#/apps/competition`，面向全国大学生数学竞赛数学专业类。数学分析、高等代数、解析几何并行补基础，再进入专题训练和历年真题；点击路线节点切换学习重点、训练方法及关联资料，刷新保留所选节点。决赛衔接说明单独折叠，不混入初赛三科路线。范围参考[第十八届竞赛通知（长江大学发布）](https://shuxue.yangtzeu.edu.cn/info/1064/3987.htm)，真题提供[中国科大公布的第三届数学类初赛原卷](https://ahmath.ustc.edu.cn/_upload/article/files/79/01/bd29feba4566b86a2a6cd0815cbd/51141bf5-e61a-466f-8d44-86dc77cc8b60.pdf)链接；未镜像原卷或虚构本地资料。
+
+管理员进入 `/admin#competition`，按上述五个节点从文献库目录搜索、关联教材或题集，可调整顺序、移除关联。关联共用原始文件，不额外复制 PDF/DJVU；移除关联保留文献、个人阅读记录和学习计划。用户可“开始学习 / 继续学习”或“加入计划”，共用原阅读器、进度、高亮、笔记和 AI。尚未关联时显示空状态。
+
+服务端启动自动创建 `competition_courses`、`competition_books`，并在事务内扩展旧学习计划的来源约束，保留已有记录。接口：登录后的 `GET /api/competition`；管理员的 `GET /api/admin/competition`、`POST /api/admin/competition/{course}/books`（`document_id`、可选 `sort_order`）、`PATCH /api/admin/competition/{course}/books/{document}`（`sort_order`）、`DELETE` 同一路径。写入要求管理员资格和 CSRF。
+
+此版本包含后端和数据库结构更新，服务器执行：
+
+```bash
+cd /opt/math-platform && git pull --ff-only && cd backend && ./mvnw -B package && systemctl restart math-platform
+```
+
+然后在浏览器按 Ctrl+F5。无需重新导入已有文献，在后台关联后即可出现在竞赛模块。回归检查：`python3 backend/tests/competition.py`，覆盖旧书单迁移、权限、CSRF、资料关联/排序/移除、共享进度、计划来源和重启保留。
 
 ## 数学到人工智能
 
