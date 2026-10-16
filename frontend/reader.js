@@ -4,9 +4,23 @@ import { getDocument, GlobalWorkerOptions, TextLayer } from './vendor/pdfjs/pdf.
 GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.mjs';
 const $ = id => document.getElementById(id);
 function el(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
-export function openReader(id, { api, write, basePath = '/api/learning/books', backHref, backLabel = '← 返回教材' }) {
+export function openReader(id, { api, write, basePath = '/api/learning/books', backHref, backLabel = '← 返回教材', fullLoad = false }) {
   const endpoint = `${basePath}/${id}`;
-  let closed = false, pdf = null, task = null, book = null, csrf = null;
+  let closed = false, pdf = null, task = null, book = null, csrf = null, successor = null;
+  const requests = new AbortController(), loadingWatchers = new Set();
+  let received = 0;
+  function activity() { for (const reset of loadingWatchers) reset(); }
+  function waiting(operation, stage) {
+    return new Promise((resolve, reject) => {
+      let timer;
+      const cleanup = () => { clearTimeout(timer); loadingWatchers.delete(reset); requests.signal.removeEventListener('abort', abort); };
+      const fail = error => { cleanup(); reject(error); };
+      const reset = () => { clearTimeout(timer); timer = setTimeout(() => { const error = new Error(stage + '超过 60 秒没有响应，请重试或选择整本加载。'); error.code = 'reader_timeout'; fail(error); }, 60000); };
+      const abort = () => fail(new DOMException('Reader closed', 'AbortError'));
+      Promise.resolve(operation).then(value => { cleanup(); resolve(value); }, fail);
+      if (requests.signal.aborted) abort(); else { requests.signal.addEventListener('abort', abort, { once: true }); loadingWatchers.add(reset); reset(); }
+    });
+  }
   let pageNumber = 1, zoom = 1, marks = [], selection = null, saveTimer, resizeTimer, scrollFrame, zoomTimer, pendingZoom = null;
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
@@ -39,7 +53,45 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   on(window, 'blur', stopVertical);
   on(divider, 'keydown', event => { if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return; event.preventDefault(); setNoteRatio(event.key === 'Home' ? .1 : event.key === 'End' ? .75 : noteRatio + (event.key === 'ArrowDown' ? .05 : -.05)); saveNoteRatio(); });
   setNoteRatio(noteRatio); $('reader-ask-ai').disabled = true;
-  const errorText = error => error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message;
+  const errorText = error => error?.message || '文件加载失败，请重试。';
+  function restart(whole = fullLoad) {
+    if (closed) return;
+    close(); successor = openReader(id, { api, write, basePath, backHref, backLabel, fullLoad: whole });
+  }
+  function failure(error, page = null, textOnly = false) {
+    if (closed) return;
+    const box = el('div', textOnly ? 'reader-load-error reader-text-error' : 'reader-load-error'); box.setAttribute('role', 'alert');
+    box.append(el('strong', '', textOnly ? '页面已显示，文字层加载失败' : page ? `第 ${page.number} 页加载失败` : '无法打开教材：'));
+    box.append(el('p', '', errorText(error)));
+    const actions = el('div', 'reader-load-actions'), retry = el('button', 'button compact', '重新加载'); retry.type = 'button'; retry.addEventListener('click', () => restart()); actions.append(retry);
+    if (book?.file_url && book.format !== 'djvu' && !fullLoad) { const whole = el('button', 'button compact', '整本加载'); whole.type = 'button'; whole.title = '下载完整 PDF 后阅读，耗时与内存用量可能增加'; whole.addEventListener('click', () => restart(true)); actions.append(whole); }
+    if (book?.file_url) { const download = el('a', 'button compact', '下载原文件'); download.href = book.file_url; download.download = ''; actions.append(download); }
+    box.append(actions);
+    if (page) { page.errorBox?.remove(); page.errorBox = box; page.frame.dataset.error = 'true'; page.frame.append(box); }
+    else stack.replaceChildren(box);
+    $('reader-status').textContent = '无法打开教材：' + errorText(error);
+  }
+  function loading(message) { const label = el('p', 'reader-loading', message); stack.replaceChildren(label); return label; }
+  async function wholeFile(response, label) {
+    if (!response.ok) throw new Error(`文件请求失败（HTTP ${response.status}），请检查登录状态和文件接口。`);
+    const reader = response.body.getReader(), chunks = []; let length = 0;
+    try { for (;;) { const part = await waiting(reader.read(), '下载 PDF'); if (part.done) break; chunks.push(part.value); length += part.value.length; activity(); if (!closed) label.textContent = `正在整本加载 PDF，已读取 ${(length / 1048576).toFixed(1)} MB…`; } }
+    catch (error) { reader.cancel().catch(() => {}); throw error; }
+    const data = new Uint8Array(length); let offset = 0; for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.length; } return data;
+  }
+  async function pdfSource(label) {
+    const response = await waiting(fetch(book.file_url, { credentials: 'same-origin', cache: 'no-store', signal: requests.signal, ...(!fullLoad ? { headers: { Range: 'bytes=0-0' } } : {}) }), '读取文件响应');
+    if (fullLoad || response.status === 200) return { data: await wholeFile(response, label) };
+    const range = /^bytes 0-0\/([1-9]\d*)$/.exec(response.headers.get('Content-Range') || '');
+    if (response.status !== 206 || !range) { response.body?.cancel().catch(() => {}); throw new Error(`文件分段响应异常（HTTP ${response.status}，Content-Range: ${response.headers.get('Content-Range') || '缺失'}），请重试或选择整本加载。`); }
+    // Verify the probe body as well as its headers before PDF.js starts requesting ranges.
+    const reader = response.body.getReader(); let length = 0;
+    try { for (;;) { const part = await waiting(reader.read(), '校验分段响应'); if (part.done) break; length += part.value.length; if (length > 1) break; } }
+    finally { reader.cancel().catch(() => {}); }
+    if (length !== 1) throw new Error('文件分段响应的字节数不正确，请选择整本加载。');
+    // PDF.js also checks the initial response headers before enabling byte ranges.
+    return { url: book.file_url, withCredentials: true, disableStream: true, disableAutoFetch: true };
+  }
   stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
   $('reader-title').textContent = '正在打开教材…';
@@ -72,7 +124,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     finally { saving = false; }
   }
   let saveTask = Promise.resolve();
-  function saveNow() { clearTimeout(saveTimer); if (pdf && book && pages.length && !layingOut) { desired = snapshot(); $('reader-save-status').classList.remove('save-error'); if (!saving) saveTask = drainSave(); } return saveTask; }
+  function saveNow() { clearTimeout(saveTimer); if (pdf && book && currentPage()?.rendered && !layingOut) { desired = snapshot(); $('reader-save-status').classList.remove('save-error'); if (!saving) saveTask = drainSave(); } return saveTask; }
   function paintHighlights() {
     for (const page of pages) {
       if (!page.rendered) continue; page.highlights.replaceChildren();
@@ -174,6 +226,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   function release(page) {
     page.renderTask?.cancel(); page.textLayer?.cancel(); page.renderTask = page.textLayer = null;
     page.canvas.width = page.canvas.height = 0; page.text.replaceChildren(); page.highlights.replaceChildren(); page.rendered = false;
+    page.failed = false; page.errorBox?.remove(); page.errorBox = null; delete page.frame.dataset.error; delete page.frame.dataset.painted;
   }
   function endSpace() { const last = pages.at(-1); stack.style.paddingBottom = Math.max(0, scroll.clientHeight - (last?.frame.clientHeight || 0)) + 'px'; }
   function fitWidth() { return Math.max(80, scroll.clientWidth - (innerWidth <= 650 ? 16 : 32)) * zoom; }
@@ -182,8 +235,9 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     page.frame.style.width = width + 'px'; page.frame.style.height = width * dim[1] / dim[0] + 'px';
   }
   async function render(page, version) {
-    if (closed || version !== generation || page.rendered) return;
-    const proxy = await pdf.getPage(page.number); if (closed || version !== generation) return;
+    if (closed || version !== generation || page.rendered || page.failed) return;
+    page.frame.dataset.loadingMessage = `正在读取第 ${page.number} 页内容…`;
+    const proxy = await waiting(pdf.getPage(page.number), `读取第 ${page.number} 页`); if (closed || version !== generation) return;
     const base = proxy.getViewport({ scale: 1 }); dimensions.set(page.number, [base.width, base.height]);
     // Changing an estimated page height must not move the passage being read.
     const anchor = snapshot(), active = pages[anchor.page - 1];
@@ -193,12 +247,17 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     page.canvas.width = Math.ceil(viewport.width * ratio); page.canvas.height = Math.ceil(viewport.height * ratio);
     page.canvas.style.width = viewport.width + 'px'; page.canvas.style.height = viewport.height + 'px';
     page.frame.style.setProperty('--scale-factor', String(viewport.scale)); page.frame.style.setProperty('--total-scale-factor', String(viewport.scale));
-    page.renderTask = proxy.render({ canvasContext: page.canvas.getContext('2d'), viewport, transform: [ratio, 0, 0, ratio, 0, 0] }); await page.renderTask.promise;
+    page.frame.dataset.loadingMessage = `正在绘制第 ${page.number} 页…`;
+    page.renderTask = proxy.render({ canvasContext: page.canvas.getContext('2d'), viewport, transform: [ratio, 0, 0, ratio, 0, 0] }); await waiting(page.renderTask.promise, `绘制第 ${page.number} 页`);
     if (closed || version !== generation) return;
-    const text = await proxy.getTextContent(); if (closed || version !== generation) return;
-    page.textLayer = pdf.createTextLayer ? pdf.createTextLayer({ textContentSource: text, container: page.text, viewport }) : new TextLayer({ textContentSource: text, container: page.text, viewport }); await page.textLayer.render();
-    if (closed || version !== generation) return;
-    page.rendered = true; page.frame.dataset.loaded = 'true'; paintHighlights();
+    page.rendered = true; page.frame.dataset.painted = 'true'; paintHighlights();
+    let text;
+    try {
+      text = await waiting(proxy.getTextContent(), `读取第 ${page.number} 页文字`); if (closed || version !== generation || !page.rendered) return;
+      page.textLayer = pdf.createTextLayer ? pdf.createTextLayer({ textContentSource: text, container: page.text, viewport }) : new TextLayer({ textContentSource: text, container: page.text, viewport }); await waiting(page.textLayer.render(), `排版第 ${page.number} 页文字`);
+    } catch (error) { if (!closed && version === generation && page.rendered && error.name !== 'RenderingCancelledException' && error.name !== 'AbortError' && error.name !== 'AbortException') { page.frame.dataset.loaded = 'true'; failure(error, page, true); } return; }
+    if (closed || version !== generation || !page.rendered) return;
+    page.frame.dataset.loaded = 'true';
     if (page.number === pageNumber) $('reader-status').textContent = text.items.some(item => item.str?.trim()) ? '上下滚动连续阅读，选中文字即可高亮。' : '本页为扫描页，需文字识别后才能高亮。';
   }
   function scheduleVisible() {
@@ -216,7 +275,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
         if (closed || version !== generation) return;
         // A fast jump can make a previously queued page irrelevant.
         if (Math.abs(top(page.frame) - scroll.scrollTop) > scroll.clientHeight * 3 + page.frame.clientHeight) continue;
-        try { await render(page, version); } catch (error) { if (!closed && version === generation && error.name !== 'RenderingCancelledException') { $('reader-status').textContent = '页面加载失败：' + errorText(error); } }
+        try { await render(page, version); } catch (error) { if (!closed && version === generation && error.name !== 'RenderingCancelledException' && error.name !== 'AbortError') { page.failed = true; page.renderTask?.cancel(); page.textLayer?.cancel(); failure(error, page); } }
       }
     });
     return queue;
@@ -241,7 +300,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (!closed && version === generation) stack.dataset.layout = 'ready';
   }
   async function outline() {
-    const items = await pdf.getOutline(); if (closed) return; $('reader-outline').replaceChildren();
+    const items = await waiting(pdf.getOutline(), '加载目录'); if (closed) return; $('reader-outline').replaceChildren();
     const heading = el('div', 'reader-panel-heading'), closeButton = el('button', 'button compact', '×');
     closeButton.setAttribute('aria-label', '关闭教材目录'); closeButton.addEventListener('click', () => panel('outline', false)); heading.append(el('h2', '', '教材目录'), closeButton); $('reader-outline').append(heading);
     if (!items?.length) { $('reader-outline').append(el('p', 'muted', '暂无目录')); return; }
@@ -347,24 +406,30 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   on(window, 'pagehide', saveNow);
   const ready = (async () => {
     try {
-      book = await api(`${endpoint}`); if (closed) return;
+      const label = loading('正在读取文献信息…');
+      book = await waiting(api(`${endpoint}`, { signal: requests.signal }), '读取文献信息'); if (closed) return;
       $('reader-title').textContent = book.title; $('reader-back').href = backHref || `#/apps/mathematics/directions/${book.direction}`; $('reader-back').textContent = backLabel;
       if (!book.available) throw new Error('这本教材的 文档尚未接入，请先选择其他教材。');
-      csrf = await api('/api/auth/csrf'); if (closed) return;
-      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ url: book.file_url, withCredentials: true, disableStream: true, disableAutoFetch: true, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' }); pdf = await task.promise; if (closed) return;
+      csrf = await waiting(api('/api/auth/csrf', { signal: requests.signal }), '读取登录状态'); if (closed) return;
+      label.textContent = book.format === 'djvu' ? '正在加载 DJVU…' : '正在校验 PDF 分段读取…';
+      const source = book.format === 'djvu' ? null : await pdfSource(label); if (closed) return;
+      label.textContent = source?.data ? '正在解析 PDF…' : book.format === 'djvu' ? '正在打开 DJVU…' : '正在读取 PDF 页面信息…';
+      task = book.format === 'djvu' ? getDjvuDocument(book.file_url) : getDocument({ ...source, isEvalSupported: false, useWasm: false, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true, standardFontDataUrl: '/vendor/pdfjs/standard_fonts/' });
+      task.onProgress = progress => { if (Number.isFinite(progress.loaded) && progress.loaded > received) { received = progress.loaded; activity(); } };
+      pdf = await (book.format === 'djvu' ? task.promise : waiting(task.promise, '打开文档')); if (closed) return;
       if (pdf.numPages > 100000) throw new Error('教材页数超出支持范围。');
       pdf.pageSizes?.forEach((size, index) => dimensions.set(index + 1, size));
-      const first = await pdf.getPage(1); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
+      const first = await waiting(pdf.getPage(1), '读取第一页信息'); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
       scroll.dataset.totalPages = String(pdf.numPages);
-      marks = (await api(`${endpoint}/annotations`)).annotations; if (closed) return;
+      marks = (await waiting(api(`${endpoint}/annotations`, { signal: requests.signal }), '读取高亮笔记')).annotations; if (closed) return;
       notes(); zoom = book.progress?.zoom || 1; if (!Number.isFinite(zoom) || zoom < .25 || zoom > 4) zoom = 1; zoomControls();
       const fragment = document.createDocumentFragment();
       for (let number = 1; number <= pdf.numPages; number++) {
         const frame = el('div', 'pdf-page'), canvas = el('canvas', 'pdf-canvas'), highlights = el('div', 'pdf-highlights'), text = el('div', 'textLayer');
-        frame.dataset.page = String(number); frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`);
+        frame.dataset.page = String(number); frame.dataset.loadingMessage = `正在加载第 ${number} 页…`; frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`);
         frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false });
       }
-      stack.append(fragment); await layout({ page: book.progress?.page || 1, position: book.progress?.position || 0 });
+      stack.replaceChildren(fragment); await layout({ page: book.progress?.page || 1, position: book.progress?.position || 0 });
       if (!closed) {
         try { await outline(); }
         catch (error) { if (!closed) $('reader-outline').replaceChildren(el('p', 'muted', '目录加载失败：' + errorText(error))); }
@@ -374,14 +439,16 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
         const message = '无法打开教材：' + errorText(error);
         $('reader-status').textContent = message;
         $('reader-outline').replaceChildren(el('p', 'muted', message));
-        if (!pages.length) stack.replaceChildren(el('p', 'muted', message));
+        failure(error, currentPage() || null);
+        requests.abort(); task?.destroy().catch(() => {});
       }
     }
   })();
   function close() {
+    if (successor) return successor.close();
     if (closed) return saveTask; stopVertical(); if (drag) finishDrag(); const flushed = saveNow(); closed = true; ai.close(); ++generation; observer.disconnect(); clearTimeout(saveTimer); clearTimeout(resizeTimer); clearTimeout(zoomTimer); cancelAnimationFrame(scrollFrame); cancelAnimationFrame(dragFrame); events.forEach(remove => remove()); pages.forEach(release);
     if (document.fullscreenElement === $('reader-view')) document.exitFullscreen().catch(() => {});
-    if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren(); return flushed;
+    requests.abort(); if (task) task.destroy().catch(() => {}); stack.replaceChildren(); $('annotation-list').replaceChildren(); return flushed;
   }
   return { ready, close };
 }

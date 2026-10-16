@@ -808,13 +808,38 @@ $$\int_0^1 x^2\,dx=\frac{1}{3}$$
     assert.match(await page.locator('#reader-outline').textContent(),/无法打开教材：/);
     assert.doesNotMatch(await page.locator('#reader-outline').textContent(),/正在加载目录/);
     await page.unroute('**/api/documents/1/file');await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
+    // A proxy may ignore Range while advertising it. Read the returned full body once.
+    const filePath='**/api/documents/1/file',fullRequests=[];
+    await page.route(filePath,route=>{fullRequests.push(route.request().headers().range||'full');return route.fulfill({status:200,contentType:'application/pdf',headers:{'Accept-Ranges':'bytes','Content-Length':String(pdf.length)},body:pdf});});
+    await page.goto(base+'/#/library/read/1');await page.locator('.pdf-page[data-loaded]').first().waitFor();assert.deepEqual(fullRequests,['bytes=0-0']);assert.equal(await page.locator('.reader-load-error').count(),0);await readerControl(page,'reader-back');await page.locator('#library-view').waitFor();await page.unroute(filePath);
+    // A malformed 206 must produce an actionable error; full loading bypasses ranges.
+    const recoveryRequests=[];
+    await page.route(filePath,route=>{const range=route.request().headers().range;recoveryRequests.push(range||'full');return range?route.fulfill({status:206,contentType:'application/pdf',headers:{'Accept-Ranges':'bytes','Content-Range':`bytes 1-1/${pdf.length}`,'Content-Length':'1'},body:pdf.subarray(0,1)}):route.fulfill({status:200,contentType:'application/pdf',body:pdf});});
+    await page.goto(base+'/#/library/read/1');await page.locator('#pdf-pages>.reader-load-error').waitFor();assert.match(await page.locator('#pdf-pages').textContent(),/文件分段响应异常/);await page.getByRole('button',{name:'整本加载',exact:true}).click();await page.locator('.pdf-page[data-loaded]').first().waitFor();assert.deepEqual(recoveryRequests,['bytes=0-0','full']);
+    await readerControl(page,'reader-back');await page.locator('#library-view').waitFor();assert.equal(await page.locator('#pdf-pages').textContent(),'','Closing a retried reader must close its replacement');await page.unroute(filePath);
+    // Header-only success is insufficient: a one-byte probe must actually contain one byte.
+    await page.route(filePath,route=>route.fulfill({status:206,contentType:'application/pdf',headers:{'Content-Range':`bytes 0-0/${pdf.length}`,'Content-Length':'2'},body:pdf.subarray(0,2)}));
+    await page.goto(base+'/#/library/read/1');await page.locator('#pdf-pages>.reader-load-error').waitFor();assert.match(await page.locator('#pdf-pages').textContent(),/字节数不正确/);await page.goto(base+'/#/');await page.locator('#home-view').waitFor();await page.unroute(filePath);
+    // A file request that never answers must time out visibly and offer full loading.
+    let releaseRange,rangeHeld=false;const rangeGate=new Promise(resolve=>releaseRange=resolve);
+    await page.route(filePath,async route=>{rangeHeld=true;await rangeGate;try{await route.fulfill({status:206,contentType:'application/pdf',headers:{'Content-Range':`bytes 0-0/${pdf.length}`},body:pdf.subarray(0,1)});}catch{/* The user may close a pending request. */}});
+    await page.clock.install();await page.goto(base+'/#/library/read/1');await page.locator('.reader-loading').waitFor();for(let i=0;i<30&&!rangeHeld;i++)await page.waitForTimeout(100);assert.equal(rangeHeld,true,'The file probe must be pending');await page.clock.runFor(61000);await page.locator('#pdf-pages>.reader-load-error').waitFor();assert.match(await page.locator('#pdf-pages>.reader-load-error').textContent(),/读取文件响应超过 60 秒没有响应/);assert.equal(await page.getByRole('button',{name:'整本加载',exact:true}).isVisible(),true);
+    releaseRange();await page.goto(base+'/#/');await page.locator('#home-view').waitFor();await page.unroute(filePath);await page.clock.resume();
+    // A failed text layer must leave the already painted document visible.
+    await page.evaluate(async()=>{const {TextLayer}=await import('/vendor/pdfjs/pdf.mjs');window.restoreTextLayer=TextLayer.prototype.render;TextLayer.prototype.render=()=>Promise.reject(new Error('Text layer failure fixture'));});
+    await page.goto(base+'/#/library/read/1');await page.locator('.pdf-page[data-painted]>.reader-text-error').first().waitFor();assert.match(await page.locator('.reader-text-error').first().textContent(),/Text layer failure fixture/);assert.ok(await page.locator('.pdf-page[data-painted] .pdf-canvas').first().evaluate(canvas=>canvas.width>0&&canvas.height>0));assert.equal(await page.locator('.pdf-page[data-painted]').first().evaluate(node=>getComputedStyle(node,'::before').content),'none');
+    await page.goto(base+'/#/');await page.locator('#home-view').waitFor();await page.evaluate(async()=>{const {TextLayer}=await import('/vendor/pdfjs/pdf.mjs');TextLayer.prototype.render=window.restoreTextLayer;delete window.restoreTextLayer;});
+    // A page-render error was previously written only to the hidden status bar.
+    await page.evaluate(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){if(type==='2d'&&this.classList.contains('pdf-canvas'))throw new Error('Page drawing failure fixture');return original.call(this,type,...args);};});
+    await page.goto(base+'/#/library/read/1');await page.locator('.pdf-page[data-error]>.reader-load-error').first().waitFor();assert.match(await page.locator('.pdf-page[data-error]').first().textContent(),/Page drawing failure fixture/);assert.equal(await page.locator('.pdf-page[data-error]').first().evaluate(node=>getComputedStyle(node,'::before').content),'none');
+    await page.screenshot({path:path.join(shots,'reader-page-error.png')});await page.goto(base+'/#/');await page.locator('#home-view').waitFor();
     await page.locator('#logout-button').click(); await page.waitForFunction(() => location.hash === '#/login');
     assert.equal(await page.locator('#home-view').isVisible(), false);
     assert.equal(await page.locator('.sidebar').isVisible(), false);
     assert.equal((await page.request.get(base + '/api/documents')).status(), 401);
     assert.equal((await page.request.get(base + '/api/documents/1/file')).status(), 401);
     await page.goto(base + '/#/'); await page.waitForFunction(() => location.hash === '#/login'); await page.locator('#auth-view').waitFor();
-    if(process.env.MATH_BROWSER_MOCK==='1')assert.ok(pdfRangeRequests.length>0,'Large PDF must actually load through HTTP Range requests');
+    if(process.env.MATH_BROWSER_MOCK==='1')assert.ok(pdfRangeRequests.some(([start,end])=>start>0&&end>start&&end-start+1<pdf.length),'PDF.js must read real partial ranges beyond the one-byte probe');
     assert.deepEqual(errors, []); console.log('Invitation login, direction hierarchy, staged textbooks, large PDF Range rendering, highlighter, note editing/deletion, reload, cross-device progress and mobile checks passed.');
   } finally {
     if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));
