@@ -9,22 +9,27 @@ function pageHeading(page){
 }
 function learningChoices(course,practice){
  const choices=el('div',null,'ai-learning-choices');
- for(const [kind,title,icon]of [['theory','理论学习','book'],['practice','实战学习','spark']]){
+ for(const [kind,title,icon,suggestion]of [
+  ['theory','理论学习','book','先打好数学分析、高等代数、概率统计与 Python 基础，再进入机器学习和深度学习。按教材顺序阅读、做题，结合课程实验理解关键概念。'],
+  ['practice','实战学习','spark','从 Python 入门，沿实战路线逐课学习。先运行示例，再修改数据或参数，记录并解释结果；遇到不懂的概念，回到理论学习补齐基础。']
+ ]){
+  const group=el('div',null,'ai-learning-option');
   const card=el('a',null,'ai-learning-choice '+kind),params=new URLSearchParams({course});if(kind==='practice'&&practice)params.set('practice',practice);card.href='#/apps/math-to-ai/'+kind+'?'+params;
   const badge=el('span',null,'ai-choice-icon');badge.dataset.icon=icon;badge.setAttribute('aria-hidden','true');card.append(badge);
   const art=el('div',null,'ai-choice-art');art.setAttribute('aria-hidden','true');
   art.innerHTML=kind==='theory'?'<svg viewBox="0 0 400 220" focusable="false"><path class="ai-choice-axis" d="M40 176H370M82 198V30"/><path class="ai-choice-guide" d="M82 70H262V176M82 123H192V176"/><path class="ai-choice-curve" d="M46 163C100 161 126 154 159 139S224 101 260 70S313 28 359 24"/><circle cx="192" cy="120" r="6"/><circle cx="262" cy="69" r="6"/></svg>':'<svg viewBox="0 0 400 220" focusable="false"><path class="ai-choice-link" d="M76 113H156Q172 113 172 97V61H237M172 97V165H237"/><rect x="38" y="91" width="54" height="44" rx="10"/><rect x="237" y="39" width="67" height="44" rx="10"/><rect x="237" y="143" width="67" height="44" rx="10"/><path class="ai-choice-code" d="M59 104L50 113L59 122M72 104L81 113L72 122M251 54H289M251 66H275M251 158H289M251 170H275"/></svg>';
-  const caption=el('div',null,'ai-choice-caption'),arrow=el('span',null,'ai-choice-arrow');arrow.dataset.icon='forward';arrow.setAttribute('aria-hidden','true');caption.append(el('h2',title),arrow);card.append(art,caption);choices.append(card);
+  const caption=el('div',null,'ai-choice-caption'),arrow=el('span',null,'ai-choice-arrow');arrow.dataset.icon='forward';arrow.setAttribute('aria-hidden','true');caption.append(el('h2',title),arrow);card.append(art,caption);
+  const advice=el('div',null,'ai-learning-advice');advice.append(el('h3','学习建议'),el('p',suggestion));group.append(card,advice);choices.append(group);
  }
  return choices;
 }
 export function createAiLearning({api,write,planButton}){
  const root=document.getElementById('ai-learning-view'),labs=createLearningLabs({api,write});let version=0,stop=null,reading=false,lastCourse='calculus',lastPractice=null;
- function close(){++version;stop?.();stop=null;root.hidden=true;if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
+ function close(){++version;stop?.();stop=null;root.hidden=true;document.body.classList.remove('ai-learning-entry-page');if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}reading=false;}
  async function navigate(hash){close();root.hidden=false;const mine=version,params=new URLSearchParams(hash.split('?')[1]||''),course=params.get('course')||lastCourse,match=hash.match(/^#\/apps\/math-to-ai\/read\/(\d+)/);lastCourse=course;
   if(match){root.hidden=true;reading=true;document.getElementById('reader-view').hidden=false;document.body.classList.add('reading-page');const {openReader}=await import('./reader.js');if(mine!==version)return;const control=openReader(Number(match[1]),{api,write,basePath:'/api/library/documents',backHref:'#/apps/math-to-ai/theory?course='+encodeURIComponent(course),backLabel:'← 返回理论学习'});stop=control.close;await control.ready;return;}
   const path=hash.split('?')[0],page=path==='#/apps/math-to-ai'?'entry':path==='#/apps/math-to-ai/practice'?'practice':'theory';root.setAttribute('aria-label',page==='entry'?'数学到人工智能':page==='practice'?'实战学习':'理论学习');root.replaceChildren(pageHeading(page));
-  if(page==='entry'){root.append(learningChoices(lastCourse,lastPractice));mountIcons();return;}
+  if(page==='entry'){document.body.classList.add('ai-learning-entry-page');root.append(learningChoices(lastCourse,lastPractice));mountIcons();return;}
   if(page==='practice'){root.append(createPracticalLearningRoute(params.get('practice')||lastPractice,selected=>{lastPractice=selected;}));mountIcons();return;}
   mountIcons();
   const loading=el('p','正在加载学习路线…','muted');root.append(loading);
