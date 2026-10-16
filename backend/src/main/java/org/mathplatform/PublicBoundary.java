@@ -54,6 +54,9 @@ class PublicBoundary implements Filter {
             || (java.util.Set.of("PATCH","DELETE").contains(method) && path.matches("/api/admin/series/[0-9]+(?:/books/[0-9]+)?"));
         aiWrite |= method.equals("POST") && path.equals("/api/series/recommend");
         adminWrite |= (method.equals("POST") && path.matches("/api/admin/(ai-learning|competition)/[a-z-]+/books")) || (java.util.Set.of("PATCH","DELETE").contains(method) && path.matches("/api/admin/(ai-learning|competition)/[a-z-]+/books/[0-9]+"));
+        adminWrite |= method.equals("POST") && path.equals("/api/admin/competition/resources")
+            || method.equals("PATCH") && path.matches("/api/admin/competition/resources/[a-z0-9-]+")
+            || method.equals("PUT") && path.matches("/api/admin/competition/resources/[a-z0-9-]+/document");
         boolean documentHead = method.equals("HEAD") && path.matches("/api/documents/[0-9]+/file");
         if (!method.equals("GET") && !documentHead && !authWrite && !learningWrite && !adminWrite && !adminUpload && !aiWrite) {
             http.setStatus(405); http.setHeader("Allow", "GET"); http.setContentType("application/json; charset=utf-8");

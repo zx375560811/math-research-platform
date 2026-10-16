@@ -78,6 +78,7 @@ with tempfile.TemporaryDirectory() as directory:
         try:
             process = start()
             assert request('/api/competition')[0] == 401
+            assert request('/api/competition/resources')[0] == 401
             assert request('/competition.js')[0] == 200
             with closing(sqlite3.connect(database)) as db:
                 assert db.execute('SELECT source,completed,added_at FROM study_plan').fetchone() == ('series', 1, '2026-10-01T00:00:00Z')
@@ -90,6 +91,10 @@ with tempfile.TemporaryDirectory() as directory:
             courses = request('/api/competition')[1]['courses']
             assert [c['slug'] for c in courses] == ['analysis', 'algebra', 'geometry', 'training', 'past-papers']
             assert all(c['topics'] and c['practice'] and not c['books'] for c in courses)
+            resources = request('/api/competition/resources')[1]['resources']
+            assert len(resources) == 19 and all(r['document'] is None for r in resources)
+            assert {r['group_key'] for r in resources} == {'common','a','b','junior','senior'}
+            assert request('/api/admin/competition/resources')[0] == 403
             endpoint = '/api/admin/competition/analysis/books'
             assert request('/api/admin/competition')[0] == 403
             assert request(endpoint, 'POST', {'document_id': 41})[0] == 403
@@ -100,6 +105,22 @@ with tempfile.TemporaryDirectory() as directory:
             assert request('/api/auth/logout', 'POST', {})[0] == 200
             assert request('/api/auth/login', 'POST', {'username': 'contest_reader', 'password': 'ContestPassword123!'})[0] == 200
             assert request('/api/admin/competition')[0] == 200
+            bind = '/api/admin/competition/resources/national-syllabus/document'
+            assert request(bind, 'PUT', {'document_id': 41}, csrf=False)[0] == 403
+            assert request(bind, 'PUT', {'document_id': 9999})[0] == 404
+            assert request(bind, 'PUT', {'document_id': 41})[0] == 200
+            resource = next(r for r in request('/api/competition/resources')[1]['resources'] if r['id']=='national-syllabus')
+            assert resource['document']['id'] == 41
+            metadata = {'title':'New final exam','stage':'final','group_key':'senior','year':2026,'edition':17,'kind':'paper','source_url':'https://www.cmathc.org.cn/jsst/','visible':True}
+            assert request('/api/admin/competition/resources', 'POST', {**metadata,'group_key':'a'})[0] == 400
+            assert request('/api/admin/competition/resources', 'POST', {**metadata,'source_url':'javascript:alert(1)'})[0] == 400
+            created = request('/api/admin/competition/resources', 'POST', metadata)
+            assert created[0] == 200
+            resource_path = '/api/admin/competition/resources/' + created[1]['id']
+            assert request(resource_path, 'PATCH', {**metadata,'visible':False})[0] == 200
+            assert not any(r['id']==created[1]['id'] for r in request('/api/competition/resources')[1]['resources'])
+            assert any(r['id']==created[1]['id'] and not r['visible'] for r in request('/api/admin/competition/resources')[1]['resources'])
+            assert request(bind, 'PUT', {'document_id': None})[0] == 200
             assert request(endpoint, 'POST', {'document_id': 41}, csrf=False)[0] == 403
             assert request('/api/admin/competition/unknown/books', 'POST', {'document_id': 41})[0] == 404
             assert request(endpoint, 'POST', {'document_id': 99999})[0] == 404
@@ -123,6 +144,7 @@ with tempfile.TemporaryDirectory() as directory:
             with closing(sqlite3.connect(database)) as db:
                 assert db.execute('SELECT count(*) FROM study_plan').fetchone()[0] == 2
                 assert db.execute('SELECT count(*) FROM competition_courses').fetchone()[0] == 5
+                assert db.execute('SELECT visible FROM competition_resources WHERE id=?',(created[1]['id'],)).fetchone()[0] == 0
                 assert db.execute('PRAGMA foreign_key_check').fetchall() == []
         finally:
             if process is not None:

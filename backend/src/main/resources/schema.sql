@@ -92,6 +92,19 @@ CREATE TABLE IF NOT EXISTS competition_books (
 course TEXT NOT NULL REFERENCES competition_courses(slug) ON DELETE CASCADE,
 document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
 sort_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(course,document_id));
+CREATE TABLE IF NOT EXISTS competition_resources (
+id TEXT PRIMARY KEY, title TEXT NOT NULL,
+stage TEXT NOT NULL CHECK(stage IN ('syllabus','preliminary','final')),
+group_key TEXT NOT NULL CHECK(group_key IN ('common','a','b','junior','senior')),
+year INTEGER NOT NULL DEFAULT 0, edition INTEGER NOT NULL DEFAULT 0,
+kind TEXT NOT NULL CHECK(kind IN ('syllabus','paper','answer','combined')),
+source_url TEXT NOT NULL DEFAULT '', download_url TEXT NOT NULL DEFAULT '',
+document_id INTEGER REFERENCES documents(id) ON DELETE SET NULL,
+visible INTEGER NOT NULL DEFAULT 1 CHECK(visible IN (0,1)),
+sort_order INTEGER NOT NULL DEFAULT 0,
+CHECK((stage='syllabus' AND group_key='common' AND kind='syllabus') OR
+ (stage='preliminary' AND group_key IN ('a','b') AND kind IN ('paper','answer','combined')) OR
+ (stage='final' AND group_key IN ('junior','senior') AND kind IN ('paper','answer','combined'))));
 INSERT OR IGNORE INTO competition_courses VALUES
 ('analysis','数学分析','foundation','极限与连续：用定义、等价无穷小和数列方法分析收敛；微分与中值定理：构造辅助函数，运用 Taylor 展开与极值条件；积分与级数：判断收敛，掌握估计、换元与逐项运算条件；多元分析：偏导与可微、重积分、含参积分与一致收敛','先按教材补齐定义与定理条件，再做极限、中值定理、积分和级数专题。每题先独立写完整证明，核对答案后重写关键步骤。',10),
 ('algebra','高等代数','foundation','多项式：整除、根、重因式与因式分解；矩阵与方程组：行列式、秩、线性相关与解空间；向量空间与线性变换：基、维数、核与像、不变子空间；特征值与二次型：相似、对角化、内积与正定性','从计算题进入结构证明，优先练习秩与维数、线性变换和矩阵多项式。用低阶例子检查猜想，再给一般情形的证明，不能以算例代替证明。',20),

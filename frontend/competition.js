@@ -7,7 +7,6 @@ const el = (tag, text, className) => {
   return node;
 };
 const noticeUrl = 'https://shuxue.yangtzeu.edu.cn/info/1064/3987.htm';
-const paperUrl = 'https://ahmath.ustc.edu.cn/_upload/article/files/79/01/bd29feba4566b86a2a6cd0815cbd/51141bf5-e61a-466f-8d44-86dc77cc8b60.pdf';
 function external(text, href) {
   const a = el('a', text, 'competition-source');
   a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer';
@@ -16,97 +15,72 @@ function external(text, href) {
 
 export function createCompetition({ api, write, planButton }) {
   const root = document.getElementById('competition-view');
-  let generation = 0, stop = null, reading = false, lastCourse = 'analysis';
+  let generation=0, stop=null, reading=false, lastCourse='analysis';
   function close() {
-    ++generation;
-    const flushed = stop?.(); stop = null; root.hidden = true;
-    if (reading) {
-      document.getElementById('reader-view').hidden = true;
-      document.body.classList.remove('reading-page');
-    }
-    reading = false;
-    return flushed;
+    ++generation;const flushed=stop?.();stop=null;root.hidden=true;
+    if(reading){document.getElementById('reader-view').hidden=true;document.body.classList.remove('reading-page');}
+    reading=false;return flushed;
   }
   async function navigate(hash) {
-    const flushed = close(), mine = generation;
-    const params = new URLSearchParams(hash.split('?')[1] || '');
-    lastCourse = params.get('course') || lastCourse;
-    const match = hash.match(/^#\/apps\/competition\/read\/(\d+)(?:\?|$)/);
-    await flushed;
-    if (mine !== generation) return;
-    if (match) {
-      reading = true;
-      document.getElementById('reader-view').hidden = false;
-      document.body.classList.add('reading-page');
-      const { openReader } = await import('./reader.js');
-      if (mine !== generation) return;
-      const control = openReader(Number(match[1]), {
-        api, write, basePath: '/api/library/documents',
-        backHref: '#/apps/competition?course=' + encodeURIComponent(lastCourse),
-        backLabel: '← 返回数学竞赛',
-      });
-      stop = control.close;
-      await control.ready;
-      return;
+    const flushed=close(),mine=generation,params=new URLSearchParams(hash.split('?')[1]||'');
+    lastCourse=params.get('course')||lastCourse;await flushed;if(mine!==generation)return;
+    const match=hash.match(/^#\/apps\/competition\/read\/(\d+)(?:\?|$)/);
+    if(match){reading=true;document.getElementById('reader-view').hidden=false;document.body.classList.add('reading-page');
+      const {openReader}=await import('./reader.js');if(mine!==generation)return;
+      const control=openReader(Number(match[1]),{api,write,basePath:'/api/library/documents',backHref:'#/apps/competition?'+params,backLabel:'← 返回数学竞赛'});stop=control.close;await control.ready;return;
     }
-    root.hidden = false;
-    const back = el('a', '← 应用工作台', 'back-link'); back.href = '#/';
-    const heading = el('header', null, 'competition-heading'), title = el('div');
-    title.append(el('h1', '数学竞赛'), el('span', '大学生 · 数学专业类', 'competition-scope'));
-    heading.append(title, external('竞赛范围 ↗', noticeUrl));
-    const loading = el('p', '正在加载备赛路线…', 'muted'); loading.setAttribute('role', 'status');
-    root.replaceChildren(back, heading, loading);
-    try {
-      const { courses } = await api('/api/competition');
-      if (mine !== generation) return;
-      loading.remove();
-      if (!courses.length) { root.append(el('p', '备赛路线暂不可用。', 'muted')); return; }
-      const detail = el('section', null, 'competition-detail');
-      detail.setAttribute('aria-label', '备赛资料');
-      let selected;
-      function select(slug, update = false) {
-        const course = courses.find(c => c.slug === slug);
-        if (!course || selected === slug) return;
-        selected = slug; lastCourse = slug;
-        for (const n of root.querySelectorAll('[data-competition-course]')) {
-          const active = n.dataset.competitionCourse === slug;
-          n.classList.toggle('selected', active);
-          n.setAttribute('aria-pressed', String(active));
-        }
-        const head = el('div', null, 'competition-detail-heading');
-        head.append(el('h2', course.name), el('span', course.phase === 'foundation' ? '初赛核心' : '备赛训练', 'competition-phase'));
-        const context = el('div', null, 'competition-context'), focus = el('div'), list = el('ul'), training = el('div');
-        focus.append(el('h3', '学习重点'));
-        for (const text of course.topics.split('；').filter(Boolean)) list.append(el('li', text));
-        focus.append(list); training.append(el('h3', '怎么练'), el('p', course.practice));
-        if (slug === 'past-papers') training.append(external('第三届数学类初赛真题 · 中国科大 ↗', paperUrl));
-        context.append(focus, training);
-        const books = el('div', null, 'competition-books');
-        books.append(el('h3', slug === 'past-papers' ? '试卷与解析' : slug === 'training' ? '专题题集' : '课程教材'));
-        for (const book of course.books) {
-          const row = el('article', null, 'competition-book'), info = el('div'), actions = el('div', null, 'study-book-actions');
-          info.append(el('h4', book.title));
-          if (book.authors) info.append(el('p', book.authors, 'muted'));
-          const read = el('a', book.progress ? '继续学习' : '开始学习', 'button compact');
-          read.href = `#/apps/competition/read/${book.id}?course=${encodeURIComponent(slug)}`;
-          actions.append(read, planButton(book, 'competition')); row.append(info, actions); books.append(row);
-        }
-        if (!course.books.length) books.append(el('p', '暂无关联资料，待管理员从文献库添加。', 'competition-empty'));
-        detail.replaceChildren(head, context, books);
-        if (update) history.replaceState(history.state, '', '#/apps/competition?course=' + encodeURIComponent(slug));
-        mountIcons();
+    root.hidden=false;const back=el('a','← 应用工作台','back-link');back.href='#/';
+    const heading=el('header',null,'competition-heading'),title=el('div');title.append(el('h1','数学竞赛'),el('span','大学生 · 数学专业类','competition-scope'));heading.append(title,external('竞赛范围 ↗',noticeUrl));
+    const loading=el('p','正在加载备赛资料…','muted');loading.setAttribute('role','status');root.replaceChildren(back,heading,loading);
+    try{
+      const [{courses},{resources}]=await Promise.all([api('/api/competition'),api('/api/competition/resources')]);if(mine!==generation)return;loading.remove();
+      const tabs=el('nav',null,'competition-tabs');tabs.setAttribute('aria-label','竞赛资料分类');
+      const foundation=el('div'),detail=el('section',null,'competition-detail'),catalog=el('section',null,'competition-catalog');catalog.setAttribute('aria-label','大纲与历年试卷');
+      let section=['syllabus','preliminary','final'].includes(params.get('section'))?params.get('section'):'foundation';
+      if(!params.has('section')&&lastCourse==='past-papers')section='preliminary';
+      let group=params.get('group')||'a',year=params.get('year')||'all',selected;
+      const urlParams=()=>{const p=new URLSearchParams({section,course:lastCourse});if(section==='preliminary'||section==='final'){p.set('group',group);p.set('year',year);}return p;};
+      const updateUrl=()=>history.replaceState(history.state,'','#/apps/competition?'+urlParams());
+      function readButton(book){const a=el('a',book.progress?'继续学习':'开始学习','button compact');a.href=`#/apps/competition/read/${book.id}?${urlParams()}`;return a;}
+      function selectCourse(slug,update=false){const course=courses.find(c=>c.slug===slug);if(!course)return;selected=slug;lastCourse=slug;
+        for(const n of root.querySelectorAll('[data-competition-course]')){const active=n.dataset.competitionCourse===slug;n.classList.toggle('selected',active);n.setAttribute('aria-pressed',String(active));}
+        const head=el('div',null,'competition-detail-heading');head.append(el('h2',course.name),el('span',course.phase==='foundation'?'共同基础':'备赛训练','competition-phase'));
+        const context=el('div',null,'competition-context'),focus=el('div'),list=el('ul'),training=el('div');focus.append(el('h3','学习重点'));for(const text of course.topics.split('；').filter(Boolean))list.append(el('li',text));focus.append(list);training.append(el('h3','怎么练'),el('p',course.practice));context.append(focus,training);
+        const books=el('div',null,'competition-books');books.append(el('h3',slug==='training'?'专题题集':slug==='past-papers'?'原有真题资料':'课程教材'));
+        for(const book of course.books){const row=el('article',null,'competition-book'),info=el('div'),actions=el('div',null,'study-book-actions');info.append(el('h4',book.title));if(book.authors)info.append(el('p',book.authors,'muted'));actions.append(readButton(book),planButton(book,'competition'));row.append(info,actions);books.append(row);}
+        if(!course.books.length)books.append(el('p','暂无关联资料，待管理员从文献库添加。','competition-empty'));
+        detail.replaceChildren(head,context,books);if(update)updateUrl();mountIcons();
       }
-      root.append(roadmap(courses, slug => select(slug, true)), detail, finalsGuide());
-      select(courses.some(c => c.slug === lastCourse) ? lastCourse : courses[0].slug);
-      mountIcons();
-    } catch (error) {
-      if (mine !== generation) return;
-      loading.remove();
-      const retry = el('button', '重新加载', 'button compact'); retry.type = 'button'; retry.onclick = () => navigate(location.hash);
-      root.append(el('p', error.message || '加载失败，请重试。', 'notice error'), retry);
-    }
+      function showSection(value,update=true){section=value;
+        if(section==='preliminary'&&!['a','b'].includes(group))group='a';if(section==='final'&&!['junior','senior'].includes(group))group='junior';
+        foundation.hidden=section!=='foundation';catalog.hidden=section==='foundation';
+        for(const b of tabs.children)b.setAttribute('aria-pressed',String(b.dataset.section===section));
+        if(section==='foundation')selectCourse(selected||lastCourse);else renderResources();if(update)updateUrl();mountIcons();
+      }
+      function renderResources(){catalog.replaceChildren();
+        const heading=el('div',null,'competition-catalog-heading');heading.append(el('h2',section==='syllabus'?'考试大纲':section==='preliminary'?'初赛真题':'决赛真题'));
+        const controls=el('div',null,'competition-resource-controls');
+        if(section!=='syllabus'){
+          const groups=el('div',null,'competition-groups');groups.setAttribute('aria-label',section==='preliminary'?'初赛类别':'决赛组别');
+          for(const [key,label]of section==='preliminary'?[['a','数学 A 类'],['b','数学 B 类']]:[['junior','低年级组'],['senior','高年级组']]){const b=el('button',label,'button compact');b.type='button';b.setAttribute('aria-pressed',String(key===group));b.onclick=()=>{group=key;renderResources();updateUrl();};groups.append(b);}controls.append(groups);
+          const years=[...new Set(resources.filter(r=>r.stage===section&&r.group_key===group).map(r=>r.year))].sort((a,b)=>b-a),filter=el('select');filter.setAttribute('aria-label','试卷年份');for(const [value,label]of [['all','全部年份'],...years.map(y=>[String(y),y?y+' 年':'年份待核（按届次）'])]){const o=el('option',label);o.value=value;filter.append(o);}filter.value=year;if(filter.selectedIndex<0){year='all';filter.value='all';}filter.onchange=()=>{year=filter.value;renderResources();updateUrl();};controls.append(filter);
+        }
+        heading.append(controls);catalog.append(heading);
+        const items=resources.filter(r=>r.stage===section&&(section==='syllabus'||r.group_key===group&&(year==='all'||String(r.year)===year)));
+        const list=el('div',null,'competition-resource-list');list.setAttribute('aria-live','polite');
+        for(const item of items){const row=el('article',null,'competition-resource'),info=el('div'),meta=el('div',null,'competition-resource-meta');row.dataset.resource=item.id;
+          if(item.year)meta.append(el('span',item.year+' 年'));if(item.edition)meta.append(el('span','第 '+item.edition+' 届'));meta.append(el('span',({syllabus:'考试内容',paper:'试卷',answer:'参考答案',combined:'试题与参考答案'})[item.kind]));info.append(meta,el('h3',item.title));
+          const actions=el('div',null,'study-book-actions');if(item.document){actions.append(readButton(item.document),planButton(item.document,'competition'));}else if(item.download_url){const file=external('原站 PDF ↗',item.download_url);file.className='button compact';actions.append(file);}else info.append(el('p','来源为网页资料','muted'));
+          if(item.source_url)actions.append(external('查看来源 ↗',item.source_url));row.append(info,actions);list.append(row);
+        }
+        if(!items.length)list.append(el('p','暂无该类别资料。','competition-empty'));catalog.append(list);if(section==='preliminary')catalog.append(external('第 1—17 届初赛资料汇总 ↗','https://www.cmathc.org.cn/st/560.html'));mountIcons();
+      }
+      for(const [key,label]of [['foundation','共同基础'],['syllabus','考试大纲'],['preliminary','初赛真题'],['final','决赛真题']]){const b=el('button',label,'button');b.type='button';b.dataset.section=key;b.onclick=()=>showSection(key);tabs.append(b);}
+      foundation.append(roadmap(courses,slug=>{selectCourse(slug);if(slug==='past-papers')showSection('preliminary');else updateUrl();}),detail,finalsGuide());root.append(tabs,foundation,catalog);
+      selectCourse(courses.some(c=>c.slug===lastCourse)?lastCourse:courses[0]?.slug);showSection(section,false);
+    }catch(error){if(mine!==generation)return;loading.remove();const retry=el('button','重新加载','button compact');retry.type='button';retry.onclick=()=>navigate(location.hash);root.append(el('p',error.message||'加载失败，请重试。','notice error'),retry);}
   }
-  return { navigate, close };
+  return{navigate,close};
 }
 
 function finalsGuide() {

@@ -1,3 +1,4 @@
+import { createAdminCompetition } from './admin-competition.js';
 import { createAdminAiLearning } from './ai-learning.js';
 import { createAdminBooks } from './admin-books.js';
 import { createOrganizer } from './admin-organizer.js';
@@ -59,7 +60,7 @@ $('admin-ai-remove').addEventListener('click', () => action($('admin-ai-form'), 
   showAi(await write('/api/admin/ai/settings', { ...aiSettings, enabled: false, clear_key: true }, 'PUT')); message('默认密钥已删除，默认 API 已停用。');
 }));
 const adminAiStudy=createAdminAiLearning({api,write,message});
-const adminCompetition=createAdminAiLearning({api,write,message,rootId:"competition-view",endpoint:"/api/admin/competition",title:"数学竞赛 · 备赛资料",idPrefix:"competition-study-",materialLabel:"资料"});
+const adminCompetition=createAdminCompetition({api,write,message});
 async function route() {
   if (!state.ready) return; const view = ['competition','ai-learning','series','books', 'invitations', 'ai'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'documents';
   for (const name of ['competition','ai-learning','series','documents', 'books', 'invitations', 'ai']) $(name + '-view').hidden = view !== name;

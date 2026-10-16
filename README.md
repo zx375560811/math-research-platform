@@ -87,19 +87,27 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 ## 数学竞赛
 
-入口 `#/apps/competition`，面向全国大学生数学竞赛数学专业类。数学分析、高等代数、解析几何并行补基础，再进入专题训练和历年真题；点击路线节点切换学习重点、训练方法及关联资料，刷新保留所选节点。决赛衔接说明单独折叠，不混入初赛三科路线。范围参考[第十八届竞赛通知（长江大学发布）](https://shuxue.yangtzeu.edu.cn/info/1064/3987.htm)，真题提供[中国科大公布的第三届数学类初赛原卷](https://ahmath.ustc.edu.cn/_upload/article/files/79/01/bd29feba4566b86a2a6cd0815cbd/51141bf5-e61a-466f-8d44-86dc77cc8b60.pdf)链接；未镜像原卷或虚构本地资料。
+2026-10-16：新增“共同基础 / 考试大纲 / 初赛真题 / 决赛真题”四个页签。初赛按数学 A、B 类和年份筛选，决赛按低、高年级组筛选；阅读返回保留页签、组别和年份。原三科路线、专题题集及旧关联保留在共同基础。
 
-管理员进入 `/admin#competition`，按上述五个节点从文献库目录搜索、关联教材或题集，可调整顺序、移除关联。关联共用原始文件，不额外复制 PDF/DJVU；移除关联保留文献、个人阅读记录和学习计划。用户可“开始学习 / 继续学习”或“加入计划”，共用原阅读器、进度、高亮、笔记和 AI。尚未关联时显示空状态。
+资料目录根据用户提供的[大纲栏目](https://www.cmathc.org.cn/dg/)、[初赛栏目](https://www.cmathc.org.cn/csst/)、[决赛栏目](https://www.cmathc.org.cn/jsst/)核对，当前共 19 项：17 份已核对 PDF（考试内容大纲 1 份、第 12—17 届数学 A/B 类及部分补赛试题与参考答案 16 份），约 16.1 MiB；另外 2 项是第十六届决赛低/高年级的图片网页。试卷和答案合并的原文件标记为“试题与参考答案”，不伪造拆分文件；年份以原卷标注为准，保留届次和补赛标题，不能以网页发布日期替代。第 1—17 届汇总页保留为外部入口。来源站为汇集资料的平台，赛事规则仍以中国数学会原通知为准。
 
-服务端启动自动创建 `competition_courses`、`competition_books`，并在事务内扩展旧学习计划的来源约束，保留已有记录。接口：登录后的 `GET /api/competition`；管理员的 `GET /api/admin/competition`、`POST /api/admin/competition/{course}/books`（`document_id`、可选 `sort_order`）、`PATCH /api/admin/competition/{course}/books/{document}`（`sort_order`）、`DELETE` 同一路径。写入要求管理员资格和 CSRF。
+元数据、来源、实际核对的 SHA-256、字节数及页数保存在 `backend/src/main/resources/competition-resources.json`，PDF 不提交到 Git。Java 启动自动初始化 `competition_resources`；管理员可编辑分类、组别、年份、届次、资料类型、来源和显示状态，也可新增年度资料、搜索文献库并关联或解除文件。隐藏、解除关联或删除源文献后，资料元数据与来源保留；源文献删除通过外键清空文件关联。
 
-此版本包含后端和数据库结构更新，服务器执行：
+**更新与直接入库（服务器 SSH 终端）**：
 
 ```bash
-cd /opt/math-platform && git pull --ff-only && cd backend && ./mvnw -B package && systemctl restart math-platform
+cd /opt/math-platform && git pull --ff-only && cd backend && ./mvnw -B package && systemctl restart math-platform && sleep 5 && sudo -u math-platform python3 admin/import_competition.py --apply
 ```
 
-然后在浏览器按 Ctrl+F5。无需重新导入已有文献，在后台关联后即可出现在竞赛模块。回归检查：`python3 backend/tests/competition.py`，覆盖旧书单迁移、权限、CSRF、资料关联/排序/移除、共享进度、计划来源和重启保留。
+导入脚本仅下载清单内已核对的 17 份 PDF，直接写入共享 `data/files`，不需要先上传或人工审核，不保留第二份暂存副本。按相同体积候选文件的 SHA-256 复用已有文献，并自动建立“数学竞赛 / 考试大纲”及“数学竞赛 / 初赛真题 / 数学A类或B类 / 年份”目录。导入前备份数据库，每份文件独立提交；下载失败或源文件哈希改变时保留为待重试，不影响已成功的资料和服务。再次执行同一脚本可补齐失败项，已关联文件会跳过。退出码 2 表示部分资料需重试，最后的 JSON 报告列出具体条目；图片网页仍可查看来源或由管理员关联自己已有的文件。
+
+预览待导入清单：`sudo -u math-platform python3 admin/import_competition.py`。该模式不下载、不改数据库。界面刷新后，已入库资料显示“开始学习 / 继续学习”和“加入计划”；未入库的 PDF 显示“原站 PDF”，图片页面显示“查看来源”，外部阅读不记录本站进度。后台入口仍为 `/admin#competition`。
+
+资料接口：登录后的 `GET /api/competition/resources`；管理员的 `GET/POST /api/admin/competition/resources`、`PATCH /api/admin/competition/resources/{id}`（完整元数据）和 `PUT /api/admin/competition/resources/{id}/document`（`document_id`，`null` 解除关联）。写入校验管理员角色与 CSRF，普通用户不能上传或关联。
+
+验证：`python3 backend/tests/competition.py`、`python3 backend/tests/competition_import.py`；导入测试验证去重、哈希、失败重试、目录关联和用户数据保留，用户端及管理端浏览器回归覆盖分类、年份、阅读返回与文件关联。
+
+共同基础保留原有数学分析、高等代数、解析几何、专题训练及旧真题资料；管理员按节点关联文献，用户共用进度、高亮、笔记、阅读器 AI 和学习计划。此部分仍使用 `competition_courses`、`competition_books` 和 `/api/admin/competition/{course}/books` 的添加、排序及移除接口，不影响新资料目录或原文献。
 
 ## 数学到人工智能
 

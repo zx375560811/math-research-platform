@@ -1044,9 +1044,9 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 .ai-study-book { display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 0;border-top:1px solid var(--line); }.ai-study-book>div:first-child { min-width:0; }.ai-study-book h3 { margin:0;font-size:16px;overflow-wrap:anywhere; }.ai-study-book p { margin:4px 0 0;font-size:14px; }.ai-study-book>a { flex-shrink:0; }
 .ai-study-detail>.ai-study-book { padding:16px 18px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft-blue); }
 .ai-admin-courses { display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px; }.ai-admin-courses [aria-pressed=true] { background:var(--blue);color:white;border-color:var(--blue); }
-.admin-page :is(#ai-learning-view,#competition-view) .series-admin-associate { display:flex;gap:12px;flex-wrap:wrap; }
-.admin-page :is(#ai-learning-view,#competition-view) .series-admin-associate select { flex:1 1 220px;width:0; }
-.admin-page :is(#ai-learning-view,#competition-view) .series-member-actions input { width:80px; }
+.admin-page :is(#ai-learning-view,#competition-view,#competition-courses-view) .series-admin-associate { display:flex;gap:12px;flex-wrap:wrap; }
+.admin-page :is(#ai-learning-view,#competition-view,#competition-courses-view) .series-admin-associate select { flex:1 1 220px;width:0; }
+.admin-page :is(#ai-learning-view,#competition-view,#competition-courses-view) .series-member-actions input { width:80px; }
 @media(max-width:650px) { .ai-study-heading { align-items:flex-start;flex-direction:column;gap:10px; }.ai-study-heading h1 { font-size:25px; }.ai-study-detail { padding:18px; }.ai-study-context { grid-template-columns:1fr;gap:20px; }.ai-study-book { align-items:flex-start;flex-wrap:wrap; } }
 /* Workbench: the five applications are the entire page content. */
 #home-view { min-height:calc(100svh - 168px);display:grid;align-content:center;padding:8px 0; }
@@ -1191,3 +1191,23 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 @media(min-width:651px) and (max-width:1100px) { #home-view .application-card.competition-application { grid-column:span 3;height:220px; } }
 @media(max-width:650px) { .competition-heading { align-items:flex-start;flex-direction:column;gap:10px;margin-top:14px; }.competition-heading h1 { font-size:25px; }.competition-heading>div { gap:10px; }.competition-context { grid-template-columns:1fr;gap:20px; }.competition-detail { padding:18px; }.competition-map { padding:10px; }.competition-books .competition-book { gap:12px;align-items:flex-start;flex-wrap:wrap; }.competition-finals .competition-source { display:block;margin-top:12px; }#home-view .application-card.competition-application { grid-column:span 2;height:190px; } }
 @media(prefers-reduced-motion:reduce) { .competition-node-body { transition:none; } }
+
+.competition-tabs { display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px; }
+.competition-tabs [aria-pressed=true],.competition-groups [aria-pressed=true] { color:white;background:var(--blue);border-color:var(--blue); }
+.competition-catalog { min-width:0;background:white;border:1px solid var(--line);border-radius:16px;padding:22px 24px; }
+.competition-catalog-heading { display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px; }.competition-catalog-heading h2 { margin:0;font-size:22px; }
+.competition-resource-controls,.competition-groups { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }.competition-resource-controls select { width:auto;min-width:135px;margin:0; }
+.competition-resource { display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-top:1px solid var(--line); }.competition-resource>div:first-child { min-width:0; }.competition-resource h3 { margin:5px 0 0;font-size:16px;overflow-wrap:anywhere; }.competition-resource p { margin:6px 0 0;font-size:14px; }
+.competition-resource-meta { display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums; }
+.competition-admin-row { display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-top:1px solid var(--line); }.competition-admin-row h2 { margin:0;font-size:17px;overflow-wrap:anywhere; }.competition-admin-row p { margin:6px 0 0;font-size:14px; }
+.competition-admin-fields { display:grid;grid-template-columns:1fr 1fr;gap:14px 20px; }.competition-admin-fields input,.competition-admin-fields select { margin-top:6px; }.competition-admin-wide { grid-column:1/-1; }.competition-admin-visible { display:flex;align-items:center;gap:8px;margin:16px 0; }.competition-admin-visible input { width:auto; }
+.competition-binding { margin-top:24px;padding-top:20px;border-top:1px solid var(--line); }.competition-binding h3 { margin:0; }.competition-binding .series-admin-associate { display:flex;gap:10px;flex-wrap:wrap;margin-top:12px; }.competition-binding .series-admin-associate select { flex:1 1 220px;width:0; }.competition-admin-resources>.admin-editor { margin-top:20px; }
+@media(max-width:650px) { .competition-catalog { padding:18px; }.competition-resource { align-items:flex-start;flex-direction:column;gap:12px; }.competition-resource .study-book-actions { width:100%; }.competition-resource-controls { gap:12px; }.competition-admin-row { flex-direction:column;align-items:flex-start;gap:12px; }.competition-admin-fields { grid-template-columns:1fr; }.competition-admin-wide { grid-column:auto; } }
+
+.competition-resource-controls select { min-height:36px;padding:7px 30px 7px 10px;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink);font:inherit;font-size:14px;line-height:20px; }
+.competition-catalog>.competition-source { display:inline-block;margin-top:18px; }
+#competition-admin-list { max-height:620px;overflow:auto;padding-right:8px;scrollbar-width:thin;scrollbar-color:#a9b6cd transparent; }
+.competition-admin-visible input[type=checkbox] { width:18px;height:18px;margin:0;flex:0 0 18px; }
+@media(min-width:1101px) { .competition-admin-resources.is-editing { display:grid;grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr);column-gap:22px;align-items:start; }.competition-admin-resources.is-editing>.admin-heading { grid-column:1/-1; }.competition-admin-resources.is-editing>.admin-editor { margin-top:0;padding:20px; }.competition-admin-resources.is-editing .competition-admin-row { flex-direction:column;align-items:flex-start;gap:12px; } }
+@media(max-width:1100px) { .competition-admin-resources.is-editing #competition-admin-list { display:none; }.competition-admin-resources.is-editing>.admin-editor { margin-top:0; } }
+@media(max-width:650px) { .competition-tabs { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }.competition-tabs .button { width:100%; } }
