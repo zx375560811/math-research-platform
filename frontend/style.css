@@ -57,11 +57,11 @@ footer { display:flex;justify-content:space-between;gap:15px;padding:20px 42px;c
 @media (min-width:651px) { .workspace-link,.subject-nav a,.back-link { font-size:14px; }.hero-content>p,.module-heading p,.direction-card p,.application-card p,.application-planned p,.textbook-info p { font-size:14px; }.muted,.section-description,.book-source,.direction-enter { font-size:14px; }.book-prerequisites,.book-stage { font-size:14px; }.reader-toolbar { font-size:14px; } }
 /* A single centred account panel is the complete public entrance. */
 .auth-page .sidebar,.auth-page .topbar,.auth-page .workspace>footer,.auth-page .auth-intro,.auth-page .auth-panel>.back-link,.auth-page #notice { display:none; }.auth-page .workspace { margin-left:0; }
-.auth-page #main-content { display:grid;place-items:center;max-width:none;min-height:100vh;min-height:100svh;padding:28px 20px; }
-.auth-view { width:100%;max-width:440px;margin:0;background:white;border:1px solid var(--line);border-radius:22px;box-shadow:0 15px 60px #182b4609; }.auth-panel { padding:38px;min-width:0; }.auth-brand { justify-content:center;padding:0;margin:2px 0 36px; }.auth-brand .brand-mark { width:48px;height:48px;font-size:34px;background:var(--ink); }.auth-brand small { color:var(--muted); }
-.auth-tabs { display:flex;gap:4px;background:#f0f3f8;border-radius:9px;padding:4px; }.auth-tabs a { flex:1;padding:7px;text-align:center;border-radius:6px;font-size:14px;color:var(--muted); }.auth-tabs a.active { background:white;color:var(--ink);box-shadow:0 2px 5px #182b460a;font-weight:600; }
-.auth-panel h2 { font-size:22px;margin:27px 0 20px;font-weight:600; }.auth-panel form>label { display:block;font-size:14px;margin:17px 0 7px; }.auth-panel form>input { display:block;width:100%;min-width:0;padding:12px 13px;border:1px solid #d6deea;border-radius:8px;background:#fcfdff;color:var(--ink);font-size:14px; }.auth-panel input::placeholder { color:#8590a2;font-size:14px; }.auth-panel input:focus { background:white;border-color:var(--blue); }
-#account-form .primary { width:100%;margin-top:24px;padding:12px; }.form-message { min-height:20px;color:var(--muted);font-size:14px;overflow-wrap:anywhere;margin:12px 0 0; }.form-message.error { color:#a34738; }
+.auth-page #main-content { display:grid;place-items:center;max-width:none;min-height:100vh;min-height:100svh;padding:24px 16px; }
+.auth-view { width:100%;max-width:340px;margin:0;background:white;border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 60px #182b4609; }.auth-panel { padding:24px 22px;min-width:0; }.auth-brand { justify-content:center;padding:0;margin:0 0 18px; }.auth-brand .brand-mark { width:40px;height:40px;font-size:28px;background:var(--ink); }.auth-brand small { color:var(--muted); }
+.auth-tabs { display:flex;gap:3px;background:#f0f3f8;border-radius:8px;padding:3px; }.auth-tabs a { flex:1;padding:6px;text-align:center;border-radius:6px;font-size:13px;color:var(--muted); }.auth-tabs a.active { background:white;color:var(--ink);box-shadow:0 2px 5px #182b460a;font-weight:600; }
+.auth-panel h2 { font-size:18px;margin:16px 0 12px;font-weight:600; }.auth-panel form>label { display:block;font-size:13px;margin:11px 0 5px; }.auth-panel form>input { display:block;width:100%;min-width:0;padding:8px 11px;border:1px solid #d6deea;border-radius:7px;background:#fcfdff;color:var(--ink);font-size:14px; }.auth-panel input::placeholder { color:#8590a2;font-size:13px; }.auth-panel input:focus { background:white;border-color:var(--blue); }
+#password-hint { margin:5px 0 0;font-size:12px; }#account-form .primary { width:100%;margin-top:16px;padding:8px 12px; }.form-message { min-height:16px;color:var(--muted);font-size:13px;overflow-wrap:anywhere;margin:8px 0 0; }.form-message:empty { min-height:0;margin:0; }.form-message.error { color:#a34738; }
 /* Reader: the paper stays central; controls and personal notes sit outside it. */
 .reading-page #main-content { max-width: none; padding: 22px 25px; }.reading-page .workspace>footer { display: none; }
 .reader-heading { display: flex; align-items: center; gap: 25px; margin-bottom: 16px; }.reader-heading h1 { font-size: 17px; margin: 0; overflow-wrap: anywhere; }.reader-heading .back-link { margin: 0; white-space: nowrap; }
@@ -114,7 +114,7 @@ footer { padding:20px;flex-wrap:wrap;font-size:14px; }.module-heading { margin:1
 .direction-grid { grid-template-columns:1fr;gap:14px; }.direction-card { position:relative;padding:23px;min-height:174px;display:block; }.direction-card h3 { font-size:24px;margin-bottom:10px;max-width:70%; }.direction-card p { max-width:58%;margin:0 0 17px;font-size:14px;min-height:35px; }.direction-art { position:absolute;right:-35px;top:10px;width:190px;height:130px;margin:0;opacity:.85; }.direction-enter { display:block;border-top:0;padding:0;font-size:14px; }.more-directions-title { margin:26px 0 14px; }.direction-small { font-size:14px;padding:10px 12px; }.more-directions { gap:8px; }
 .direction-heading { margin:22px 0; }.direction-heading h2 { font-size:29px; }.direction-symbol { font-size:52px; }.textbook-context { font-size:14px;line-height:1.9;margin-top:0; }
 .textbook-row { padding:20px 17px;grid-template-columns:57px minmax(0,1fr);gap:17px;align-items:start; }.book-spine { width:57px;height:88px;padding:9px 8px;border-left-width:4px; }.book-spine::after { top:26px;left:8px;right:8px; }.book-spine>span:last-child { font-size:32px; }.textbook-info h3 { font-size:16px;margin:8px 0; }.textbook-info p { font-size:14px; }.textbook-info .book-prerequisites { font-size:14px; }.textbook-actions { grid-column:2;display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap; }.textbook-actions .primary { padding:9px 12px;font-size:14px; }.book-source { font-size:14px; }
-.auth-page #main-content { padding:24px 16px; }.auth-panel { padding:28px; }.auth-panel form>input { font-size:16px; }.auth-brand { margin-bottom:28px; }.auth-panel h2 { font-size:21px; }
+.auth-page #main-content { padding:20px 14px; }.auth-panel { padding:20px 18px; }.auth-panel form>input { font-size:14px; }.auth-brand { margin-bottom:16px; }.auth-panel h2 { font-size:17px; }
 .reading-page #main-content { padding:18px 10px; }.reader-heading { display:block; }.reader-heading h1 { margin-top:10px;font-size:15px; }.reader-toolbar { gap:8px;padding:10px; }.reader-toolbar .button { padding:6px 8px;font-size:14px; }.reader-toolbar input,.reader-toolbar select { font-size:16px; }.reader-layout { height:auto;min-height:0;flex-wrap:wrap; }.reader-scroll { flex-basis:100%;height:65vh;padding:12px; }.reader-notes,.reader-outline { width:100%;max-height:300px;border-left:0;border-right:0; }.reader-outline { order:-1; }.reader-notes { border-top:1px solid var(--line); }.annotation-note { font-size:16px; }
 }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
@@ -168,7 +168,7 @@ body.reading-page { overflow:hidden; }
 
 .brand-mark{background:transparent;flex-shrink:0;border-radius:0}.brand-mark svg{display:block;width:100%;height:100%}.brand-copy{display:block;color:var(--ink)}.brand-wordmark{display:block;width:72px;height:34px;color:var(--ink)}.brand-copy small{letter-spacing:1.5px;margin-top:2px}.auth-brand .brand-mark{background:transparent;width:50px;height:50px}.auth-brand .brand-wordmark{width:88px;height:41px}.brand:focus-visible{outline:2px solid var(--blue);outline-offset:5px}
 
-.brand-wordmark{width:150px;height:auto;max-width:100%;aspect-ratio:1817/434;display:block;color:var(--ink)}.brand-copy small{text-align:center;margin-top:7px;letter-spacing:1px}.brand{gap:0}.auth-brand .brand-wordmark{width:220px;height:auto}.auth-brand .brand-copy small{margin-top:11px;font-size:14px}.auth-brand{margin-bottom:32px}@media(max-width:800px){.sidebar .brand-wordmark,.admin-rail .brand-wordmark{width:130px}}@media(max-width:380px){.auth-brand .brand-wordmark{width:195px}}
+.brand-wordmark{width:150px;height:auto;max-width:100%;aspect-ratio:1817/434;display:block;color:var(--ink)}.brand-copy small{text-align:center;margin-top:7px;letter-spacing:1px}.brand{gap:0}.auth-brand .brand-wordmark{width:148px;height:auto}.auth-brand .brand-copy small{margin-top:6px;font-size:12px}.auth-brand{margin-bottom:18px}@media(max-width:800px){.sidebar .brand-wordmark,.admin-rail .brand-wordmark{width:130px}}@media(max-width:380px){.auth-brand .brand-wordmark{width:136px}}
 
 .direction-intro-section{margin:0 0 34px;padding:24px 28px;background:white;border:1px solid var(--line);border-radius:12px}.direction-intro-section h2{margin:0 0 18px;font:600 20px/1.5 var(--display);color:var(--ink)}.direction-introduction{margin:0}.introduction-item{display:grid;grid-template-columns:82px minmax(0,1fr);gap:16px;padding:12px 0;border-top:1px solid var(--line)}.introduction-item dt{font-size:14px;color:var(--muted);font-weight:500}.introduction-item dd{margin:0;font-size:14px;line-height:1.85;color:var(--ink);overflow-wrap:anywhere}@media(max-width:600px){.direction-intro-section{padding:20px;margin-bottom:26px}.direction-intro-section h2{font-size:18px}.introduction-item{grid-template-columns:1fr;gap:5px;padding:12px 0}.introduction-item dd{font-size:14px}}
 
@@ -548,7 +548,7 @@ input,select,textarea { accent-color:var(--blue); }
 :where(.auth-panel form>input,.library-filter input,.library-filter select,.book-picker input,.book-picker select,.ai-settings input):focus {
  background:white;border-color:var(--blue);outline:2px solid #4261df22;outline-offset:1px;
 }
-.auth-panel input::placeholder { font-size:14px;color:var(--muted); }
+.auth-panel input::placeholder { font-size:13px;color:var(--muted); }
 .auth-panel form>label,.library-filter label,.book-picker label { color:#41526b;font-weight:500; }
 .form-message.error,.notice.error { color:#963e32; }
 .form-message.error:not(:empty) { padding:9px 11px;border-radius:8px;background:#fff3ef; }
@@ -556,12 +556,12 @@ input,select,textarea { accent-color:var(--blue); }
 /* Entrance: one panel, with a deliberate edge and comfortably sized fields. */
 .auth-view { border-color:#dce3f0;box-shadow:inset 0 2px 0 white,0 14px 44px #243d6b0a; }
 .auth-tabs { background:#f0f3f9;border:1px solid #e6ebf3; }
-.auth-tabs a { font-size:15px; }
+.auth-tabs a { font-size:13px; }
 .auth-tabs a.active { color:var(--accent-ink);box-shadow:0 2px 6px #182b460c; }
 .auth-tabs a:not(.active):hover { color:var(--accent-ink);background:#ffffff80; }
-.auth-panel h2 { font-size:23px;letter-spacing:.02em; }
-.auth-panel form>input { min-height:48px; }
-#account-form .primary { font-size:16px; }
+.auth-panel h2 { font-size:18px;letter-spacing:.01em; }
+.auth-panel form>input { min-height:38px;font-size:14px; }
+#account-form .primary { font-size:14px; }
 
 /* Navigation and application entries: selection and destination are distinct. */
 .workspace-link.active,.subject-nav a.active { box-shadow:inset 3px 0 0 var(--blue); }
@@ -643,7 +643,7 @@ input,select,textarea { accent-color:var(--blue); }
 @media(max-width:650px) {
  .library-document { padding:18px 16px; }
  .library-filter { padding:16px;gap:12px; }
- .auth-panel h2 { font-size:22px; }
+ .auth-panel h2 { font-size:17px; }
 }
 @media(prefers-reduced-motion:reduce) {
  .button,.auth-tabs a,.workspace-link,.subject-nav a,.direction-small,.application-card,.direction-card,.application-action { transition:none;transform:none; }
@@ -783,15 +783,15 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 /* Account entrance: a quiet field, precise spacing, and a single panel. */
 .auth-page { background: radial-gradient(ellipse at 50% 35%, #eaf0fc 0%, #f4f6fa 65%); }
 .auth-page #main-content { min-height: 100dvh; }
-.auth-view { border-radius: 24px; border-color: #dbe3f0; box-shadow: 0 24px 72px #20324c0c, 0 2px 8px #20324c04; }
-.auth-panel { padding: 40px; }
-.auth-brand { margin-bottom: 32px; }
-.auth-tabs { background: #f0f3f8; border-color: #e5eaf2; border-radius: 10px; }
-.auth-tabs a { border-radius: 7px; padding: 9px; }
-.auth-panel h2 { font-size: 25px; font-weight: 650; letter-spacing: -.025em; margin-top: 28px; }
-.auth-panel form>label { color: var(--ink); font-weight: 500; }
-.auth-panel form>input { background: #fafbfd; border-color: var(--field-line); min-height: 50px; border-radius: var(--radius-control); }
-#account-form .primary { min-height: 50px; margin-top: 28px; }
+.auth-view { max-width: 340px; border-radius: 18px; border-color: #dbe3f0; box-shadow: 0 18px 52px #20324c0c, 0 2px 6px #20324c04; }
+.auth-panel { padding: 24px 22px; }
+.auth-brand { margin-bottom: 18px; }
+.auth-tabs { background: #f0f3f8; border-color: #e5eaf2; border-radius: 8px; }
+.auth-tabs a { border-radius: 6px; padding: 6px; font-size: 13px; }
+.auth-panel h2 { font-size: 18px; font-weight: 650; letter-spacing: -.015em; margin: 16px 0 12px; }
+.auth-panel form>label { color: var(--ink); font-weight: 500; font-size: 13px; margin: 11px 0 5px; }
+.auth-panel form>input { background: #fafbfd; border-color: var(--field-line); min-height: 38px; padding: 8px 11px; font-size: 14px; border-radius: 7px; }
+#account-form .primary { min-height: 38px; margin-top: 16px; padding: 8px 12px; font-size: 14px; }
 
 /* Archive surfaces: softly grouped directories, confident titles and light rows. */
 .library-heading h1, .admin-library-heading h1 { font-family: var(--display); font-size: 30px; font-weight: 650; letter-spacing: -.035em; }
@@ -852,8 +852,8 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
   .application-card, .application-card.library-application, .application-card:not(.library-application) { padding: 24px; min-height: 140px; }
   .application-planned { padding: 16px; gap: 8px; }
   .application-planned h2 { font-size: 15px; }
-  .auth-panel { padding: 28px; }
-  .auth-panel h2 { font-size: 23px; }
+  .auth-panel { padding: 20px 18px; }
+  .auth-panel h2 { font-size: 17px; }
   .library-heading h1, .admin-library-heading h1 { font-size: 26px; }
   .library-table .library-read { padding: 6px; }
 }
