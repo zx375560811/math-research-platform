@@ -81,6 +81,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     $('ai-clear-key').disabled = busy || saving || !config?.custom.has_key;
     $('ai-clear').disabled = busy || !history.length;
     $('ai-question').disabled = busy;
+    for (const btn of document.querySelectorAll('[data-ai-prompt]')) btn.disabled = busy || saving;
     $('ai-send-label').textContent = busy ? '正在思考…' : '发送';
     $('ai-provider-label').textContent = provider?.available ? provider.model : '尚未配置';
     $('ai-source').title = provider?.available ? `当前模型：${provider.model}` : '选择 API 来源';
@@ -149,6 +150,23 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     finally { busy = false; controls(); }
   });
   on($('ai-question'), 'keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); $('ai-chat-form').requestSubmit(); } });
+  const mathPrompts = {
+    gap: { text: '请严格补全这段推导中省略的中间步骤（如“显然”、“易知”或跳过的计算），明确写出每一步所依据的定义、引理或定理及其适用条件。', autoSubmit: true },
+    counterexample: { text: '如果减弱或去掉这段命题/定理中的关键假设条件，结论是否仍然成立？请逐一分析关键条件的作用，并构造具体的数学反例说明为什么不能省略。', autoSubmit: true },
+    intuition: { text: '请跳出纯符号形式化推导，用几何直观、低维特例（如 ℝ²、ℝ³ 或有限维情形）或具体例子解释这段抽象概念/定理背后的核心数学动机与图像。', autoSubmit: true },
+    'proof-check': { text: '下面是我尝试给出的证明思路，请帮我逐行检查逻辑是否严密（如是否有未验证的假设、边界退化情形、充分必要方向错误或极限/积分交换条件缺失）：\n\n', autoSubmit: false }
+  };
+  for (const btn of document.querySelectorAll('[data-ai-prompt]')) {
+    on(btn, 'pointerdown', event => event.preventDefault());
+    on(btn, 'click', () => {
+      if (busy || saving || closed) return;
+      const preset = mathPrompts[btn.dataset.aiPrompt]; if (!preset) return;
+      if (!context) { const activeSelection = getDocumentContext()?.selection; if (activeSelection) setContext(activeSelection, false); }
+      const input = $('ai-question'); input.value = preset.text;
+      if (preset.autoSubmit && context && config?.[config.source]?.available) $('ai-chat-form').requestSubmit();
+      else { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+    });
+  }
   $('ai-messages').replaceChildren();
   loadSession();
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');

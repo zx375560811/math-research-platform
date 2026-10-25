@@ -34,7 +34,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
-  const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title }), () => {
+  const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title, selection: selection ? { ...selection } : null }), () => {
     selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
   });
   const divider = $('reader-ai-resize');

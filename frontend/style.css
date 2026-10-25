@@ -195,6 +195,7 @@ body.reading-page { overflow:hidden; }
 /* Editing credentials uses the conversation space so controls remain reachable on short screens. */
 .reader-ai-pane:has(#ai-settings:not([hidden])) .ai-messages,
 .reader-ai-pane:has(#ai-settings:not([hidden])) .ai-context,
+.reader-ai-pane:has(#ai-settings:not([hidden])) .ai-quick-actions,
 .reader-ai-pane:has(#ai-settings:not([hidden])) .ai-chat-form { display:none; }
 .reader-ai-pane:has(#ai-settings:not([hidden])) .ai-settings { flex:1;min-height:0;max-height:none; }
 
@@ -1218,5 +1219,9 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 #reader-page-input:focus { outline:none;background:white;border-radius:4px; }
 .selection-actions { display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px; }
 .selection-hint { font-size:13px;color:var(--muted); }
+.ai-quick-actions { display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 6px;flex-shrink:0; }
+.ai-quick-btn { font-size:13px;padding:3px 9px;min-height:26px;border-radius:999px;background:#f4f7fd;border-color:#d5e0f2;color:#334e7b; }
+.ai-quick-btn:hover:not(:disabled) { background:#e8eefc;border-color:#adc0e8;color:var(--accent-ink); }
+@media (max-width:650px) { .ai-quick-actions { flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px 0 4px; } }
 .discussion-page-link { margin-left:8px;vertical-align:middle; }
 @media(max-width:650px) { .reader-page-jump { height:28px;padding:0 5px;font-size:12px; }#reader-page-input { width:32px; } }
