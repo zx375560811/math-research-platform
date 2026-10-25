@@ -1,5 +1,6 @@
 """Bind a curated textbook to an existing administrator-imported library PDF."""
 import argparse
+from contextlib import closing
 import sqlite3
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from pathlib import Path
 def link_textbook(book, document, database='data/math.db'):
     if not Path(database).is_file():
         raise ValueError('Start the updated server once')
-    with sqlite3.connect(database, timeout=10) as db:
+    with closing(sqlite3.connect(database, timeout=10)) as db, db:
         db.execute('PRAGMA foreign_keys=ON')
         db.execute('BEGIN IMMEDIATE')
         row = db.execute('SELECT document_id FROM learning_books WHERE id=?', (book,)).fetchone()

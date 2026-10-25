@@ -34,6 +34,8 @@ public class LibraryRepository {
         }
         // Library requests are query-only; account operations use separate write transactions.
         try (Connection connection = connect(false); var statement = connection.createStatement()) {
+            statement.execute("PRAGMA journal_mode=WAL");
+            statement.execute("PRAGMA synchronous=NORMAL");
             for (String sql : schema.split(";")) if (!sql.isBlank()) statement.execute(sql);
             try (var catalog = getClass().getResourceAsStream("/learning.sql")) {
                 if (catalog == null) throw new IOException("Missing learning.sql");
@@ -80,17 +82,49 @@ public class LibraryRepository {
                 statement.execute("COMMIT");
             } catch (SQLException | IOException failure) { statement.execute("ROLLBACK"); throw failure; }
             CollectionRepository.backfill(connection);
+            initFts(statement);
         }
     }
 
     Connection connect(boolean readOnly) throws SQLException {
         Connection connection = DriverManager.getConnection(url);
         try (var statement = connection.createStatement()) {
-            statement.execute("PRAGMA busy_timeout=3000");
+            statement.execute("PRAGMA busy_timeout=5000");
+            statement.execute("PRAGMA synchronous=NORMAL");
             statement.execute("PRAGMA foreign_keys=ON");
             if (readOnly) statement.execute("PRAGMA query_only=ON");
         } catch (SQLException failure) { connection.close(); throw failure; }
         return connection;
+    }
+
+    private static void initFts(java.sql.Statement statement) throws SQLException {
+        statement.execute("CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(title, authors, content='documents', content_rowid='id', tokenize='unicode61')");
+        statement.execute("CREATE TRIGGER IF NOT EXISTS trg_documents_fts_ai AFTER INSERT ON documents BEGIN INSERT INTO documents_fts(rowid, title, authors) VALUES (new.id, new.title, new.authors); END");
+        statement.execute("CREATE TRIGGER IF NOT EXISTS trg_documents_fts_ad AFTER DELETE ON documents BEGIN INSERT INTO documents_fts(documents_fts, rowid, title, authors) VALUES('delete', old.id, old.title, old.authors); END");
+        statement.execute("CREATE TRIGGER IF NOT EXISTS trg_documents_fts_au AFTER UPDATE OF title, authors ON documents BEGIN INSERT INTO documents_fts(documents_fts, rowid, title, authors) VALUES('delete', old.id, old.title, old.authors); INSERT INTO documents_fts(rowid, title, authors) VALUES (new.id, new.title, new.authors); END");
+        statement.execute("CREATE VIRTUAL TABLE IF NOT EXISTS discussion_topics_fts USING fts5(title, content, content='discussion_topics', content_rowid='id', tokenize='unicode61')");
+        statement.execute("CREATE TRIGGER IF NOT EXISTS trg_discussion_fts_ai AFTER INSERT ON discussion_topics BEGIN INSERT INTO discussion_topics_fts(rowid, title, content) VALUES (new.id, new.title, new.content); END");
+        statement.execute("CREATE TRIGGER IF NOT EXISTS trg_discussion_fts_ad AFTER DELETE ON discussion_topics BEGIN INSERT INTO discussion_topics_fts(discussion_topics_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content); END");
+        statement.execute("CREATE TRIGGER IF NOT EXISTS trg_discussion_fts_au AFTER UPDATE OF title, content ON discussion_topics BEGIN INSERT INTO discussion_topics_fts(discussion_topics_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content); INSERT INTO discussion_topics_fts(rowid, title, content) VALUES (new.id, new.title, new.content); END");
+        if (statement.executeUpdate("INSERT OR IGNORE INTO account_migrations(name) VALUES('fts5_index_v1')") == 1) {
+            statement.execute("INSERT INTO documents_fts(documents_fts) VALUES('rebuild')");
+            statement.execute("INSERT INTO discussion_topics_fts(discussion_topics_fts) VALUES('rebuild')");
+        }
+    }
+
+    @jakarta.annotation.PreDestroy
+    void close() {
+        try (Connection connection = connect(false); var statement = connection.createStatement()) {
+            statement.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+        } catch (SQLException ignored) {}
+    }
+
+    static String ftsQuery(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        var matcher = java.util.regex.Pattern.compile("[\\p{L}\\p{N}_]+").matcher(raw);
+        var out = new ArrayList<String>();
+        while (matcher.find()) out.add("\"" + matcher.group() + "\"*");
+        return String.join(" AND ", out);
     }
 
     public void health() throws SQLException {

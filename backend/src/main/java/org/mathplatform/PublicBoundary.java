@@ -43,14 +43,14 @@ class PublicBoundary implements Filter {
             || java.util.Set.of("PATCH","DELETE").contains(method) && path.matches("/api/discussions/(?:[0-9]+|replies/[0-9]+)")
             || method.equals("PATCH") && path.matches("/api/discussions/[0-9]+/moderation");
         boolean aiWrite = (method.equals("PUT") && java.util.Set.of("/api/ai/settings", "/api/admin/ai/settings").contains(path))
-            || (method.equals("POST") && path.equals("/api/ai/chat"));
+            || (method.equals("POST") && (path.equals("/api/ai/chat") || path.equals("/api/ai/chat/stream")));
         boolean adminUpload = method.equals("POST") && path.equals("/api/admin/documents");
         boolean adminWrite = (method.equals("PATCH") && path.matches("/api/admin/documents/[0-9]+"))
             || (java.util.Set.of("PUT", "DELETE").contains(method) && path.matches("/api/admin/books/[0-9]+"))
             || (method.equals("POST") && (path.equals("/api/admin/books") || path.equals("/api/admin/books/order") || path.equals("/api/admin/invitations") || path.matches("/api/admin/invitations/[a-f0-9]{64}/revoke")));
         adminWrite |= (method.equals("POST") && java.util.Set.of("/api/admin/collections", "/api/admin/documents/move", "/api/admin/documents/batch-delete").contains(path))
             || (java.util.Set.of("PATCH", "DELETE").contains(method) && path.matches("/api/admin/collections/[0-9]+"))
-            || (method.equals("PUT") && path.matches("/api/admin/collections/[0-9]+/parent"))
+            || (java.util.Set.of("PUT").contains(method) && path.matches("/api/admin/collections/[0-9]+/parent"))
             || (method.equals("PATCH") && path.matches("/api/admin/documents/[0-9]+/name"));
         adminWrite |= method.equals("POST") && (path.equals("/api/admin/library-ai") || path.matches("/api/admin/library-ai/[a-f0-9-]{36}/control"));
         adminWrite |= (method.equals("POST") && (path.equals("/api/admin/series") || path.matches("/api/admin/series/[0-9]+/books")))
@@ -67,7 +67,7 @@ class PublicBoundary implements Filter {
         }
         // Raw PDF uploads are read with a bound by the controller, after authorization.
         if (authWrite || learningWrite || adminWrite || aiWrite) {
-            int limit = authWrite ? 8192 : path.equals("/api/ai/chat") ? 16777216 : 65536;
+            int limit = authWrite ? 8192 : (path.equals("/api/ai/chat") || path.equals("/api/ai/chat/stream")) ? 16777216 : 65536;
             byte[] body = incoming.getInputStream().readNBytes(limit + 1);
             if (body.length > limit) {
                 http.setStatus(413); http.setContentType("application/json; charset=utf-8"); http.getWriter().write("{\"error\":\"request_too_large\"}"); return;

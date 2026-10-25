@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Set;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.io.InputStreamResource;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class PublicController {
+    private static final Set<String> WEB_PATHS = Set.of("/", "/admin", "/admin/", "/admin.js", "/admin-library.js", "/admin-organizer.js", "/admin-books.js", "/admin-series.js", "/series.js", "/ai-learning.js", "/competition.js", "/discussion.js", "/discussion.css", "/admin-competition.js", "/practical-learning.js", "/learning-labs.js", "/study-plan.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-djvu.js", "/vendor/djvu/djvu.js", "/vendor/djvu/LICENSE", "/vendor/djvu/NOTICE.md", "/vendor/djvu/README.md", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js");
     private final LibraryRepository library;
     private final ResearchService research;
     PublicController(LibraryRepository library, ResearchService research) { this.library = library; this.research = research; }
@@ -50,15 +52,26 @@ public class PublicController {
         DocumentFileResponse.write(library.file(value), value, request, response);
     }
 
-    @GetMapping({"/", "/admin", "/admin/", "/admin.js", "/admin-library.js", "/admin-organizer.js", "/admin-books.js", "/admin-series.js", "/series.js", "/ai-learning.js", "/competition.js", "/discussion.js", "/discussion.css", "/admin-competition.js", "/practical-learning.js", "/learning-labs.js", "/study-plan.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-djvu.js", "/vendor/djvu/djvu.js", "/vendor/djvu/LICENSE", "/vendor/djvu/NOTICE.md", "/vendor/djvu/README.md", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js", "/vendor/pdfjs/**", "/vendor/katex/fonts/**"})
+    @GetMapping({"/", "/admin", "/admin/", "/admin.js", "/admin-library.js", "/admin-organizer.js", "/admin-books.js", "/admin-series.js", "/admin-competition.js", "/series.js", "/ai-learning.js", "/competition.js", "/discussion.js", "/discussion.css", "/practical-learning.js", "/learning-labs.js", "/study-plan.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-djvu.js", "/vendor/djvu/djvu.js", "/vendor/djvu/LICENSE", "/vendor/djvu/NOTICE.md", "/vendor/djvu/README.md", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js", "/vendor/pdfjs/**", "/vendor/katex/fonts/**"})
     public ResponseEntity<InputStreamResource> web(HttpServletRequest request) {
-        boolean font = request.getRequestURI().matches("/vendor/katex/fonts/[A-Za-z0-9_-]+\\.woff2");
-        boolean decoder = request.getRequestURI().matches("/vendor/pdfjs/wasm/(?:openjpeg_nowasm_fallback\\.js|(?:openjpeg|jbig2|qcms_bg)\\.wasm)");
-        if (!font && !decoder && !java.util.Set.of("/", "/admin", "/admin/", "/admin.js", "/admin-library.js", "/admin-organizer.js", "/admin-books.js", "/admin-series.js", "/series.js", "/ai-learning.js", "/competition.js", "/discussion.js", "/discussion.css", "/admin-competition.js", "/practical-learning.js", "/learning-labs.js", "/study-plan.js", "/admin.css", "/index.html", "/app.js", "/learning.js", "/library.js", "/reader.js", "/reader-djvu.js", "/vendor/djvu/djvu.js", "/vendor/djvu/LICENSE", "/vendor/djvu/NOTICE.md", "/vendor/djvu/README.md", "/reader-ai.js", "/richtext.js", "/vendor/marked/marked.esm.js", "/vendor/dompurify/purify.es.mjs", "/vendor/katex/katex.mjs", "/vendor/katex/katex.min.css", "/icons.js", "/style.css", "/vendor/morphicons/dom.js", "/vendor/morphicons/spring-CFHloqPP.js", "/vendor/morphicons/normalize-CYnN3Npw.js").contains(request.getRequestURI()) && !request.getRequestURI().matches("/vendor/pdfjs/(pdf(?:\\.worker)?\\.mjs|text_layer\\.css|cmaps/[A-Za-z0-9_-]+\\.bcmap|standard_fonts/[A-Za-z0-9_-]+\\.(?:pfb|ttf))"))
+        String uri = request.getRequestURI();
+        boolean font = uri.matches("/vendor/katex/fonts/[A-Za-z0-9_-]+\\.woff2");
+        boolean decoder = uri.matches("/vendor/pdfjs/wasm/(?:openjpeg_nowasm_fallback\\.js|(?:openjpeg|jbig2|qcms_bg)\\.wasm)");
+        if (!font && !decoder && !WEB_PATHS.contains(uri) && !uri.matches("/vendor/pdfjs/(pdf(?:\\.worker)?\\.mjs|text_layer\\.css|cmaps/[A-Za-z0-9_-]+\\.bcmap|standard_fonts/[A-Za-z0-9_-]+\\.(?:pfb|ttf))"))
             throw new ApiProblem(404, "not_found");
-        String name = request.getRequestURI().startsWith("/admin") && !request.getRequestURI().contains(".") ? "admin.html" : request.getRequestURI().equals("/") ? "index.html" : request.getRequestURI().substring(1);
+        String name = uri.startsWith("/admin") && !uri.contains(".") ? "admin.html" : uri.equals("/") ? "index.html" : uri.substring(1);
         String type = name.endsWith(".wasm") ? "application/wasm" : name.startsWith("vendor/djvu/") && !name.endsWith(".js") ? "text/plain; charset=utf-8" : name.endsWith(".woff2") ? "font/woff2" : name.endsWith(".bcmap") || name.endsWith(".pfb") || name.endsWith(".ttf") ? "application/octet-stream" : name.endsWith(".html") ? "text/html; charset=utf-8" : name.endsWith(".css") ? "text/css; charset=utf-8" : "text/javascript; charset=utf-8";
-        return resource(Path.of(LibraryRepository.setting("MATH_WEB_DIR", "../frontend")).resolve(name), type, 503, true).build();
+        Path file = Path.of(LibraryRepository.setting("MATH_WEB_DIR", "../frontend")).resolve(name);
+        try {
+            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Unavailable file");
+            long mtime = Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS).toMillis();
+            long size = Files.size(file);
+            String etag = "\"" + Long.toHexString(mtime) + "-" + Long.toHexString(size) + "\"";
+            if (etag.equals(request.getHeader("If-None-Match"))) {
+                return ResponseEntity.status(304).header("ETag", etag).header("Cache-Control", "no-cache").build();
+            }
+            return resource(file, type, 503, true).header("ETag", etag).header("Cache-Control", "no-cache").build();
+        } catch (IOException failure) { throw new ApiProblem(503, "web_unavailable"); }
     }
 
     @GetMapping("/**")

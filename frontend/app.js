@@ -9,11 +9,19 @@ import { createSeries } from './series.js';
 const $ = id => document.getElementById(id);
 const state = { generation: 0, user: null, ready: false, returnTo: '#/', authBusy: false };
 mountIcons();
+function clearAiSessionCache() {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith('axiom.ai.chat:')) sessionStorage.removeItem(key);
+    }
+  } catch { /* Optional sessionStorage cleanup. */ }
+}
 const accountErrors = { document_direction_mismatch: '请选择本方向、且与推荐语种一致的文献。', not_found: '文献或推荐已不存在，请刷新后重试。', invalid_progress: '阅读位置无效，请重新打开教材。', invalid_annotation: '标注内容无效或过长，请缩短选中文字或笔记。', annotation_limit: '这本教材的标注已达上限，请整理后再添加。', textbook_unavailable: '这本教材的 PDF 尚未接入。', invalid_invitation: '邀请码无效、已使用或已过期，请联系管理员。', invalid_username: '用户名需为 3–32 位字母、数字或下划线。', invalid_password: '密码至少 12 个字符，最多 72 个 UTF-8 字节。', username_taken: '这个用户名已被使用，请换一个。', invalid_credentials: '用户名或密码不正确。', invalid_csrf: '登录状态已更新，请重新提交。', too_many_attempts: '操作过于频繁，请稍后再试。', login_required: '请先登录。' };
 async function api(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options }); const body = await response.json();
   if (!response.ok) {
-    if (body.error === 'login_required') { state.user = null; accountDisplay(); state.returnTo = location.hash; location.hash = '#/login'; route(); }
+    if (body.error === 'login_required') { state.user = null; clearAiSessionCache(); accountDisplay(); state.returnTo = location.hash; location.hash = '#/login'; route(); }
     const failure=new Error(accountErrors[body.error] || '请求失败，请稍后重试。');failure.code=body.error;throw failure;
   }
   return body;
@@ -95,9 +103,12 @@ $('account-form').addEventListener('submit', async event => {
 });
 $('logout-button').addEventListener('click', async () => {
   $('logout-button').disabled = true;
-  try { await authPost('/api/auth/logout'); state.user = null; ++state.generation; learning.close(); library.close(); accountDisplay(); location.hash = '#/login'; route(); }
+  try { await authPost('/api/auth/logout'); state.user = null; clearAiSessionCache(); ++state.generation; learning.close(); library.close(); accountDisplay(); location.hash = '#/login'; route(); }
   catch (error) { $('notice').textContent = friendly(error); $('notice').hidden = false; }
   finally { $('logout-button').disabled = false; }
 });
+setInterval(() => {
+  if (state.user && document.visibilityState === 'visible') fetch('/api/auth/me', { credentials: 'same-origin' }).catch(() => {});
+}, 600000);
 window.addEventListener('hashchange', route);
 route(); init();

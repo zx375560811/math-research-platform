@@ -18,16 +18,57 @@ const errors = {
 };
 function node(tag, text, cls) { const value = document.createElement(tag); if (text != null) value.textContent = text; if (cls) value.className = cls; return value; }
 export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
-  let closed = false, config = null, context = null, history = [], busy = false, saving = false;
+  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false;
+  const storageKey = 'axiom.ai.chat:' + (location.hash.split('?')[0] || 'default');
   const requests = new Set(), events = [];
   const on = (target, name, handler) => { target.addEventListener(name, handler); events.push(() => target.removeEventListener(name, handler)); };
   const status = text => { if (!closed) $('ai-status').textContent = text; };
-  async function request(path, method, body) {
+  function saveSession() {
+    try {
+      if (turns.length) sessionStorage.setItem(storageKey, JSON.stringify(turns));
+      else sessionStorage.removeItem(storageKey);
+    } catch { /* Ignore storage quota errors. */ }
+  }
+  function loadSession() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+      if (!Array.isArray(saved) || !saved.length) return;
+      const list = $('ai-messages');
+      for (const item of saved) {
+        if (!item?.question || !item?.reply || !item?.remembered) continue;
+        turns.push(item);
+        history.push({ role: 'user', content: item.remembered }, { role: 'assistant', content: item.reply });
+        const user = node('article', null, 'ai-message ai-user'); user.append(node('span', '你', 'ai-speaker'), node('p', item.question));
+        if (item.page) user.append(node('small', `附带第 ${item.page} 页选段`));
+        const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(item.reply));
+        list.append(user, assistant);
+      }
+    } catch { /* Ignore malformed cache. */ }
+  }
+  async function request(path, method, body, onDelta) {
     const controller = new AbortController(); requests.add(controller);
     try {
       const headers = { 'Content-Type': 'application/json' };
       if (method) { const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', signal: controller.signal }); const csrf = await response.json(); if (!response.ok) throw new Error('登录已失效，请重新登录。'); headers[csrf.header] = csrf.token; }
       const response = await fetch(path, { credentials: 'same-origin', signal: controller.signal, ...(method ? { method, headers, body: JSON.stringify(body) } : {}) });
+      const contentType = response.headers.get('content-type') || '';
+      if (response.ok && contentType.includes('text/event-stream') && response.body && onDelta) {
+        const reader = response.body.getReader(), decoder = new TextDecoder();
+        let buffer = '', finalResult = { reply: '', warning: '' };
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n'); buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const payload = JSON.parse(line.slice(5).trim());
+            if (payload.reply !== undefined) { finalResult.reply = payload.reply; onDelta(payload.reply); }
+            if (payload.done) finalResult = { reply: payload.reply || finalResult.reply, warning: payload.warning || '' };
+          }
+        }
+        return finalResult;
+      }
       const result = await response.json(); if (!response.ok) throw new Error(errors[result.error] || 'AI 操作失败，请稍后重试。'); return result;
     } finally { requests.delete(controller); }
   }
@@ -77,7 +118,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     status(''); if (focus) $('ai-question').focus();
   }
   on($('ai-context-remove'), 'click', () => { context = null; $('ai-context').hidden = true; });
-  on($('ai-clear'), 'click', () => { history = []; $('ai-messages').replaceChildren(); status(''); controls(); });
+  on($('ai-clear'), 'click', () => { history = []; turns = []; saveSession(); $('ai-messages').replaceChildren(); status(''); controls(); });
   on($('ai-chat-form'), 'submit', async event => {
     event.preventDefault(); const question = $('ai-question').value.trim();
     if (!question || !config || busy || saving || !config[config.source]?.available) return;
@@ -88,19 +129,29 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     if (attached) user.append(node('small', `附带第 ${attached.page} 页选段`)); list.append(user); list.scrollTop = list.scrollHeight;
     if (attached) { context = null; $('ai-context').hidden = true; $('ai-context-quote').textContent = ''; onContextSent(); }
     busy = true; controls(); status('正在向模型提问…');
+    let assistant = null;
     try {
-      const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached }); if (closed) return;
-      const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(result.reply)); list.append(assistant);
+      const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached }, partial => {
+        if (closed) return;
+        if (!assistant) { assistant = node('article', null, 'ai-message ai-assistant'); list.append(assistant); }
+        assistant.replaceChildren(node('span', 'AI', 'ai-speaker'), renderAnswer(partial));
+      });
+      if (closed) return;
+      if (!assistant) { assistant = node('article', null, 'ai-message ai-assistant'); list.append(assistant); }
+      assistant.replaceChildren(node('span', 'AI', 'ai-speaker'), renderAnswer(result.reply));
       const remembered = attached ? `PDF 第 ${attached.page} 页选段：\n${attached.quote}\n问题：${question}` : question;
       history.push({ role: 'user', content: remembered }, { role: 'assistant', content: result.reply });
+      turns.push({ question, page: attached?.page || null, remembered, reply: result.reply });
+      saveSession();
       $('ai-question').value = ''; status(result.warning || '');
       list.scrollTop += assistant.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientTop;
-    } catch (error) { if (!closed) { user.remove(); if (attached && !context) setContext(attached); if (!history.length) list.append(node('p', '提问未完成，输入内容已保留，可以重试。', 'ai-empty')); status(error.message); } }
+    } catch (error) { if (!closed) { user.remove(); assistant?.remove(); if (attached && !context) setContext(attached); if (!history.length) list.append(node('p', '提问未完成，输入内容已保留，可以重试。', 'ai-empty')); status(error.message); } }
     finally { busy = false; controls(); }
   });
   on($('ai-question'), 'keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); $('ai-chat-form').requestSubmit(); } });
   $('ai-messages').replaceChildren();
+  loadSession();
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');
   request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value.enabled ? '' : '请在设置中配置 API。'); }).catch(error => status(error.message));
-  return { setContext, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
+  return { setContext, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }

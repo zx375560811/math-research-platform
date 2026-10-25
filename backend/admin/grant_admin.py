@@ -1,5 +1,6 @@
 """Server owner: grant or revoke administrator access for an existing account."""
 import argparse
+from contextlib import closing
 from pathlib import Path
 import re
 import sqlite3
@@ -11,7 +12,7 @@ def grant_admin(username, database='data/math.db', revoke=False):
     if not Path(database).is_file():
         raise ValueError('Start the updated server first')
     name = username.lower()
-    with sqlite3.connect(database, timeout=10) as db:
+    with closing(sqlite3.connect(database, timeout=10)) as db, db:
         db.execute('PRAGMA foreign_keys=ON')
         if not db.execute('SELECT 1 FROM users WHERE username=?', (name,)).fetchone():
             raise ValueError('Account does not exist: register with an invitation first')

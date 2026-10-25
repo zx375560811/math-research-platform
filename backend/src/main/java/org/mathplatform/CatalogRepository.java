@@ -34,17 +34,18 @@ public class CatalogRepository {
         long total = 0;
         String prefix=collectionId>0?"WITH RECURSIVE folders(id) AS (SELECT id FROM library_collections WHERE id=? UNION SELECT c.id FROM library_collections c JOIN folders f ON c.parent_id=f.id) ":"";
         String folderFilter=collectionId>0?" AND EXISTS(SELECT 1 FROM document_collections x JOIN folders f ON f.id=x.collection_id WHERE x.document_id=d.id) ":collection.equals("unfiled")?" AND NOT EXISTS(SELECT 1 FROM document_collections x WHERE x.document_id=d.id) ":"";
+        String fts = LibraryRepository.ftsQuery(q);
         String sql = prefix + "SELECT d.id,p.page,p.total_pages,p.position,p.zoom FROM documents d LEFT JOIN document_catalog c ON c.document_id=d.id LEFT JOIN document_progress p ON p.document_id=d.id AND p.username=? "
             + "WHERE (?='' OR coalesce(c.module,'mathematics')=?) AND (?='' OR coalesce(c.language,'und')=?) "
             + "AND (?='' OR (?='unclassified' AND NOT EXISTS(SELECT 1 FROM document_directions x WHERE x.document_id=d.id)) OR EXISTS(SELECT 1 FROM document_directions x WHERE x.document_id=d.id AND x.direction=?)) "
-            + "AND (instr(lower(d.title),lower(?))>0 OR instr(lower(d.authors),lower(?))>0)" + folderFilter + " ORDER BY d.id DESC LIMIT 20 OFFSET ?";
+            + "AND (instr(lower(d.title),lower(?))>0 OR instr(lower(d.authors),lower(?))>0 OR (?<>'' AND d.id IN (SELECT rowid FROM documents_fts WHERE documents_fts MATCH ?)))" + folderFilter + " ORDER BY d.id DESC LIMIT 20 OFFSET ?";
         String countSql = "SELECT count(*) FROM (" + sql.substring(0, sql.lastIndexOf(" ORDER BY")) + ")";
         try (var db = library.connect(true)) {
           for (boolean counting : new boolean[]{true, false}) {
            try (var query = db.prepareStatement(counting ? countSql : sql)) {
             int bind=1;if(collectionId>0)query.setLong(bind++,collectionId);
             query.setString(bind++, user); query.setString(bind++, module); query.setString(bind++, module); query.setString(bind++, language); query.setString(bind++, language);
-            query.setString(bind++, direction); query.setString(bind++, direction); query.setString(bind++, direction); query.setString(bind++, q); query.setString(bind++, q); if (!counting) query.setInt(bind, offset);
+            query.setString(bind++, direction); query.setString(bind++, direction); query.setString(bind++, direction); query.setString(bind++, q); query.setString(bind++, q); query.setString(bind++, fts); query.setString(bind++, fts.isEmpty() ? "\"\"" : fts); if (!counting) query.setInt(bind, offset);
             try (var rows = query.executeQuery()) { while (rows.next()) {
                 if (counting) { total = rows.getLong(1); continue; }
                 var value = library.document(rows.getLong("id"));

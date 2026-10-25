@@ -1,6 +1,8 @@
 package org.mathplatform;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -66,7 +69,7 @@ public class AiService {
         return b.length == 16 && (b[0] & 0xe0) == 0x20 && !((b[0] & 255) == 0x20 && (b[1] & 255) == 0x02)
             && !((b[0] & 255) == 0x20 && (b[1] & 255) == 0x01 && (b[2] & 255) == 0 && (b[3] & 255) == 0);
     }
-    Answer chat(String username, Chat body) throws java.sql.SQLException {
+    private List<Map<String, String>> buildMessages(Chat body) throws java.sql.SQLException {
         if (body == null || !Set.of("default", "custom").contains(body.source() == null ? "" : body.source()) || body.messages() == null || body.messages().isEmpty())
             throw new ApiProblem(400, "ai_invalid_chat");
         String expected = "user";
@@ -89,6 +92,10 @@ public class AiService {
             int last = messages.size() - 1; String question = messages.get(last).get("content");
             messages.set(last, Map.of("role", "user", "content", "文献：" + document.get("title") + "\n" + format + " 第 " + context.page() + " 页\n<" + format + "选段>\n" + context.quote() + "\n</" + format + "选段>\n问题：" + question));
         }
+        return messages;
+    }
+    Answer chat(String username, Chat body) throws java.sql.SQLException {
+        var messages = buildMessages(body);
         var provider = settings.provider(body.source().equals("custom") ? username : null);
         if (!provider.available()) throw new ApiProblem(503, "ai_not_configured");
         URI url = endpoint(provider.baseUrl());
@@ -97,6 +104,18 @@ public class AiService {
         try {
             settings.reserve(username, body.source().equals("default") ? provider.dailyLimit() : 0);
             return complete(url, provider, messages);
+        } finally { slots.release(); active.remove(username); }
+    }
+    void streamChat(String username, Chat body, HttpServletResponse out) throws java.sql.SQLException, IOException {
+        var messages = buildMessages(body);
+        var provider = settings.provider(body.source().equals("custom") ? username : null);
+        if (!provider.available()) throw new ApiProblem(503, "ai_not_configured");
+        URI url = endpoint(provider.baseUrl());
+        if (!active.add(username)) throw new ApiProblem(429, "ai_busy");
+        if (!slots.tryAcquire()) { active.remove(username); throw new ApiProblem(429, "ai_busy"); }
+        try {
+            settings.reserve(username, body.source().equals("default") ? provider.dailyLimit() : 0);
+            streamComplete(url, provider, messages, out);
         } finally { slots.release(); active.remove(username); }
     }
     private static String kind(tools.jackson.databind.JsonNode value) {
@@ -159,12 +178,9 @@ public class AiService {
         String warning = "length".equals(finish) ? "模型服务在自身输出上限处停止，回答可能尚未完成，可继续追问。" : "";
         return new Answer(reply, warning);
     }
-    private Answer complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages) {
-        String path = base.toString().replaceAll("/+$", "");
-        if (!path.endsWith("/chat/completions")) path += "/chat/completions";
+    private DnsResolver resolverFor(URI base) {
         boolean loopback = test(base);
-        // This resolver supplies validated addresses to the connection itself; there is no second unchecked DNS lookup.
-        DnsResolver resolver = new DnsResolver() {
+        return new DnsResolver() {
             public InetAddress[] resolve(String host) throws UnknownHostException {
                 InetAddress[] addresses = InetAddress.getAllByName(host);
                 for (InetAddress address : addresses) if (!(loopback && address.isLoopbackAddress()) && !publicAddress(address)) throw new UnknownHostException("Blocked AI endpoint");
@@ -172,7 +188,11 @@ public class AiService {
             }
             public String resolveCanonicalHostname(String host) { return host; }
         };
-        var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(resolver)
+    }
+    private Answer complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages) {
+        String path = base.toString().replaceAll("/+$", "");
+        if (!path.endsWith("/chat/completions")) path += "/chat/completions";
+        var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(resolverFor(base))
             .setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(10)).setSocketTimeout(Timeout.ofSeconds(180)).build()).build();
         try (var client = HttpClients.custom().setConnectionManager(manager).disableRedirectHandling().disableAutomaticRetries().disableCookieManagement()
                 .setDefaultRequestConfig(RequestConfig.custom().setResponseTimeout(Timeout.ofSeconds(180)).build()).build()) {
@@ -192,6 +212,56 @@ public class AiService {
                 try { value = json.readTree(new String(bytes, StandardCharsets.UTF_8)); }
                 catch (RuntimeException failure) { throw responseProblem("ai_response_non_json", null); }
                 return decode(value, provider.key());
+            }); } finally { deadline.cancel(false); }
+        } catch (ApiProblem failure) { throw failure; }
+        catch (IOException | RuntimeException failure) { throw new ApiProblem(502, "ai_connection_failed"); }
+    }
+    private void streamComplete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages, HttpServletResponse out) {
+        String path = base.toString().replaceAll("/+$", "");
+        if (!path.endsWith("/chat/completions")) path += "/chat/completions";
+        var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(resolverFor(base))
+            .setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(Timeout.ofSeconds(10)).setSocketTimeout(Timeout.ofSeconds(180)).build()).build();
+        try (var client = HttpClients.custom().setConnectionManager(manager).disableRedirectHandling().disableAutomaticRetries().disableCookieManagement()
+                .setDefaultRequestConfig(RequestConfig.custom().setResponseTimeout(Timeout.ofSeconds(180)).build()).build()) {
+            var request = new HttpPost(path);
+            request.setHeader("Authorization", "Bearer " + provider.key()); request.setHeader("Accept", "text/event-stream, application/json");
+            request.setEntity(new StringEntity(json.writeValueAsString(Map.of("model", provider.model(), "messages", messages, "stream", true)), ContentType.APPLICATION_JSON));
+            var deadline = DEADLINES.schedule(() -> request.cancel(), 300, java.util.concurrent.TimeUnit.SECONDS);
+            try { client.execute(request, response -> {
+                int status = response.getCode();
+                if (status == 401 || status == 403) throw new ApiProblem(502, "ai_provider_auth");
+                if (status == 429) throw new ApiProblem(429, "ai_provider_limit");
+                if (status < 200 || status >= 300 || response.getEntity() == null) throw new ApiProblem(502, "ai_provider_error");
+                out.setStatus(200);
+                out.setContentType("text/event-stream; charset=utf-8");
+                out.setHeader("Cache-Control", "no-store");
+                var writer = out.getWriter();
+                var text = new StringBuilder();
+                String finish = "";
+                try (var reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.startsWith("data:")) continue;
+                        String payload = line.substring(5).trim();
+                        if ("[DONE]".equals(payload) || payload.isEmpty()) continue;
+                        var node = json.readTree(payload);
+                        var first = node.path("choices").path(0);
+                        String f = first.path("finish_reason").asString("");
+                        if (!f.isEmpty()) finish = f;
+                        String delta = first.path("delta").path("content").asString("");
+                        if (!delta.isEmpty()) {
+                            text.append(delta);
+                            String safe = text.toString().replace(provider.key(), "[密钥已隐藏]");
+                            writer.write("data: " + json.writeValueAsString(Map.of("reply", safe)) + "\n\n");
+                            writer.flush();
+                        }
+                    }
+                }
+                String reply = text.toString().replace(provider.key(), "[密钥已隐藏]");
+                String warning = "length".equals(finish) ? "模型服务在自身输出上限处停止，回答可能尚未完成，可继续追问。" : "";
+                writer.write("data: " + json.writeValueAsString(Map.of("done", true, "reply", reply, "warning", warning)) + "\n\n");
+                writer.flush();
+                return null;
             }); } finally { deadline.cancel(false); }
         } catch (ApiProblem failure) { throw failure; }
         catch (IOException | RuntimeException failure) { throw new ApiProblem(502, "ai_connection_failed"); }

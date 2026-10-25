@@ -1,8 +1,10 @@
 package org.mathplatform;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,6 +45,10 @@ public class AiController {
     public Map<String, String> chat(Authentication user, @RequestBody AiService.Chat body) throws SQLException {
         var answer = service.chat(user.getName(), body);
         return Map.of("reply", answer.reply(), "warning", answer.warning());
+    }
+    @PostMapping("/api/ai/chat/stream")
+    public void chatStream(Authentication user, @RequestBody AiService.Chat body, HttpServletResponse response) throws SQLException, IOException {
+        service.streamChat(user.getName(), body, response);
     }
     private void authorize(Authentication user) throws SQLException {
         if (user == null || !users.isAdmin(user.getName())) throw new ApiProblem(403, "admin_required");

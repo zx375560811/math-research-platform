@@ -1,5 +1,6 @@
 """Server administrator only: issue random, single-use registration invitations."""
 import argparse
+from contextlib import closing
 import hashlib
 import secrets
 import sqlite3
@@ -14,7 +15,7 @@ def create_invitation(database='data/math.db', days=7):
         raise ValueError('Start the updated server once to initialize invitations')
     code = secrets.token_urlsafe(32)
     digest = hashlib.sha256(code.encode('ascii')).hexdigest()
-    with sqlite3.connect(database, timeout=10) as db:
+    with closing(sqlite3.connect(database, timeout=10)) as db, db:
         db.execute('PRAGMA foreign_keys=ON')
         if not db.execute("SELECT 1 FROM account_migrations WHERE name='invite_only_v1'").fetchone():
             raise ValueError('Start the updated server once before issuing invitations')

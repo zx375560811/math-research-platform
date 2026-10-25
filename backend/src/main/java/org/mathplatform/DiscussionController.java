@@ -49,16 +49,17 @@ public class DiscussionController {
         offset(offset);if(!category.isEmpty())category(category);
         if(q.length()>100||!Set.of("all","mine","unanswered").contains(scope))throw new ApiProblem(400,"invalid_query");
         boolean admin=users.isAdmin(user.getName());
-        String where=" WHERE (?='' OR t.category=?) AND (?='' OR instr(lower(t.title||char(10)||t.content),lower(?))>0) AND (?<>'mine' OR t.author=?) AND (?<>'unanswered' OR NOT EXISTS(SELECT 1 FROM discussion_replies r WHERE r.topic_id=t.id)) ";
+        String fts=LibraryRepository.ftsQuery(q.strip());
+        String where=" WHERE (?='' OR t.category=?) AND (?='' OR instr(lower(t.title||char(10)||t.content),lower(?))>0 OR (?<>'' AND t.id IN (SELECT rowid FROM discussion_topics_fts WHERE discussion_topics_fts MATCH ?))) AND (?<>'mine' OR t.author=?) AND (?<>'unanswered' OR NOT EXISTS(SELECT 1 FROM discussion_replies r WHERE r.topic_id=t.id)) ";
         try(var db=library.connect(true)){
             db.setAutoCommit(false);long total;
             try(var count=db.prepareStatement("SELECT count(*) FROM discussion_topics t"+where)){
-                count.setString(1,category);count.setString(2,category);count.setString(3,q.strip());count.setString(4,q.strip());count.setString(5,scope);count.setString(6,user.getName());count.setString(7,scope);
+                count.setString(1,category);count.setString(2,category);count.setString(3,q.strip());count.setString(4,q.strip());count.setString(5,fts);count.setString(6,fts.isEmpty()?"\"\"":fts);count.setString(7,scope);count.setString(8,user.getName());count.setString(9,scope);
                 try(var r=count.executeQuery()){r.next();total=r.getLong(1);}
             }
             var topics=new ArrayList<Map<String,Object>>();
             try(var query=db.prepareStatement(TOPIC+where+"ORDER BY t.pinned DESC,t.activity_at DESC,t.id DESC LIMIT 9 OFFSET ?")){
-                query.setString(1,category);query.setString(2,category);query.setString(3,q.strip());query.setString(4,q.strip());query.setString(5,scope);query.setString(6,user.getName());query.setString(7,scope);query.setInt(8,offset);
+                query.setString(1,category);query.setString(2,category);query.setString(3,q.strip());query.setString(4,q.strip());query.setString(5,fts);query.setString(6,fts.isEmpty()?"\"\"":fts);query.setString(7,scope);query.setString(8,user.getName());query.setString(9,scope);query.setInt(10,offset);
                 try(var r=query.executeQuery()){while(r.next())topics.add(row(r,user.getName(),admin,false));}
             }
             db.commit();return Map.of("topics",topics,"total",total,"total_pages",Math.max(1,(total+8)/9),"limit",9,"offset",offset,"can_moderate",admin);

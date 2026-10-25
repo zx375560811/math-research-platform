@@ -57,6 +57,7 @@ version INTEGER NOT NULL DEFAULT 1,
 created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
 updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')));
 CREATE INDEX IF NOT EXISTS idx_discussion_topics_activity ON discussion_topics(pinned DESC,activity_at DESC,id DESC);
+CREATE INDEX IF NOT EXISTS idx_discussion_topics_cat_activity ON discussion_topics(category,pinned DESC,activity_at DESC,id DESC);
 CREATE INDEX IF NOT EXISTS idx_discussion_topics_author ON discussion_topics(author,id);
 CREATE INDEX IF NOT EXISTS idx_discussion_replies_topic ON discussion_replies(topic_id,id);
 CREATE TABLE IF NOT EXISTS invitation_revocations (
@@ -93,6 +94,8 @@ module TEXT NOT NULL DEFAULT 'mathematics', language TEXT NOT NULL DEFAULT 'und'
 CREATE TABLE IF NOT EXISTS document_directions (
 document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
 direction TEXT NOT NULL REFERENCES learning_directions(slug), PRIMARY KEY(document_id,direction));
+CREATE INDEX IF NOT EXISTS idx_document_catalog_filter ON document_catalog(module,language,document_id);
+CREATE INDEX IF NOT EXISTS idx_document_directions_dir ON document_directions(direction,document_id);
 CREATE TABLE IF NOT EXISTS learning_book_details (
 book_id INTEGER PRIMARY KEY REFERENCES learning_books(id) ON DELETE CASCADE,
 language TEXT NOT NULL DEFAULT 'en' CHECK(language IN ('zh','en')));

@@ -3,6 +3,7 @@ package org.mathplatform;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -42,6 +43,7 @@ public class AccountController {
         if (attempts.size() >= 10000 && !attempts.containsKey(key)) attempts.remove(attempts.keySet().iterator().next());
         attempts.put(key, new Attempt(count == 0 ? now : old.start, count + 1));
     }
+    private synchronized void clearLimit(String key) { attempts.remove(key); }
     @GetMapping("/api/auth/csrf")
     public Map<String, String> csrf(CsrfToken token) { return Map.of("header", token.getHeaderName(), "token", token.getToken()); }
     @GetMapping("/api/auth/me")
@@ -59,11 +61,14 @@ public class AccountController {
     }
     @PostMapping("/api/auth/login")
     public Map<String, Object> login(@RequestBody Credentials credentials, HttpServletRequest request, HttpServletResponse response) throws SQLException {
-        limit("login:" + request.getRemoteAddr(), 30, 900000);
+        String acct = credentials.username == null ? "" : credentials.username.trim().toLowerCase(Locale.ROOT);
+        String loginKey = "login:" + request.getRemoteAddr() + ":" + acct;
+        limit(loginKey, 30, 900000);
         if (credentials.password == null || credentials.password.getBytes(StandardCharsets.UTF_8).length > 72) throw new ApiProblem(401, "invalid_credentials");
         Authentication user;
         try { user = authentication.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(credentials.username, credentials.password)); }
         catch (AuthenticationException failure) { throw new ApiProblem(401, "invalid_credentials"); }
+        clearLimit(loginKey);
         if (request.getSession(false) != null) request.changeSessionId();
         new CsrfAuthenticationStrategy(new HttpSessionCsrfTokenRepository()).onAuthentication(user, request, response);
         var context = SecurityContextHolder.createEmptyContext(); context.setAuthentication(user);
