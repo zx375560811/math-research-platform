@@ -71,7 +71,14 @@ public class AdminController {
             try (var output = java.nio.channels.FileChannel.open(saved, java.nio.file.StandardOpenOption.WRITE)) {
                 var stream = java.nio.channels.Channels.newOutputStream(output);
                 stream.write(header);
-                fileSize = header.length + input.transferTo(stream);
+                fileSize = header.length;
+                long maxBytes = Long.parseLong(LibraryRepository.setting("MATH_MAX_UPLOAD_BYTES", "536870912"));
+                byte[] buffer = new byte[65536];
+                for (int read; (read = input.read(buffer)) != -1; ) {
+                    fileSize += read;
+                    if (fileSize > maxBytes) throw new ApiProblem(413, "request_too_large");
+                    stream.write(buffer, 0, read);
+                }
                 output.force(true);
             }
             try (var db = library.connect(false); var transaction = db.createStatement()) {

@@ -107,6 +107,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   }
   function controls(number) {
     pageNumber = number; scroll.dataset.page = String(number);
+    const pageInput = $('reader-page-input'); if (pageInput && document.activeElement !== pageInput) pageInput.value = String(number);
   }
   function snapshot() {
     const page = currentPage();
@@ -352,6 +353,30 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   }
   on($('reader-ask-ai'), 'pointerdown', event => event.preventDefault());
   on($('reader-ask-ai'), 'click', () => { if (selection) ai.setContext({ ...selection }); });
+  if ($('reader-page-form')) on($('reader-page-form'), 'submit', event => { event.preventDefault(); showPage(Number($('reader-page-input')?.value) || pageNumber); $('reader-page-input')?.blur(); });
+  if ($('reader-page-input')) on($('reader-page-input'), 'change', () => showPage(Number($('reader-page-input').value) || pageNumber));
+  on(window, 'keydown', event => {
+    if (closed || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if ((event.key === 'g' || event.key === 'G') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) { event.preventDefault(); $('reader-page-input')?.focus(); $('reader-page-input')?.select(); }
+  });
+  if ($('selection-discuss')) {
+    on($('selection-discuss'), 'pointerdown', event => event.preventDefault());
+    on($('selection-discuss'), 'click', () => {
+      if (!selection || !book) return;
+      const docId = Number(book.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]);
+      const category = location.hash.startsWith('#/apps/math-to-ai') ? 'math-to-ai' : location.hash.startsWith('#/apps/competition') ? 'competition' : 'mathematics';
+      try {
+        sessionStorage.setItem('axiom.discussion.prefill', JSON.stringify({
+          title: `${book.title} 第 ${selection.page} 页问题`,
+          category,
+          content: `> 摘自《${book.title}》第 ${selection.page} 页：\n> ${selection.quote.replace(/\n/g, '\n> ')}\n\n关于这段内容，我想讨论的问题是：\n`,
+          document: docId ? { id: docId, title: book.title } : null
+        }));
+      } catch { /* Ignore sessionStorage errors. */ }
+      selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
+      location.hash = '#/discussions/new';
+    });
+  }
   on(scroll, 'pointerdown', event => {
     if (event.button !== 0 || !event.target.closest('.textLayer')) return;
     selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true;
@@ -423,6 +448,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       pdf.pageSizes?.forEach((size, index) => dimensions.set(index + 1, size));
       const first = await waiting(pdf.getPage(1), '读取第一页信息'); if (closed) return; const viewport = first.getViewport({ scale: 1 }); baseWidth = viewport.width; baseHeight = viewport.height;
       scroll.dataset.totalPages = String(pdf.numPages);
+      if ($('reader-page-input')) $('reader-page-input').max = String(pdf.numPages);
+      if ($('reader-page-total')) $('reader-page-total').textContent = '/ ' + pdf.numPages;
       marks = (await waiting(api(`${endpoint}/annotations`, { signal: requests.signal }), '读取高亮笔记')).annotations; if (closed) return;
       notes(); zoom = progress?.zoom || 1; if (!Number.isFinite(zoom) || zoom < .25 || zoom > 4) zoom = 1; zoomControls();
       const fragment = document.createDocumentFragment();
@@ -431,7 +458,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
         frame.dataset.page = String(number); frame.dataset.loadingMessage = `正在加载第 ${number} 页…`; frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`);
         frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false });
       }
-      stack.replaceChildren(fragment); await layout({ page: progress?.page || 1, position: progress?.position || 0 });
+      const jumpPage = Number(new URLSearchParams(location.hash.split('?')[1] || '').get('pdf_page'));
+      stack.replaceChildren(fragment); await layout({ page: (jumpPage >= 1 && jumpPage <= pdf.numPages ? jumpPage : progress?.page) || 1, position: jumpPage ? 0 : (progress?.position || 0) });
       if (!closed) {
         try { await outline(); }
         catch (error) { if (!closed) $('reader-outline').replaceChildren(el('p', 'muted', '目录加载失败：' + errorText(error))); }

@@ -1212,3 +1212,10 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 @media(min-width:1101px) { .competition-admin-resources.is-editing { display:grid;grid-template-columns:minmax(260px,.85fr) minmax(0,1.15fr);column-gap:22px;align-items:start; }.competition-admin-resources.is-editing>.admin-heading { grid-column:1/-1; }.competition-admin-resources.is-editing>.admin-editor { margin-top:0;padding:20px; }.competition-admin-resources.is-editing .competition-admin-row { flex-direction:column;align-items:flex-start;gap:12px; } }
 @media(max-width:1100px) { .competition-admin-resources.is-editing #competition-admin-list { display:none; }.competition-admin-resources.is-editing>.admin-editor { margin-top:0; } }
 @media(max-width:650px) { .competition-tabs { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }.competition-tabs .button { width:100%; } }
+.reader-page-jump { display:inline-flex;align-items:center;gap:4px;flex-shrink:0;height:32px;padding:0 8px;border:1px solid #d8e2f4;border-radius:8px;background:#ffffffb8;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums; }
+#reader-page-input { width:40px;padding:2px 3px;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;text-align:right;-moz-appearance:textfield; }
+#reader-page-input::-webkit-inner-spin-button,#reader-page-input::-webkit-outer-spin-button { -webkit-appearance:none;margin:0; }
+#reader-page-input:focus { outline:none;background:white;border-radius:4px; }
+.selection-actions { display:flex;justify-content:flex-end;margin-top:8px; }
+.discussion-page-link { margin-left:8px;vertical-align:middle; }
+@media(max-width:650px) { .reader-page-jump { height:28px;padding:0 5px;font-size:12px; }#reader-page-input { width:32px; } }
