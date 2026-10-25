@@ -1216,6 +1216,7 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 #reader-page-input { width:40px;padding:2px 3px;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;text-align:right;-moz-appearance:textfield; }
 #reader-page-input::-webkit-inner-spin-button,#reader-page-input::-webkit-outer-spin-button { -webkit-appearance:none;margin:0; }
 #reader-page-input:focus { outline:none;background:white;border-radius:4px; }
-.selection-actions { display:flex;justify-content:flex-end;margin-top:8px; }
+.selection-actions { display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px; }
+.selection-hint { font-size:13px;color:var(--muted); }
 .discussion-page-link { margin-left:8px;vertical-align:middle; }
 @media(max-width:650px) { .reader-page-jump { height:28px;padding:0 5px;font-size:12px; }#reader-page-input { width:32px; } }
