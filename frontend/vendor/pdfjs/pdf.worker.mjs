@@ -918,6 +918,19 @@ if (typeof Math.sumPrecise !== "function") {
     return numbers.reduce((a, b) => a + b, 0);
   };
 }
+if (typeof Promise.try !== "function") {
+  Promise.try = function (fn, ...args) {
+    return new Promise(resolve => resolve(fn(...args)));
+  };
+}
+if (typeof Uint8Array.prototype.toBase64 !== "function") {
+  Uint8Array.prototype.toBase64 = function () {
+    let binary = "";
+    const len = this.byteLength;
+    for (let i = 0; i < len; i++) binary += String.fromCharCode(this[i]);
+    return btoa(binary);
+  };
+}
 
 ;// ./src/core/primitives.js
 
@@ -1367,7 +1380,7 @@ async function fetchBinaryData(url) {
   if (!response.ok) {
     throw new Error(`Failed to fetch file "${url}" with "${response.statusText}".`);
   }
-  return response.bytes();
+  return typeof response.bytes === "function" ? response.bytes() : new Uint8Array(await response.arrayBuffer());
 }
 function getInheritableProperty({
   dict,

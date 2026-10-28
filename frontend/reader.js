@@ -10,12 +10,12 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const requests = new AbortController(), loadingWatchers = new Set();
   let received = 0;
   function activity() { for (const reset of loadingWatchers) reset(); }
-  function waiting(operation, stage) {
+  function waiting(operation, stage, timeoutMs = 60000) {
     return new Promise((resolve, reject) => {
       let timer;
       const cleanup = () => { clearTimeout(timer); loadingWatchers.delete(reset); requests.signal.removeEventListener('abort', abort); };
       const fail = error => { cleanup(); reject(error); };
-      const reset = () => { clearTimeout(timer); timer = setTimeout(() => { const error = new Error(stage + '超过 60 秒没有响应，请重试或选择整本加载。'); error.code = 'reader_timeout'; fail(error); }, 60000); };
+      const reset = () => { clearTimeout(timer); timer = setTimeout(() => { const error = new Error(stage + (timeoutMs >= 60000 ? '超过 60 秒没有响应，请重试或选择整本加载。' : '超时没有响应，请重试或选择整本加载。')); error.code = 'reader_timeout'; fail(error); }, timeoutMs); };
       const abort = () => fail(new DOMException('Reader closed', 'AbortError'));
       Promise.resolve(operation).then(value => { cleanup(); resolve(value); }, fail);
       if (requests.signal.aborted) abort(); else { requests.signal.addEventListener('abort', abort, { once: true }); loadingWatchers.add(reset); reset(); }
@@ -226,9 +226,9 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     selection = { page: Number(frame.dataset.page), quote, rects }; ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
   }
   function release(page) {
-    page.renderTask?.cancel(); page.textLayer?.cancel(); page.renderTask = page.textLayer = null;
-    page.canvas.width = page.canvas.height = 0; page.text.replaceChildren(); page.highlights.replaceChildren(); page.rendered = false;
-    page.failed = false; page.errorBox?.remove(); page.errorBox = null; delete page.frame.dataset.error; delete page.frame.dataset.painted;
+    try { page.renderTask?.cancel(); } catch {} try { page.textLayer?.cancel(); } catch {} page.renderTask = page.textLayer = null;
+    page.canvas.width = page.canvas.height = 0; page.canvas.style.width = page.canvas.style.height = '0px'; page.text.replaceChildren(); page.highlights.replaceChildren(); page.rendered = false; page.rendering = false;
+    page.failed = false; page.errorBox?.remove(); page.errorBox = null; delete page.frame.dataset.error; delete page.frame.dataset.painted; delete page.frame.dataset.loaded; delete page.frame.dataset.loadingMessage;
   }
   function endSpace() { const last = pages.at(-1); stack.style.paddingBottom = Math.max(0, scroll.clientHeight - (last?.frame.clientHeight || 0)) + 'px'; }
   function fitWidth() { return Math.max(80, scroll.clientWidth - (innerWidth <= 650 ? 16 : 32)) * zoom; }
@@ -237,9 +237,11 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     page.frame.style.width = width + 'px'; page.frame.style.height = width * dim[1] / dim[0] + 'px';
   }
   async function render(page, version) {
-    if (closed || version !== generation || page.rendered || page.failed) return;
+    if (closed || version !== generation || page.rendered || page.rendering || page.failed) return;
+    page.rendering = true;
+    try {
     page.frame.dataset.loadingMessage = `正在读取第 ${page.number} 页内容…`;
-    const proxy = await waiting(pdf.getPage(page.number), `读取第 ${page.number} 页`); if (closed || version !== generation) return;
+    const proxy = await waiting(pdf.getPage(page.number), `读取第 ${page.number} 页`, 25000); if (closed || version !== generation) return;
     const base = proxy.getViewport({ scale: 1 }); dimensions.set(page.number, [base.width, base.height]);
     // Changing an estimated page height must not move the passage being read.
     const anchor = snapshot(), active = pages[anchor.page - 1];
@@ -250,17 +252,23 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     page.canvas.style.width = viewport.width + 'px'; page.canvas.style.height = viewport.height + 'px';
     page.frame.style.setProperty('--scale-factor', String(viewport.scale)); page.frame.style.setProperty('--total-scale-factor', String(viewport.scale));
     page.frame.dataset.loadingMessage = `正在绘制第 ${page.number} 页…`;
-    page.renderTask = proxy.render({ canvasContext: page.canvas.getContext('2d'), viewport, transform: [ratio, 0, 0, ratio, 0, 0] }); await waiting(page.renderTask.promise, `绘制第 ${page.number} 页`);
+    try { page.renderTask?.cancel(); } catch {} page.renderTask = proxy.render({ canvasContext: page.canvas.getContext('2d'), viewport, transform: [ratio, 0, 0, ratio, 0, 0] }); await waiting(page.renderTask.promise, `绘制第 ${page.number} 页`, 25000);
     if (closed || version !== generation) return;
-    page.rendered = true; page.frame.dataset.painted = 'true'; paintHighlights();
+    page.rendered = true; page.frame.dataset.painted = 'true'; delete page.frame.dataset.loadingMessage; paintHighlights();
     let text;
     try {
-      text = await waiting(proxy.getTextContent(), `读取第 ${page.number} 页文字`); if (closed || version !== generation || !page.rendered) return;
-      page.textLayer = pdf.createTextLayer ? pdf.createTextLayer({ textContentSource: text, container: page.text, viewport }) : new TextLayer({ textContentSource: text, container: page.text, viewport }); await waiting(page.textLayer.render(), `排版第 ${page.number} 页文字`);
+      text = await waiting(proxy.getTextContent(), `读取第 ${page.number} 页文字`, 15000); if (closed || version !== generation || !page.rendered) return;
+      page.textLayer = pdf.createTextLayer ? pdf.createTextLayer({ textContentSource: text, container: page.text, viewport }) : new TextLayer({ textContentSource: text, container: page.text, viewport }); await waiting(page.textLayer.render(), `排版第 ${page.number} 页文字`, 15000);
     } catch (error) { if (!closed && version === generation && page.rendered && error.name !== 'RenderingCancelledException' && error.name !== 'AbortError' && error.name !== 'AbortException') { page.frame.dataset.loaded = 'true'; failure(error, page, true); } return; }
     if (closed || version !== generation || !page.rendered) return;
     page.frame.dataset.loaded = 'true';
     if (page.number === pageNumber) $('reader-status').textContent = text.items.some(item => item.str?.trim()) ? '上下滚动连续阅读，选中文字即可高亮。' : '本页为扫描页，需文字识别后才能高亮。';
+    } finally {
+      page.rendering = false;
+      if (closed || version !== generation) {
+        if (!page.rendered) release(page);
+      }
+    }
   }
   function scheduleVisible() {
     if (closed || !pages.length || layingOut) return Promise.resolve();
@@ -269,7 +277,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const wanted = pages.filter(p => top(p.frame) + p.frame.clientHeight >= scroll.scrollTop - scroll.clientHeight && top(p.frame) <= bottom + scroll.clientHeight);
     // Keep only nearby canvases; page shells preserve the full document scroll range.
     const keep = new Set(wanted);
-    for (const page of pages) if (!keep.has(page) && page.rendered) { release(page); delete page.frame.dataset.loaded; }
+    for (const page of pages) if (!keep.has(page) && (page.rendered || page.rendering)) { release(page); }
     const version = generation;
     const ordered = [...wanted].sort((a,b) => Math.abs(a.number-active.number) - Math.abs(b.number-active.number));
     queue = queue.catch(() => {}).then(async () => {
@@ -277,7 +285,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
         if (closed || version !== generation) return;
         // A fast jump can make a previously queued page irrelevant.
         if (Math.abs(top(page.frame) - scroll.scrollTop) > scroll.clientHeight * 3 + page.frame.clientHeight) continue;
-        try { await render(page, version); } catch (error) { if (!closed && version === generation && error.name !== 'RenderingCancelledException' && error.name !== 'AbortError') { page.failed = true; page.renderTask?.cancel(); page.textLayer?.cancel(); failure(error, page); } }
+        try { await render(page, version); } catch (error) { if (!closed && version === generation && error.name !== 'RenderingCancelledException' && error.name !== 'AbortError' && error.name !== 'AbortException') { page.failed = true; try { page.renderTask?.cancel(); } catch {} try { page.textLayer?.cancel(); } catch {} failure(error, page); } else if (!page.rendered) { release(page); } }
       }
     });
     return queue;
@@ -456,7 +464,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       for (let number = 1; number <= pdf.numPages; number++) {
         const frame = el('div', 'pdf-page'), canvas = el('canvas', 'pdf-canvas'), highlights = el('div', 'pdf-highlights'), text = el('div', 'textLayer');
         frame.dataset.page = String(number); frame.dataset.loadingMessage = `正在加载第 ${number} 页…`; frame.setAttribute('role', 'region'); frame.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`); highlights.setAttribute('aria-hidden', 'true'); canvas.setAttribute('aria-label', `${book.format === 'djvu' ? 'DJVU' : 'PDF'} 第 ${number} 页`);
-        frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false });
+        frame.append(canvas, highlights, text); fragment.append(frame); pages.push({ number, frame, canvas, highlights, text, rendered: false, rendering: false });
       }
       const jumpPage = Number(new URLSearchParams(location.hash.split('?')[1] || '').get('pdf_page'));
       stack.replaceChildren(fragment); await layout({ page: (jumpPage >= 1 && jumpPage <= pdf.numPages ? jumpPage : progress?.page) || 1, position: jumpPage ? 0 : (progress?.position || 0) });
