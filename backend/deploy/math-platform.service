@@ -10,6 +10,9 @@ WorkingDirectory=/opt/math-platform/backend
 ExecStart=/usr/bin/java -Xms64m -Xmx256m -jar /opt/math-platform/backend/target/math-server.jar
 Environment=MATH_PORT=8080
 Environment=MATH_DB_PATH=/opt/math-platform/backend/data/math.db
+# 仅监听 127.0.0.1；由本机反向代理传入 X-Forwarded-For/Proto 时信任这些头，
+# 使登录限流按真实客户端地址计数。不配置代理时可删除本行（默认 none）。
+Environment=MATH_FORWARD_HEADERS=native
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15
