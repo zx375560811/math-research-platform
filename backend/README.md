@@ -48,7 +48,7 @@ java -jar target/math-server.jar
 
 代码分层：`PublicController` 接口与静态页面、`ResearchService` 应用内容、`LibraryRepository` 共享文献库、`PublicBoundary` 文献只读与受限个人写入约束、`LearningController` 学习接口、`LearningRepository` 教材/个人学习数据。文献请求数据库连接设置 `PRAGMA query_only=ON`；账号注册通过独立 UserRepository 写入 users 表，启动执行幂等 schema 初始化。AI 由 `AiController`、`AiRepository`、`AiService` 管理个人/默认配置、密钥加密及服务商调用。
 
-环境变量：`MATH_PORT` 默认 8080；`MATH_DB_PATH` 默认 `data/math.db`；`MATH_WEB_DIR` 默认 `../frontend`。工作目录必须为 backend，文件路径以此为基准。服务仅监听 127.0.0.1。
+环境变量：`MATH_PORT` 默认 8080；`MATH_DB_PATH` 默认 `data/math.db`；`MATH_WEB_DIR` 默认 `../frontend`；`MATH_FORWARD_HEADERS` 默认 `none`，在本机反向代理后设为 `native`；`MATH_COOKIE_SECURE` 默认 `false`，全站 HTTPS 后设为 `true`。工作目录必须为 backend，文件路径以此为基准。服务仅监听 127.0.0.1。
 
 ## 只读接口
 
@@ -140,6 +140,8 @@ curl -i -X POST http://127.0.0.1:8080/api/documents
 python3 tests/schema.py
 python3 tests/integration.py
 ```
+
+公网 HTTPS、反向代理、备份恢复演练与发布回滚见 [上线运维手册](../docs/上线运维.md)。
 
 集成检查覆盖只读写入拒绝、管理员入库、失败清理、既有分类保留、分类过滤、原文一致性与静态文件边界。GitHub Actions 另运行真实 Java 后端浏览器测试，覆盖应用入口、分页、错误恢复、XSS 文本输出和手机布局。
 
