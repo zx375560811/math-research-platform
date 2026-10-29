@@ -215,9 +215,12 @@ namespace Axiom
             {
                 appRoot = AppDomain.CurrentDomain.BaseDirectory;
                 string overrideDir = Environment.GetEnvironmentVariable("AXIOM_DATA_DIR");
-                dataRoot = String.IsNullOrEmpty(overrideDir)
-                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Axiom")
-                    : overrideDir;
+                bool portable = File.Exists(Path.Combine(appRoot, "data", "math.db"));
+                dataRoot = !String.IsNullOrEmpty(overrideDir)
+                    ? overrideDir
+                    : portable
+                        ? appRoot
+                        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Axiom");
                 Directory.CreateDirectory(Path.Combine(dataRoot, "data"));
                 Directory.CreateDirectory(Path.Combine(dataRoot, "logs"));
                 Directory.CreateDirectory(Path.Combine(dataRoot, "temp"));
