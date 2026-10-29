@@ -15,6 +15,8 @@ namespace Axiom
 {
     internal static class Program
     {
+        internal static bool TeacherMode;
+
         [STAThread]
         private static void Main(string[] args)
         {
@@ -24,6 +26,8 @@ namespace Axiom
                 return;
             }
 
+            TeacherMode = (args != null && Array.IndexOf(args, "--teacher") >= 0)
+                || "1".Equals(Environment.GetEnvironmentVariable("AXIOM_TEACHER"));
             bool created;
             using (Mutex mutex = new Mutex(true, "AxiomMathClient", out created))
             {
@@ -36,7 +40,7 @@ namespace Axiom
                 Application.SetCompatibleTextRenderingDefault(false);
                 try
                 {
-                    Application.Run(new MainForm());
+                    Application.Run(new MainForm(TeacherMode));
                 }
                 catch (Exception failure)
                 {
@@ -175,12 +179,15 @@ namespace Axiom
         private string baseUrl;
         private int port;
         private bool closing;
+        private readonly bool teacher;
 
-        public MainForm()
+        public MainForm(bool teacher)
         {
+            this.teacher = teacher;
             Text = "公理数学客户端";
-            Width = 1280;
-            Height = 860;
+            Rectangle working = Screen.PrimaryScreen.WorkingArea;
+            Width = Math.Min(1440, working.Width - 40);
+            Height = Math.Min(900, working.Height - 40);
             MinimumSize = new Size(960, 640);
             StartPosition = FormStartPosition.CenterScreen;
             string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app.ico");
@@ -233,6 +240,7 @@ namespace Axiom
                 CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
                     null, Path.Combine(dataRoot, "webview2"), null);
                 await browser.EnsureCoreWebView2Async(environment);
+                browser.ZoomFactor = 1.0;
 
                 browser.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
@@ -272,6 +280,7 @@ namespace Axiom
             info.EnvironmentVariables["MATH_PORT"] = port.ToString();
             info.EnvironmentVariables["MATH_DB_PATH"] = Path.Combine(dataRoot, "data", "math.db");
             info.EnvironmentVariables["MATH_WEB_DIR"] = Path.Combine(appRoot, "frontend");
+            if (teacher) info.EnvironmentVariables["MATH_DESKTOP_TEACHER"] = "1";
 
             server = new Process();
             server.StartInfo = info;

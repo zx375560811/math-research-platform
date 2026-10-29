@@ -54,7 +54,7 @@ public class AccountController {
                 : Map.of("authenticated", false);
         }
         return DesktopMode.ENABLED
-            ? Map.of("authenticated", true, "user", identity(user), "desktop", true)
+            ? Map.of("authenticated", true, "user", identity(user), "desktop", true, "teacher", DesktopMode.TEACHER)
             : Map.of("authenticated", true, "user", identity(user));
     }
     private Map<String, String> identity(Authentication user) throws SQLException {

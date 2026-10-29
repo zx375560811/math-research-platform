@@ -18,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 class DesktopMode {
     static final boolean ENABLED = "1".equals(System.getenv("MATH_DESKTOP"));
+    static final boolean TEACHER = ENABLED && "1".equals(System.getenv("MATH_DESKTOP_TEACHER"));
     private final UserRepository users;
     private final PasswordEncoder passwords;
 

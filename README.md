@@ -90,7 +90,9 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 ## Windows 单机客户端
 
-`desktop/exe/` 把平台打包为真正的 Windows EXE：用户双击 `Axiom.exe` 打开独立窗口（内置 WebView2，不经过浏览器、没有地址栏），Java 服务和内置 JRE 在后台启动。数据、PDF、进度、高亮和笔记都在“我的文档\Axiom”，不需要服务器、账号、备案或登录。AI 对话在“管理平台 → API 设置”中配置第三方 OpenAI 兼容接口。
+`desktop/exe/` 把平台打包为真正的 Windows EXE：用户双击 `Axiom.exe` 打开独立窗口（内置 WebView2，不经过浏览器、没有地址栏），窗口按 1440×900 设计宽度打开，保持各模块流程图原始比例。Java 服务和内置 JRE 在后台启动，数据、PDF、进度、高亮和笔记都在“我的文档\Axiom”，不需要服务器、账号、备案或登录。
+
+学生版不显示管理平台；学生 AI 在阅读器右侧 AI 面板 → “设置” → “我的 API”里配置第三方 OpenAI 兼容接口。老师需要导入教材或配置默认 API 时，双击 `Teacher.bat`（教师模式）打开管理平台。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File desktop/exe/build-exe.ps1
