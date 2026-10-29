@@ -48,8 +48,8 @@ public class AccountController {
     public Map<String, String> csrf(CsrfToken token) { return Map.of("header", token.getHeaderName(), "token", token.getToken()); }
     @GetMapping("/api/auth/me")
     public Map<String, Object> me(Authentication user) throws SQLException {
-        if (user == null || user instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) return Map.of("authenticated", false);
-        return Map.of("authenticated", true, "user", identity(user));
+        if (user == null || user instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) return Map.of("authenticated", false, "desktop", DesktopMode.ENABLED);
+        return Map.of("authenticated", true, "user", identity(user), "desktop", DesktopMode.ENABLED);
     }
     private Map<String, String> identity(Authentication user) throws SQLException {
         return Map.of("username", user.getName(), "role", users.isAdmin(user.getName()) ? "ADMIN" : "USER");

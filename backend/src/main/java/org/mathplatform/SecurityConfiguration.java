@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
@@ -37,6 +38,7 @@ public class SecurityConfiguration {
             .logout(logout -> logout.logoutUrl("/api/auth/logout").invalidateHttpSession(true).deleteCookies("JSESSIONID").logoutSuccessHandler((request, response, authentication) -> {
                 response.setContentType("application/json; charset=utf-8"); response.getWriter().write("{\"status\":\"ok\"}");
             }));
+        if (DesktopMode.ENABLED) http.addFilterBefore(new DesktopAuthenticationFilter(), AuthorizationFilter.class);
         return http.build();
     }
 }
