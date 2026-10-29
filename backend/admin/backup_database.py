@@ -6,6 +6,33 @@ import os
 from pathlib import Path
 import shutil
 import sqlite3
+import subprocess
+
+
+def _sqlite_cli_backup(src, target):
+    """Use the sqlite3 shell's online backup API when Python lacks it (<3.7)."""
+    executable = shutil.which('sqlite3')
+    if not executable or "'" in str(src) or "'" in str(target):
+        return False
+    result = subprocess.run(
+        [executable, str(src)],
+        input=".backup '{}'\n".format(target),
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if result.returncode == 0 and target.is_file():
+        return True
+    if target.exists():
+        target.unlink()
+    return False
+
+
+def _fallback_backup(src, target):
+    if _sqlite_cli_backup(src, target):
+        return
+    if sqlite3.sqlite_version_info >= (3, 27, 0):
+        with closing(sqlite3.connect(str(src), timeout=10)) as source:
+            source.execute('VACUUM INTO ?', (str(target),))
+        return
+    raise OSError('Python without sqlite3.Connection.backup needs the sqlite3 CLI or SQLite 3.27+')
 
 
 def backup_database(database='data/math.db', output_dir='data/backups', keep=14):
@@ -18,11 +45,18 @@ def backup_database(database='data/math.db', output_dir='data/backups', keep=14)
     dest_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%SZ')
     target = dest_dir / f'math-{stamp}.db'
-    temp = dest_dir / f'.math-{stamp}.db.tmp'
+    sequence = 1
+    while target.exists():
+        target = dest_dir / f'math-{stamp}-{sequence}.db'
+        sequence += 1
+    temp = dest_dir / ('.' + target.name + '.tmp')
     try:
-        with closing(sqlite3.connect(str(src), timeout=10)) as source_db, \
-                closing(sqlite3.connect(str(temp), timeout=10)) as backup_db:
-            source_db.backup(backup_db)
+        if hasattr(sqlite3.Connection, 'backup'):
+            with closing(sqlite3.connect(str(src), timeout=10)) as source_db, \
+                    closing(sqlite3.connect(str(temp), timeout=10)) as backup_db:
+                source_db.backup(backup_db)
+        else:
+            _fallback_backup(src, temp)
         if os.name != 'nt':
             temp.chmod(0o600)
         temp.replace(target)
@@ -33,16 +67,22 @@ def backup_database(database='data/math.db', output_dir='data/backups', keep=14)
     key_file = src.parent / 'ai-secret.key'
     key_backup = None
     if key_file.is_file():
-        key_backup = dest_dir / f'math-{stamp}.ai-secret.key'
+        key_backup = target.with_suffix('.ai-secret.key')
         shutil.copy2(key_file, key_backup)
         if os.name != 'nt':
             key_backup.chmod(0o600)
 
     snapshots = sorted(dest_dir.glob('math-*.db'))
     for old in snapshots[:-keep]:
-        old.unlink(missing_ok=True)
+        try:
+            old.unlink()
+        except FileNotFoundError:
+            pass
         old_key = old.with_suffix('.ai-secret.key')
-        old_key.unlink(missing_ok=True)
+        try:
+            old_key.unlink()
+        except FileNotFoundError:
+            pass
 
     return {'database_backup': str(target), 'key_backup': str(key_backup) if key_backup else None}
 
