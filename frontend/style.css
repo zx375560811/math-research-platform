@@ -56,10 +56,15 @@ button,input,select,textarea { font:inherit; }button { cursor:pointer; }button:d
   width:1px;
   background:var(--line);
 }
+.workspace { background:#fff; }
+main { background:var(--canvas); border-top-left-radius:20px; }
 @media (max-width:900px) {
   .topbar { border-bottom:1px solid var(--line); }
   .topbar::before, .topbar::after, .sidebar::after { display:none; }
+  .workspace { background:transparent; }
+  main { background:transparent; border-top-left-radius:0; }
 }
+.reading-page main, .auth-page main { background:transparent; border-top-left-radius:0; }
 .reading-page .sidebar { border-right:1px solid var(--line); }
 .reading-page .sidebar::after { display:none; }
 #breadcrumb { font-weight:500;color:var(--muted); }.account-controls { display:flex;align-items:center;gap:14px;min-width:0; }#account-name { max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:14px; }
