@@ -138,8 +138,11 @@ curl -i -X POST http://127.0.0.1:8080/api/documents
 ```bash
 ./mvnw -B package
 python3 tests/schema.py
+python3 tests/backup.py
 python3 tests/integration.py
 ```
+
+备份脚本兼容 Python 3.6：有 `sqlite3.Connection.backup` 时直接使用在线备份 API；旧版 Python 优先调用 `sqlite3` 命令行的 `.backup`，再退到 SQLite 3.27+ 的 `VACUUM INTO`。服务器需要 `sqlite3` 命令（Alibaba Cloud Linux 3 已预装）或 Python 3.7+。
 
 公网 HTTPS、反向代理、备份恢复演练与发布回滚见 [上线运维手册](../docs/上线运维.md)。
 

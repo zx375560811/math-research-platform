@@ -31,6 +31,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
+      - name: Check online backup on older Python
+        run: python backend/tests/backup.py
       - name: Check Zotero importer on older Python
         run: python backend/tests/zotero.py
       - name: Check additive series import on older Python
@@ -57,6 +59,8 @@ jobs:
         run: cd backend && ./mvnw -B package
       - name: Check database initialization
         run: python3 backend/tests/schema.py
+      - name: Check online backup compatibility
+        run: python3 backend/tests/backup.py
       - name: Check direction document availability
         run: python3 backend/tests/direction_availability.py
       - name: Check Zotero batch import and resume

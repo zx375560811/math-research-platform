@@ -29,21 +29,30 @@ echo "==> 更新代码"
 git pull --ff-only
 
 cd "$APP_DIR/backend"
-echo "==> 构建（失败则不会重启服务）"
-./mvnw -B package
-
 echo "==> 备份数据库与 AI 密钥"
 runuser -u "$SERVICE_USER" -- python3 admin/backup_database.py \
   --database data/math.db --output-dir data/backups --keep 14
 
 stamp="$(date +%Y%m%d-%H%M%S)"
 install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 700 "$SNAP_DIR"
-install -m 600 -o "$SERVICE_USER" -g "$SERVICE_USER" \
-  target/math-server.jar "$SNAP_DIR/math-server-$stamp.jar"
-echo "==> 已保存当前版本：$SNAP_DIR/math-server-$stamp.jar"
+snapshot="$SNAP_DIR/math-server-$stamp.jar"
+install -m 600 -o "$SERVICE_USER" -g "$SERVICE_USER" target/math-server.jar "$snapshot"
+echo "==> 已保存当前版本：$snapshot"
 
-echo "==> 重启服务"
-systemctl restart "$SERVICE"
+# 运行中的 JVM 会惰性读取嵌套 JAR；构建期间替换 target/math-server.jar 曾导致
+# ClassNotFoundException（logback ThrowableProxy）。因此先停服再构建。
+echo "==> 停止服务并构建（构建失败会自动恢复旧版本）"
+systemctl stop "$SERVICE"
+restore_on_error() {
+  if [ -f "$snapshot" ]; then
+    install -m 600 -o "$SERVICE_USER" -g "$SERVICE_USER" "$snapshot" target/math-server.jar
+  fi
+  systemctl start "$SERVICE" >/dev/null 2>&1 || true
+}
+trap restore_on_error EXIT
+./mvnw -B package
+systemctl start "$SERVICE"
+trap - EXIT
 
 healthy=0
 for _ in $(seq 1 60); do
@@ -59,8 +68,9 @@ if [ "$healthy" -ne 1 ]; then
   previous="$(find "$SNAP_DIR" -maxdepth 1 -name 'math-server-*.jar' \
     ! -name "math-server-$stamp.jar" -printf '%T@ %p\n' | sort -rn | head -n 1 | cut -d' ' -f2-)"
   if [ -n "$previous" ]; then
+    systemctl stop "$SERVICE"
     install -m 600 -o "$SERVICE_USER" -g "$SERVICE_USER" "$previous" target/math-server.jar
-    systemctl restart "$SERVICE"
+    systemctl start "$SERVICE"
     sleep 3
     if curl -fsS --max-time 3 "$HEALTH_URL" >/dev/null 2>&1; then
       echo "已回滚：$previous" >&2
