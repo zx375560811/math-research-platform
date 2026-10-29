@@ -15,7 +15,6 @@
 .admin-heading h1 { margin-bottom:0; }
 
 /* Taste detail pass: practical catalog controls, using the public brand tokens. */
-.admin-rail nav a[aria-current] { box-shadow:inset 3px 0 0 var(--blue); }
 .admin-rail nav a:hover { background:#f1f4fa;color:var(--accent-ink); }
 .admin-rail .return-app { border-radius:8px; }
 .admin-rail .return-app:hover { background:var(--soft-blue); }
@@ -117,7 +116,7 @@
 /* Management uses the shared Axiom visual tokens; product geometry stays local. */
 .admin-rail { background:#fbfcfe; }
 .admin-rail nav a { border-radius:var(--radius-control); }
-.admin-rail nav a[aria-current] { background:#e9eefb;box-shadow:inset 2px 0 0 var(--blue); }
+.admin-rail nav a[aria-current] { background:#e9eefb; }
 .admin-heading h1 { font-family:var(--display);font-weight:650;letter-spacing:-.035em; }
 .admin-editor,.admin-dialog,.admin-library-browser { border-radius:var(--radius-sheet);border-color:var(--line); }
 .admin-editor,.admin-library-browser { box-shadow:var(--shadow-soft); }

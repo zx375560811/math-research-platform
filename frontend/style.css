@@ -565,7 +565,6 @@ input,select,textarea { accent-color:var(--blue); }
 #account-form .primary { font-size:14px; }
 
 /* Navigation and application entries: selection and destination are distinct. */
-.workspace-link.active,.subject-nav a.active { box-shadow:inset 3px 0 0 var(--blue); }
 .nav-heading { color:#65748b;font-weight:500; }
 .topbar { background:#fcfdff; }
 .hero { box-shadow:var(--shadow-soft);border-color:#dbe3f0; }
@@ -748,7 +747,7 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .sidebar .brand, .admin-rail .brand { padding-bottom: 34px; }
 .brand small { letter-spacing: .04em; color: var(--muted); }
 .workspace-link, .subject-nav a { border-radius: var(--radius-control); }
-.workspace-link.active, .subject-nav a.active { background: #e9eefb; box-shadow: inset 2px 0 0 var(--blue); }
+.workspace-link.active, .subject-nav a.active { background: #e9eefb; }
 .nav-heading { font-size: 14px; font-weight: 500; margin-top: 26px; }
 .topbar { background: #fbfcfe; }
 #breadcrumb { color: var(--ink); }
@@ -800,7 +799,7 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .library-folders, .admin-library-folders { background: #f8fafd; }
 .library-folders h2 { color: var(--muted); font-size: 14px; font-weight: 600; }
 .library-folder-select { border-radius: var(--radius-control); }
-.library-folder-select[aria-current=page] { background: #e8eefc; color: var(--accent-ink); box-shadow: inset 2px 0 0 var(--blue); }
+.library-folder-select[aria-current=page] { background: #e8eefc; color: var(--accent-ink); }
 .library-folder-count { color: var(--muted); }
 .library-breadcrumbs { color: var(--ink); }
 .library-table th { background: #f5f7fb; font-size: 14px; font-weight: 600; color: var(--muted); }
