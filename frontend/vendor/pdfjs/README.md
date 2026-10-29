@@ -23,6 +23,15 @@ method is absent. Cached promises, objects and falsy values retain their identit
 no global prototypes are patched. Keep this change in both bundles when updating
 PDF.js. The original version, license and document-loading behavior are retained.
 
+Local modification (2026-10-28): in both `pdf.mjs` and `pdf.worker.mjs`, add
+compatibility shims at the top of the bundle for `Promise.try`,
+`Uint8Array.prototype.toBase64` and `Response.bytes()`. They only activate when the
+browser runtime lacks the native method, and fix the reported continuous-scroll
+hang on older Chromium/WebView builds. These are the only built-in prototype
+patches in the repository. When upgrading PDF.js, re-apply the shims, or replace
+them with a separate polyfill loaded before the module. The worker also falls back
+to `arrayBuffer()` when `Response.bytes()` is unavailable.
+
 Regression: node frontend/tests/pdf-cache.cjs renders pages and text, reads outlines
 and cached metadata, and verifies HTTP byte ranges with the native method removed
 from both the page and a real PDF worker. It also checks Map/WeakMap cache values.
