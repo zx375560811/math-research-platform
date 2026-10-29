@@ -1,8 +1,22 @@
 # Windows 单机客户端
 
-把现有平台打包为单用户 Windows 客户端：内置 Java 17 运行时，启动后只在 `127.0.0.1` 提供页面，数据（SQLite、PDF、进度、高亮、笔记）保存在客户端目录的 `data/` 下，不需要服务器、账号或备案。AI 对话使用用户在“管理平台 → API 设置”中配置的第三方 OpenAI 兼容接口。
+把现有平台打包为单用户 Windows 客户端：内置 Java 17 运行时，启动后只在 `127.0.0.1` 提供页面，数据（SQLite、PDF、进度、高亮、笔记）保存在本机，不需要服务器、账号或备案。AI 对话使用用户在“管理平台 → API 设置”中配置的第三方 OpenAI 兼容接口。
 
-## 构建
+## EXE 版（推荐）
+
+`desktop/exe/` 是一个 WinForms + WebView2 外壳：双击 `Axiom.exe` 打开独立窗口，不经过浏览器；外壳在后台启动 `app/math-server.jar`，关闭窗口时结束 Java 进程。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File desktop/exe/build-exe.ps1
+# 或者已有 jar：
+powershell -NoProfile -ExecutionPolicy Bypass -File desktop/exe/build-exe.ps1 -SkipBackend
+```
+
+产物：`.preview/dist/Axiom-Desktop-EXE-1.0.0.zip`。构建脚本会编译 `Axiom.exe`、下载 WebView2 SDK、复制内置 JRE 和前端，并用 `--selftest` 做一次无窗口的启动检查。运行要求：Windows 10/11 x64、.NET Framework 4.8、WebView2 Runtime（系统一般自带）。
+
+数据在 `我的文档\Axiom`；可用 `AXIOM_DATA_DIR` 环境变量覆盖。日志在 `我的文档\Axiom\logs\client.log`。
+
+## 浏览器壳构建（备用）
 
 前置：
 
@@ -54,7 +68,8 @@ Axiom-Desktop-1.0.0/
 python3 backend/tests/desktop.py
 
 # 打包后的客户端
-# 解压 zip，双击 start.bat，确认浏览器打开 http://127.0.0.1:18080/
+# EXE 版：Axiom.exe --selftest（无窗口，检查本地服务与 local 账号）
+# 浏览器壳：解压 zip，双击 start.bat，确认浏览器打开 http://127.0.0.1:18080/
 ```
 
 ## 限制

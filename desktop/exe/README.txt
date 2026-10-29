@@ -1,0 +1,26 @@
+# 公理数学客户端（Windows EXE 版）
+
+双击 `Axiom.exe` 启动。它是独立窗口，不会打开浏览器，也没有地址栏。
+
+- 数据保存在 `我的文档\Axiom`（数据库、PDF、进度、高亮、笔记）。
+- AI 配置：窗口内左下角“管理平台” → “API 设置”，填写第三方 OpenAI 兼容接口、模型和密钥。
+- 备份：关闭客户端后复制 `我的文档\Axiom` 整个目录。
+- 停止：关闭客户端窗口即可；它启动的 Java 服务会一起退出。
+- 要求：Windows 10/11 x64，已安装 Microsoft Edge WebView2 Runtime（系统通常自带）。
+- 首次运行可能被 SmartScreen 提示；这是因为安装包未做代码签名，选择“更多信息 → 仍要运行”。
+
+## 目录
+
+```text
+Axiom-Desktop-EXE/
+├─ Axiom.exe
+├─ app.ico
+├─ Microsoft.Web.WebView2.Core.dll
+├─ Microsoft.Web.WebView2.WinForms.dll
+├─ WebView2Loader.dll
+├─ app/math-server.jar
+├─ frontend/
+└─ runtime/          内置 Java 17
+```
+
+日志在 `我的文档\Axiom\logs\client.log`；启动失败时也看同目录的 `startup-error.log`。
