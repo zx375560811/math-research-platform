@@ -346,6 +346,21 @@ body.reading-page { overflow:hidden; }
 .inline-note textarea { width:100%;min-height:64px;resize:vertical;padding:8px 9px;border:1px solid #d5dfef;border-radius:8px;font:14px/1.6 inherit;color:var(--ink);background:#fff; }
 .inline-note-actions { display:flex;align-items:center;gap:8px;margin-top:8px; }
 .inline-note-actions span { font-size:12px;color:var(--muted); }
+#pdf-highlight-tools { display:none !important; }
+.reading-page .reader-notes-heading { display:none; }
+#reader-notes { grid-template-rows:54px 10px minmax(0,1fr); }
+#reader-notes .reader-note-pane { display:flex;align-items:center;justify-content:center;padding:6px 10px;overflow:hidden; }
+#reader-notes .reader-note-pane #annotation-list,
+#reader-notes .reader-note-pane #selection-tools { display:none; }
+#reader-notes .reader-ai-pane { grid-row:3;border-top:0; }
+.notes-color-palette { display:flex;align-items:center;gap:6px; }
+.notes-color-palette .highlight-colors { gap:4px; }
+.notes-color-palette .highlight-colors .button { flex:0 0 22px;width:22px;height:22px;min-height:22px;padding:2px;border-radius:5px; }
+.notes-color-palette .highlight-colors .button::before { width:14px;height:14px;border-radius:2px; }
+#reader-notes.notes-collapsed { grid-template-rows:54px 10px minmax(0,1fr); }
+#reader-notes.notes-collapsed .reader-note-pane { display:flex; }
+#reader-notes.notes-collapsed .reader-ai-resize { display:block; }
+#reader-notes.notes-collapsed .reader-ai-pane { grid-row:3; }
 .reader-notes.notes-collapsed { grid-template-rows:minmax(0,1fr); }
 .reader-notes.notes-collapsed .reader-note-pane,
 .reader-notes.notes-collapsed .reader-ai-resize { display:none; }
