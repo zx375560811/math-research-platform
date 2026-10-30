@@ -366,7 +366,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   for (const button of document.querySelectorAll('[data-highlight]')) {
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
-      if (!selection) return; const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
+      if (!selection) { $('reader-status').textContent = '请先选中 PDF 中的文字，再点颜色高亮。'; return; } const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
       try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
