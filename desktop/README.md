@@ -1,6 +1,6 @@
 # Windows 单机客户端
 
-把现有平台打包为单用户 Windows 客户端：内置 Java 17 运行时，启动后只在 `127.0.0.1` 提供页面，数据（SQLite、PDF、进度、高亮、笔记）保存在本机，不需要服务器、账号或备案。AI 对话使用用户在“管理平台 → API 设置”中配置的第三方 OpenAI 兼容接口。
+把现有平台打包为单用户 Windows 客户端：内置 Java 17 运行时，启动后只在 `127.0.0.1` 提供页面，数据（SQLite、PDF、进度、高亮、笔记）保存在本机，不需要服务器、账号或备案。AI 对话使用用户在阅读器“设置”中配置的第三方 OpenAI 兼容接口。
 
 ## EXE 版（推荐）
 
@@ -16,7 +16,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File desktop/exe/build-exe.ps1 -S
 
 数据在 `我的文档\Axiom`；可用 `AXIOM_DATA_DIR` 环境变量覆盖。日志在 `我的文档\Axiom\logs\client.log`。
 
-学生版默认隐藏管理平台；双击 `Teacher.bat`（或 `Axiom.exe --teacher` / `AXIOM_TEACHER=1`）进入教师模式，才显示管理平台。窗口按 1440×900 设计宽度打开（屏幕较小时自适应），避免各模块流程图被压窄变形。
+客户端不包含管理平台；AI 在阅读器右侧“设置”里配置个人 API。窗口按 1440×900 设计宽度打开（屏幕较小时自适应），避免各模块流程图被压窄变形。
 
 ## 浏览器壳构建（备用）
 

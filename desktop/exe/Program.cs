@@ -15,8 +15,6 @@ namespace Axiom
 {
     internal static class Program
     {
-        internal static bool TeacherMode;
-
         [STAThread]
         private static void Main(string[] args)
         {
@@ -26,8 +24,6 @@ namespace Axiom
                 return;
             }
 
-            TeacherMode = (args != null && Array.IndexOf(args, "--teacher") >= 0)
-                || "1".Equals(Environment.GetEnvironmentVariable("AXIOM_TEACHER"));
             bool created;
             using (Mutex mutex = new Mutex(true, "AxiomMathClient", out created))
             {
@@ -40,7 +36,7 @@ namespace Axiom
                 Application.SetCompatibleTextRenderingDefault(false);
                 try
                 {
-                    Application.Run(new MainForm(TeacherMode));
+                    Application.Run(new MainForm());
                 }
                 catch (Exception failure)
                 {
@@ -179,11 +175,9 @@ namespace Axiom
         private string baseUrl;
         private int port;
         private bool closing;
-        private readonly bool teacher;
 
-        public MainForm(bool teacher)
+        public MainForm()
         {
-            this.teacher = teacher;
             Text = "公理数学客户端";
             Rectangle working = Screen.PrimaryScreen.WorkingArea;
             Width = Math.Min(1440, working.Width - 40);
@@ -288,8 +282,6 @@ namespace Axiom
                 string root = File.ReadAllText(externalRootFile).Trim();
                 if (root.Length > 0) info.EnvironmentVariables["MATH_EXTERNAL_ROOT"] = root;
             }
-            if (teacher) info.EnvironmentVariables["MATH_DESKTOP_TEACHER"] = "1";
-
             server = new Process();
             server.StartInfo = info;
             server.EnableRaisingEvents = true;

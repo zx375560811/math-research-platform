@@ -80,7 +80,6 @@ if ($LASTEXITCODE -ge 8) { throw "robocopy frontend failed ($LASTEXITCODE)" }
 & robocopy $JrePath (Join-Path $stage 'runtime') /E /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "robocopy JRE failed ($LASTEXITCODE)" }
 Copy-Item (Join-Path $PSScriptRoot 'README.txt') $stage
-Copy-Item (Join-Path $PSScriptRoot 'Teacher.bat') $stage
 Set-Content -Path (Join-Path $stage 'VERSION.txt') -Value $Version -Encoding ASCII
 
 if (-not $SkipSelfTest) {
