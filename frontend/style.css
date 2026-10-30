@@ -328,8 +328,11 @@ body.reading-page { overflow:hidden; }
 .pdf-highlight-tools .highlight-colors .button { flex:0 0 22px;width:22px;height:22px;min-height:22px;padding:2px;border-radius:5px; }
 .pdf-highlight-tools .highlight-colors .button::before { width:14px;height:14px;border-radius:2px; }
 .reader-note-pane #selection-tools .highlight-colors { display:none; }
-.note-prompt { position:fixed;z-index:29;display:flex;align-items:center;gap:7px;padding:6px 8px 6px 11px;border:1px solid #cfd9ea;border-radius:999px;background:#fff;box-shadow:0 10px 30px #182b4626;font-size:12px;color:#536783; }
-.note-prompt-close { border:0;background:transparent;color:#8b98ab;font-size:18px;line-height:1;padding:0 2px;cursor:pointer; }
+.note-prompt { position:fixed;z-index:29;display:flex;align-items:center;gap:0;padding:0 1px;border:1px solid #d5dfef;border-radius:6px;background:#fff;box-shadow:0 3px 10px #182b461a; }
+.note-prompt-add { border:0;background:transparent;color:var(--blue);font:600 11px/1.2 system-ui,sans-serif;padding:2px 4px;border-radius:4px;cursor:pointer;white-space:nowrap; }
+.note-prompt-add:hover { background:#eef2ff; }
+.note-prompt-close { border:0;background:transparent;color:#95a1b4;font-size:12px;line-height:1;padding:1px 2px;cursor:pointer; }
+.note-prompt-close:hover { color:var(--ink); }
 .inline-note {
   position:fixed;
   z-index:30;
