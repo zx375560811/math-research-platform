@@ -25,7 +25,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false, promptMark = null;
+  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false, promptMark = null, selectionPointer = null;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v2';
@@ -460,7 +460,33 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   }
   on(scroll, 'pointerdown', event => {
     if (event.button !== 0 || !event.target.closest('.textLayer')) return;
+    selectionPointer = { x: event.clientX, y: event.clientY };
     selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true;
+  });
+  on(document, 'pointerup', event => {
+    if (!selectionPointer) return;
+    selectionPointer = null;
+    const current = window.getSelection();
+    if (!current || current.isCollapsed || !current.rangeCount) return;
+    const anchor = current.anchorNode?.nodeType === Node.ELEMENT_NODE ? current.anchorNode : current.anchorNode?.parentElement;
+    const frame = anchor?.closest('.pdf-page'), layer = frame?.querySelector('.textLayer');
+    if (!layer) return;
+    const spans = [...layer.querySelectorAll('span')].filter(span => span.textContent.trim()).map(span => {
+      const box = span.getBoundingClientRect(); return { span, box, text: span.firstChild };
+    }).filter(item => item.text);
+    const rows = spans.filter(item => event.clientY >= item.box.top - 3 && event.clientY <= item.box.bottom + 3);
+    const target = rows.find(item => event.clientX >= item.box.left - 3 && event.clientX <= item.box.right + 3)
+      || rows.sort((a, b) => Math.abs(event.clientX - (a.box.left + a.box.right) / 2) - Math.abs(event.clientX - (b.box.left + b.box.right) / 2))[0];
+    if (!target) return;
+    let endNode = target.text, endOffset = endNode.length;
+    const caret = document.caretRangeFromPoint?.(event.clientX, event.clientY);
+    if (caret && target.span.contains(caret.startContainer)) { endNode = caret.startContainer; endOffset = caret.startOffset; }
+    const range = current.getRangeAt(0);
+    try {
+      range.setEnd(endNode, endOffset);
+      if (range.collapsed) range.setStart(endNode, endOffset);
+      current.removeAllRanges(); current.addRange(range); captureSelection();
+    } catch { /* Keep the browser's selection if the range cannot be applied. */ }
   });
   on(document, 'selectionchange', captureSelection);
   on(scroll, 'scroll', () => {
