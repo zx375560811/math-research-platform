@@ -162,7 +162,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     gap: { text: '请严格补全这段推导中省略的中间步骤（如“显然”、“易知”或跳过的计算），明确写出每一步所依据的定义、引理或定理及其适用条件。', autoSubmit: true },
     counterexample: { text: '如果减弱或去掉这段命题/定理中的关键假设条件，结论是否仍然成立？请逐一分析关键条件的作用，并构造具体的数学反例说明为什么不能省略。', autoSubmit: true },
     intuition: { text: '请跳出纯符号形式化推导，用几何直观、低维特例（如 ℝ²、ℝ³ 或有限维情形）或具体例子解释这段抽象概念/定理背后的核心数学动机与图像。', autoSubmit: true },
-    'proof-check': { text: '下面是我尝试给出的证明思路，请帮我逐行检查逻辑是否严密（如是否有未验证的假设、边界退化情形、充分必要方向错误或极限/积分交换条件缺失）：\n\n', autoSubmit: false },
+    'proof-check': { text: '下面是我尝试给出的证明思路，请帮我逐行检查逻辑是否严密（如是否有未验证的假设、边界退化情形、充分必要方向错误或极限/积分交换条件缺失）：\n\n', autoSubmit: true },
     translate: { text: '请把选中的这段内容翻译成中文。保留数学符号、公式、定理编号、人名、书名和术语；公式用 LaTeX 表示；只输出译文，不要解释或总结。\n\n', autoSubmit: true }
   };
   for (const btn of document.querySelectorAll('[data-ai-prompt]')) {
@@ -172,7 +172,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
       const preset = mathPrompts[btn.dataset.aiPrompt]; if (!preset) return;
       if (!context) { const activeSelection = getDocumentContext()?.selection; if (activeSelection) setContext(activeSelection, false); }
       const input = $('ai-question'); input.value = preset.text;
-      if (preset.autoSubmit && context && config?.[config.source]?.available) $('ai-chat-form').requestSubmit();
+      if (preset.autoSubmit) $('ai-chat-form').requestSubmit();
       else { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
     });
   }
