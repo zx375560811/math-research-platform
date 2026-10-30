@@ -175,44 +175,15 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && selection === chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
   }
   applyPanelWidths();
-  function notes(openId = expandedMark) {
+  function notes() {
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '暂无高亮')); return; }
-    expandedMark = marks.some(mark => mark.id === openId) ? openId : null;
-    const strip = el('div', 'annotation-marker-strip'), markers = el('div', 'annotation-markers'); markers.id = 'annotation-markers'; markers.style.setProperty('--marker-columns', String(Math.min(30, marks.length)));
-    if (expandedMark !== null && marks.findIndex(mark => mark.id === expandedMark) >= 30) markersExpanded = true;
-    markers.classList.toggle('expanded', markersExpanded); markers.setAttribute('role', 'group'); markers.setAttribute('aria-label', '高亮笔记编号'); strip.append(markers); list.append(strip);
-    let foldToggle = null;
-    if (marks.length > 30) {
-      const toggle = el('button', 'annotation-more'); toggle.type = 'button'; toggle.setAttribute('aria-controls', markers.id);
-      const label = () => { toggle.textContent = markersExpanded ? '收起' : '展开'; toggle.title = `其余 ${marks.length - 30} 条高亮`;  toggle.setAttribute('aria-expanded', String(markersExpanded)); };
-      label(); toggle.addEventListener('click', () => {
-        markersExpanded = !markersExpanded; markers.classList.toggle('expanded', markersExpanded); label();
-        if (!markersExpanded && marks.findIndex(mark => mark.id === expandedMark) >= 30) {
-          expandedMark = null; for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
-          for (const button of markers.querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-        }
-      }); foldToggle = toggle;
-    }
-    for (const [index, mark] of marks.entries()) {
-      const row = el('article', 'annotation-item'); row.dataset.annotation = mark.id; row.id = `annotation-panel-${mark.id}`; row.hidden = expandedMark !== mark.id;
-      const summary = el('button', 'annotation-summary', String(index + 1)); summary.type = 'button'; summary.style.gridColumn = String(index % 30 + 1); summary.style.gridRow = String(Math.floor(index / 30) + 1); if (index >= 30) summary.dataset.extra = 'true'; summary.dataset.color = mark.color; summary.id = `annotation-marker-${mark.id}`;
-      summary.setAttribute('aria-controls', row.id); summary.setAttribute('aria-expanded', String(!row.hidden)); summary.setAttribute('aria-label', `笔记 ${index + 1}，第 ${mark.page} 页`); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`;
-      row.setAttribute('aria-labelledby', summary.id);
-      summary.addEventListener('click', () => {
-        selection = null; $('selection-tools').hidden = true; $('selection-quote').textContent = ''; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
-        const show = row.hidden; expandedMark = show ? mark.id : null;
-        for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
-        for (const button of markers.querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-        row.hidden = !show; summary.setAttribute('aria-expanded', String(show));
-      });
-      markers.append(summary); if (index === 29 && foldToggle) markers.append(foldToggle);
-      const body = el('div', 'annotation-body');
-      const jump = el('button', 'annotation-jump', `第 ${mark.page} 页 · 跳转`); jump.type = 'button'; jump.addEventListener('click', () => showPage(mark.page));
-      const quote = el('blockquote', '', mark.quote), edit = el('button', 'button compact', '在原文处记笔记'), remove = el('button', 'annotation-delete', '删除'); edit.type = remove.type = 'button';
-      edit.addEventListener('click', () => openInlineNote(mark));
-      remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); if (inlineMark?.id === mark.id) closeInlineNote(); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
-      const actions = el('div', 'annotation-actions'); actions.append(edit, remove); body.append(jump, quote, actions); row.append(body); list.append(row);
+    for (const mark of marks) {
+      const row = el('article', 'highlight-row'); row.dataset.annotation = mark.id;
+      const dot = el('span', 'highlight-row-dot'); dot.dataset.highlight = mark.color; dot.setAttribute('aria-hidden', 'true');
+      const body = el('div', 'highlight-row-body');
+      body.append(el('blockquote', '', mark.quote), el('p', mark.note ? 'highlight-row-note' : 'highlight-row-note muted', mark.note || '点击写笔记'), el('span', 'highlight-row-meta', `第 ${mark.page} 页 · 点击编辑`));
+      row.append(dot, body); row.addEventListener('click', () => openInlineNote(mark)); list.append(row);
     }
   }
   function closeInlineNote() {
