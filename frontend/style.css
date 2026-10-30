@@ -1341,3 +1341,27 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 @media (max-width:650px) { .ai-quick-actions { flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:2px 0 4px; } }
 .discussion-page-link { margin-left:8px;vertical-align:middle; }
 @media(max-width:650px) { .reader-page-jump { height:28px;padding:0 5px;font-size:12px; }#reader-page-input { width:32px; } }
+
+/* AI conversation: a readable column with gutters, plain answers and right-aligned user bubbles. */
+.reader-ai-pane { padding:16px 28px 16px; }
+.reader-ai-pane > .reader-panel-heading,
+.reader-ai-pane > .ai-settings,
+.reader-ai-pane > .ai-messages,
+.reader-ai-pane > .ai-context,
+.reader-ai-pane > .ai-status,
+.reader-ai-pane > .ai-quick-actions,
+.reader-ai-pane > .ai-chat-form { width:min(100%,780px); margin-left:auto; margin-right:auto; }
+.reader-ai-pane > .ai-messages { padding:4px 0 10px; scrollbar-gutter:stable; }
+.reader-ai-pane > .ai-chat-form { margin-top:8px; padding:10px; border-color:#ccd8ea; border-radius:12px; box-shadow:0 2px 8px #182b4608; }
+.reader-ai-pane > .ai-chat-form textarea { font-size:15px; line-height:1.7; }
+.reader-ai-pane .ai-message { margin:0 0 16px; }
+.reader-ai-pane .ai-message.ai-user { width:fit-content; max-width:75%; margin-left:auto; margin-right:0; padding:9px 13px; border-radius:14px 14px 4px 14px; background:#eef4ff; border-color:#d9e5fb; }
+.reader-ai-pane .ai-message.ai-assistant { width:100%; max-width:100%; margin-left:0; margin-right:0; padding:0 0 2px; border:0; background:transparent; border-radius:0; }
+.reader-ai-pane .ai-message .ai-speaker { display:inline-block; margin-bottom:2px; font-size:12px; letter-spacing:.02em; color:#607493; }
+.reader-ai-pane .ai-message p { font-size:15px; line-height:1.8; margin:4px 0 0; }
+.reader-ai-pane .ai-messages .ai-rich-text { font-size:15px; line-height:1.8; }
+.reader-ai-pane .ai-quick-actions { margin:2px auto 8px; }
+@media (max-width:900px) {
+  .reader-ai-pane { padding:12px 18px 14px; }
+  .reader-ai-pane .ai-message.ai-user { max-width:85%; }
+}
