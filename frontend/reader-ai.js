@@ -18,7 +18,7 @@ const errors = {
 };
 function node(tag, text, cls) { const value = document.createElement(tag); if (text != null) value.textContent = text; if (cls) value.className = cls; return value; }
 export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
-  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false;
+  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false;
   const storageKey = 'axiom.ai.chat:' + (location.hash.split('?')[0] || 'default');
   const requests = new Set(), events = [];
   const on = (target, name, handler) => { target.addEventListener(name, handler); events.push(() => target.removeEventListener(name, handler)); };
@@ -81,7 +81,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     $('ai-clear-key').disabled = busy || saving || !config?.custom.has_key;
     $('ai-clear').disabled = busy || !history.length;
     $('ai-question').disabled = busy;
-    for (const btn of document.querySelectorAll('[data-ai-prompt]')) btn.disabled = busy || saving;
+    for (const btn of document.querySelectorAll('[data-ai-prompt]')) btn.disabled = busy || saving || !selectionAvailable;
     $('ai-send-label').textContent = busy ? '正在思考…' : '发送';
     $('ai-provider-label').textContent = provider?.available ? provider.model : '尚未配置';
     $('ai-source').title = provider?.available ? `当前模型：${provider.model}` : '选择 API 来源';
@@ -180,5 +180,5 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   loadSession();
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');
   request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value[value.source]?.available ? '' : '请先配置 API，再点发送。'); }).catch(error => status(error.message));
-  return { setContext, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
+  return { setContext, setSelectionAvailable(value) { selectionAvailable = Boolean(value); controls(); }, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }
