@@ -52,7 +52,7 @@ public class AiService {
             if (url.getHost() == null || url.getUserInfo() != null || url.getQuery() != null || url.getFragment() != null || url.getPort() > 65535
                 || (!"https".equals(url.getScheme()) && !test(url)) || value.length() > 500)
                 throw new IllegalArgumentException();
-            if (!test(url)) for (InetAddress address : InetAddress.getAllByName(url.getHost())) if (!publicAddress(address)) throw new IllegalArgumentException();
+            if (!test(url) && !DesktopMode.ENABLED) for (InetAddress address : InetAddress.getAllByName(url.getHost())) if (!publicAddress(address)) throw new IllegalArgumentException();
             return url;
         } catch (IllegalArgumentException | UnknownHostException failure) { throw new ApiProblem(400, "ai_invalid_url"); }
     }
