@@ -1361,6 +1361,7 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 .reader-ai-pane .ai-message p { font-size:15px; line-height:1.8; margin:4px 0 0; }
 .reader-ai-pane .ai-messages .ai-rich-text { font-size:15px; line-height:1.8; }
 .reader-ai-pane .ai-quick-actions { margin:2px auto 8px; }
+.reader-ai-pane > .reader-panel-heading { width:100%; max-width:none; margin-left:0; margin-right:0; }
 @media (max-width:900px) {
   .reader-ai-pane { padding:12px 18px 14px; }
   .reader-ai-pane .ai-message.ai-user { max-width:85%; }
