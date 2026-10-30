@@ -19,7 +19,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AiRepository {
-    static final List<String> PROMPT_ACTIONS = List.of("gap", "counterexample", "intuition", "proof-check", "translate");
+    static final List<String> PROMPT_ACTIONS = List.of("gap", "counterexample", "intuition", "proof-check", "translate", "summary", "practice");
     static final Map<String, String> DEFAULT_PROMPTS;
     static {
         var prompts = new LinkedHashMap<String, String>();
@@ -28,6 +28,8 @@ public class AiRepository {
         prompts.put("intuition", "请跳出纯符号形式化推导，用几何直观、低维特例（如 ℝ²、ℝ³ 或有限维情形）或具体例子解释这段抽象概念/定理背后的核心数学动机与图像。");
         prompts.put("proof-check", "下面是我尝试给出的证明思路，请帮我逐行检查逻辑是否严密（如是否有未验证的假设、边界退化情形、充分必要方向错误或极限/积分交换条件缺失）：\n\n");
         prompts.put("translate", "请把选中的这段内容翻译成中文。保留数学符号、公式、定理编号、人名、书名和术语；公式用 LaTeX 表示；只输出译文，不要解释或总结。\n\n");
+        prompts.put("summary", "请用中文简洁总结这段内容的核心定义、主要结论和关键条件，分点列出，不补充原文没有的内容。");
+        prompts.put("practice", "请根据这段内容设计 2 道由易到难的练习题，覆盖关键概念和方法；先只给题目，不要给答案。");
         DEFAULT_PROMPTS = Map.copyOf(prompts);
     }
     record Provider(String baseUrl, String model, String key, boolean enabled, int dailyLimit) {
