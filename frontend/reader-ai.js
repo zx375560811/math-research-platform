@@ -17,8 +17,10 @@ const errors = {
   not_found: '所选文献不存在，请重新打开 PDF。', ai_invalid_context: '选段无效，请重新选择 PDF 中的文字。'
 };
 function node(tag, text, cls) { const value = document.createElement(tag); if (text != null) value.textContent = text; if (cls) value.className = cls; return value; }
+const promptActions = ['gap', 'counterexample', 'intuition', 'proof-check', 'translate'];
+const promptIds = { gap: 'ai-prompt-gap', counterexample: 'ai-prompt-counterexample', intuition: 'ai-prompt-intuition', 'proof-check': 'ai-prompt-proof-check', translate: 'ai-prompt-translate' };
 export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
-  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false;
+  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false, promptTexts = {}, promptDefaults = {}, promptSaving = false;
   const storageKey = 'axiom.ai.chat:' + (location.hash.split('?')[0] || 'default');
   const requests = new Set(), events = [];
   const on = (target, name, handler) => { target.addEventListener(name, handler); events.push(() => target.removeEventListener(name, handler)); };
@@ -79,6 +81,8 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     $('ai-source').disabled = busy || saving || !config;
     $('ai-settings-save').disabled = busy || saving || !config;
     $('ai-clear-key').disabled = busy || saving || !config?.custom.has_key;
+    $('ai-prompts-save').disabled = busy || saving || promptSaving;
+    $('ai-prompts-reset').disabled = busy || saving || promptSaving;
     $('ai-clear').disabled = busy || !history.length;
     $('ai-question').disabled = busy;
     for (const btn of document.querySelectorAll('[data-ai-prompt]')) btn.disabled = busy || saving || !selectionAvailable;
@@ -100,6 +104,29 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     catch (error) { if (!closed) { if (config) $('ai-source').value = config.source; status(error.message); } }
     finally { saving = false; controls(); }
   }
+  function fillPromptFields(values = promptTexts) {
+    for (const action of promptActions) $(promptIds[action]).value = values[action] || '';
+  }
+  function promptValues() {
+    const values = {}; for (const action of promptActions) values[action] = $(promptIds[action]).value;
+    return values;
+  }
+  async function savePrompts(values = promptValues()) {
+    if (promptSaving || busy || saving || closed) return;
+    promptSaving = true; controls(); $('ai-prompts-status').textContent = '正在保存提示词…';
+    try {
+      const value = await request('/api/ai/prompts', 'PUT', { prompts: values });
+      if (closed) return;
+      promptTexts = { ...value.prompts }; promptDefaults = { ...value.defaults }; fillPromptFields(); $('ai-prompts-status').textContent = '提示词已保存。';
+    } catch (error) { if (!closed) $('ai-prompts-status').textContent = error.message; }
+    finally { promptSaving = false; controls(); }
+  }
+  function loadPrompts() {
+    request('/api/ai/prompts').then(value => { if (closed) return; promptTexts = { ...value.prompts }; promptDefaults = { ...value.defaults }; fillPromptFields(); })
+      .catch(error => { if (!closed) { fillPromptFields(promptTexts); $('ai-prompts-status').textContent = error.message; } });
+  }
+  on($('ai-prompts-save'), 'click', () => savePrompts());
+  on($('ai-prompts-reset'), 'click', () => { fillPromptFields(promptDefaults); savePrompts(promptDefaults); });
   on($('ai-settings-toggle'), 'click', () => { const form = $('ai-settings'); form.hidden = !form.hidden; $('ai-settings-toggle').setAttribute('aria-expanded', String(!form.hidden)); });
   on($('ai-source'), 'change', async () => {
     const source = $('ai-source').value; if (source === 'custom' && !config.custom.available) { $('ai-settings').hidden = false; $('ai-settings-toggle').setAttribute('aria-expanded', 'true'); }
@@ -165,13 +192,15 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
     'proof-check': { text: '下面是我尝试给出的证明思路，请帮我逐行检查逻辑是否严密（如是否有未验证的假设、边界退化情形、充分必要方向错误或极限/积分交换条件缺失）：\n\n', autoSubmit: true },
     translate: { text: '请把选中的这段内容翻译成中文。保留数学符号、公式、定理编号、人名、书名和术语；公式用 LaTeX 表示；只输出译文，不要解释或总结。\n\n', autoSubmit: true }
   };
+  for (const action of promptActions) { promptDefaults[action] = mathPrompts[action].text; promptTexts[action] = mathPrompts[action].text; }
+  fillPromptFields(); loadPrompts();
   for (const btn of document.querySelectorAll('[data-ai-prompt]')) {
     on(btn, 'pointerdown', event => event.preventDefault());
     on(btn, 'click', () => {
       if (busy || saving || closed) return;
       const preset = mathPrompts[btn.dataset.aiPrompt]; if (!preset) return;
       if (!context) { const activeSelection = getDocumentContext()?.selection; if (activeSelection) setContext(activeSelection, false); }
-      const input = $('ai-question'); input.value = preset.text;
+      const input = $('ai-question'); input.value = promptTexts[btn.dataset.aiPrompt] || preset.text;
       if (preset.autoSubmit) $('ai-chat-form').requestSubmit();
       else { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
     });

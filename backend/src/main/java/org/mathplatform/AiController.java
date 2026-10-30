@@ -2,6 +2,7 @@ package org.mathplatform;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class AiController {
     public record Settings(String source, Boolean enabled, String base_url, String model, String api_key, Boolean clear_key, Integer daily_limit) {}
+    public record PromptSettings(Map<String, String> prompts) {}
     private final AiRepository settings;
     private final AiService service;
     private final UserRepository users;
@@ -27,6 +29,25 @@ public class AiController {
         if (body == null || !Set.of("custom", "default").contains(body.source() == null ? "" : body.source())) throw new ApiProblem(400, "ai_invalid_settings");
         settings.save(user.getName(), validated(body, settings.provider(user.getName()), false), body.source());
         return settings(user);
+    }
+    @GetMapping("/api/ai/prompts")
+    public Map<String, Object> prompts(Authentication user) throws SQLException {
+        return Map.of("prompts", settings.prompts(user.getName()), "defaults", AiRepository.DEFAULT_PROMPTS);
+    }
+    @PutMapping("/api/ai/prompts")
+    public Map<String, Object> savePrompts(Authentication user, @RequestBody PromptSettings body) throws SQLException {
+        if (body == null || body.prompts() == null) throw new ApiProblem(400, "ai_invalid_settings");
+        var values = new LinkedHashMap<String, String>();
+        for (String action : AiRepository.PROMPT_ACTIONS) {
+            String text = body.prompts().get(action);
+            if (text == null) continue;
+            if (text.isBlank() || text.length() > 8000 || text.codePoints().anyMatch(c -> (c < 32 && c != '\n' && c != '\r' && c != '\t') || c == 127))
+                throw new ApiProblem(400, "ai_invalid_settings");
+            values.put(action, text);
+        }
+        if (values.size() != AiRepository.PROMPT_ACTIONS.size()) throw new ApiProblem(400, "ai_invalid_settings");
+        settings.savePrompts(user.getName(), values);
+        return prompts(user);
     }
     private AiRepository.Provider validated(Settings body, AiRepository.Provider old, boolean admin) {
         boolean enabled = Boolean.TRUE.equals(body.enabled()), clear = Boolean.TRUE.equals(body.clear_key());

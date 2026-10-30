@@ -168,6 +168,12 @@ CREATE TABLE IF NOT EXISTS ai_preferences (
     username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
     source TEXT NOT NULL CHECK (source IN ('default','custom'))
 );
+CREATE TABLE IF NOT EXISTS ai_prompt_templates (
+    username TEXT NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    PRIMARY KEY (username, action)
+);
 CREATE TABLE IF NOT EXISTS ai_usage (
     username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
     day TEXT NOT NULL,

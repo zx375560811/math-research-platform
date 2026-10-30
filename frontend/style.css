@@ -1366,3 +1366,11 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
   .reader-ai-pane { padding:12px 18px 14px; }
   .reader-ai-pane .ai-message.ai-user { max-width:85%; }
 }
+.ai-prompt-settings { margin-top:10px;padding-top:8px;border-top:1px solid #e0e7f1; }
+.ai-prompt-settings summary { cursor:pointer;color:#40536f;font-size:13px;font-weight:600; }
+.ai-prompt-settings p { margin:6px 0;color:#7a8799;font-size:12px;line-height:1.55; }
+.ai-prompt-settings label { display:grid;gap:4px;margin:10px 0;color:#536783;font-size:13px; }
+.ai-prompt-settings textarea { width:100%;min-height:62px;resize:vertical;padding:7px 8px;border:1px solid #d2ddeb;border-radius:7px;background:#fff;color:var(--ink);font:13px/1.6 inherit; }
+.ai-prompt-settings textarea:focus { outline:2px solid #b9c9ee;outline-offset:1px; }
+.ai-prompt-settings .ai-heading-actions { margin-top:8px;align-items:center; }
+#ai-prompts-status { font-size:12px;color:#64758c; }
