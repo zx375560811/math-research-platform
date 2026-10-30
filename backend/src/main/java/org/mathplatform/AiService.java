@@ -183,7 +183,7 @@ public class AiService {
         return new DnsResolver() {
             public InetAddress[] resolve(String host) throws UnknownHostException {
                 InetAddress[] addresses = InetAddress.getAllByName(host);
-                for (InetAddress address : addresses) if (!(loopback && address.isLoopbackAddress()) && !publicAddress(address)) throw new UnknownHostException("Blocked AI endpoint");
+                for (InetAddress address : addresses) if (!DesktopMode.ENABLED && !(loopback && address.isLoopbackAddress()) && !publicAddress(address)) throw new UnknownHostException("Blocked AI endpoint");
                 return addresses;
             }
             public String resolveCanonicalHostname(String host) { return host; }
