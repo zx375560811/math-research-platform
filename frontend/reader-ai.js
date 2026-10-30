@@ -75,7 +75,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   function controls() {
     if (closed) return;
     const provider = config?.[config.source];
-    $('ai-send').disabled = busy || saving || !provider?.available;
+    $('ai-send').disabled = busy || saving;
     $('ai-source').disabled = busy || saving || !config;
     $('ai-settings-save').disabled = busy || saving || !config;
     $('ai-clear-key').disabled = busy || saving || !config?.custom.has_key;
@@ -96,7 +96,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   const payload = (source, custom = config.custom) => ({ source, enabled: custom.enabled, base_url: custom.base_url || '', model: custom.model || '', api_key: '' });
   async function save(body) {
     if (saving || busy || closed) return; saving = true; controls(); status('正在保存 API 设置…');
-    try { const value = await request('/api/ai/settings', 'PUT', body); if (closed) return; config = value; populate(); status('API 设置已保存。'); }
+    try { const value = await request('/api/ai/settings', 'PUT', body); if (closed) return; config = value; populate(); $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); status('API 设置已保存。'); }
     catch (error) { if (!closed) { if (config) $('ai-source').value = config.source; status(error.message); } }
     finally { saving = false; controls(); }
   }
@@ -122,7 +122,15 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   on($('ai-clear'), 'click', () => { history = []; turns = []; saveSession(); $('ai-messages').replaceChildren(); status(''); controls(); });
   on($('ai-chat-form'), 'submit', async event => {
     event.preventDefault(); const question = $('ai-question').value.trim();
-    if (!question || !config || busy || saving || !config[config.source]?.available) return;
+    if (!question || busy || saving) return;
+    if (!config) { status('AI 设置仍在加载，请稍后再点发送。'); return; }
+    if (!config[config.source]?.available) {
+      $('ai-settings').hidden = false;
+      $('ai-settings-toggle').setAttribute('aria-expanded', 'true');
+      status(errors.ai_not_configured);
+      $('ai-api-key').focus();
+      return;
+    }
     const attached = context ? { ...context } : null; const source = config.source;
     const messages = [...history, { role: 'user', content: question }];
     const list = $('ai-messages'); list.querySelector('.ai-empty')?.remove();
@@ -170,6 +178,6 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
   $('ai-messages').replaceChildren();
   loadSession();
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');
-  request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value.enabled ? '' : '请在设置中配置 API。'); }).catch(error => status(error.message));
+  request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value[value.source]?.available ? '' : '请先配置 API，再点发送。'); }).catch(error => status(error.message));
   return { setContext, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }

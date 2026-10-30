@@ -304,6 +304,10 @@ body.reading-page { overflow:hidden; }
 .reader-resize:hover,.reader-resize:focus-visible,.reader-resize.active { background:#edf2ff; }
 .reader-resize:hover::after,.reader-resize:focus-visible::after,.reader-resize.active::after { background:#7292c7; }
 .reader-ai-pane { background:white; }
+.reader-notes.notes-collapsed { grid-template-rows:minmax(0,1fr); }
+.reader-notes.notes-collapsed .reader-note-pane,
+.reader-notes.notes-collapsed .reader-ai-resize { display:none; }
+.reader-notes.notes-collapsed .reader-ai-pane { grid-row:1; }
 .ai-assistant { border:0;border-radius:0;padding:4px 0;background:transparent; }
 .ai-messages { scrollbar-width:thin;scrollbar-color:#bdc6d4 transparent; }
 .annotation-markers { display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px; }

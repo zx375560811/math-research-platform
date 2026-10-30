@@ -53,6 +53,18 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   on(window, 'blur', stopVertical);
   on(divider, 'keydown', event => { if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return; event.preventDefault(); setNoteRatio(event.key === 'Home' ? .1 : event.key === 'End' ? .75 : noteRatio + (event.key === 'ArrowDown' ? .05 : -.05)); saveNoteRatio(); });
   setNoteRatio(noteRatio); $('reader-ask-ai').disabled = true;
+  const notesToggle = $('reader-notes-toggle'), notesKey = 'math.reader.notes-collapsed.v1';
+  let notesCollapsed = false;
+  try { notesCollapsed = localStorage.getItem(notesKey) === '1'; } catch { /* Optional layout preference. */ }
+  function setNotesCollapsed(value) {
+    notesCollapsed = Boolean(value);
+    $('reader-notes').classList.toggle('notes-collapsed', notesCollapsed);
+    notesToggle.textContent = notesCollapsed ? '展开' : '折叠';
+    notesToggle.setAttribute('aria-expanded', String(!notesCollapsed));
+    try { localStorage.setItem(notesKey, notesCollapsed ? '1' : '0'); } catch { /* Optional layout preference. */ }
+  }
+  on(notesToggle, 'click', () => setNotesCollapsed(!notesCollapsed));
+  setNotesCollapsed(notesCollapsed);
   const errorText = error => error?.message || '文件加载失败，请重试。';
   function restart(whole = fullLoad) {
     if (closed) return;
@@ -223,7 +235,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     expandedMark = null;
     for (const panel of $('annotation-list').querySelectorAll('.annotation-item')) panel.hidden = true;
     for (const button of $('annotation-list').querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-    selection = { page: Number(frame.dataset.page), quote, rects }; ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
+    selection = { page: Number(frame.dataset.page), quote, rects }; if (notesCollapsed) setNotesCollapsed(false); ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
   }
   function release(page) {
     try { page.renderTask?.cancel(); } catch {} try { page.textLayer?.cancel(); } catch {} page.renderTask = page.textLayer = null;
