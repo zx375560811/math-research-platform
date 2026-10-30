@@ -296,7 +296,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     expandedMark = null;
     for (const panel of $('annotation-list').querySelectorAll('.annotation-item')) panel.hidden = true;
     for (const button of $('annotation-list').querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-    selection = { page: Number(frame.dataset.page), quote, rects }; ai.setSelectionAvailable(true); if (notesCollapsed) setNotesCollapsed(false); ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
+    selection = { page: Number(frame.dataset.page), quote, rects }; ai.setSelectionAvailable(true); ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false;
   }
   function release(page) {
     try { page.renderTask?.cancel(); } catch {} try { page.textLayer?.cancel(); } catch {} page.renderTask = page.textLayer = null;
