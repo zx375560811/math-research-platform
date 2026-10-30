@@ -25,7 +25,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false;
+  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false, promptMark = null;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
@@ -189,6 +189,31 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       list.append(marker);
     }
   }
+  function hideNotePrompt() {
+    $('note-prompt').hidden = true;
+    $('note-prompt').style.left = '';
+    $('note-prompt').style.top = '';
+    promptMark = null;
+  }
+  function showNotePrompt(mark) {
+    promptMark = mark;
+    const prompt = $('note-prompt'); prompt.hidden = false; prompt.style.transform = '';
+    const page = pages.find(item => item.number === mark.page), frame = page?.frame?.getBoundingClientRect(), rect = mark.rects?.[0];
+    if (frame && rect) {
+      const height = prompt.offsetHeight || 34;
+      let left = frame.left + rect.x * frame.width;
+      let top = frame.top + (rect.y + rect.height) * frame.height + 8;
+      left = Math.max(12, Math.min(window.innerWidth - prompt.offsetWidth - 12, left));
+      if (top + height > window.innerHeight - 12) top = Math.max(12, frame.top + rect.y * frame.height - height - 8);
+      top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
+      prompt.style.left = left + 'px'; prompt.style.top = top + 'px';
+    } else {
+      prompt.style.left = '50%'; prompt.style.top = '110px'; prompt.style.transform = 'translateX(-50%)';
+    }
+  }
+  on($('note-prompt-add'), 'click', () => { const mark = promptMark; hideNotePrompt(); if (mark) openInlineNote(mark); });
+  on($('note-prompt-close'), 'click', hideNotePrompt);
+  on(scroll, 'scroll', () => { if (!$('note-prompt').hidden) hideNotePrompt(); }, { passive: true });
   function closeInlineNote() {
     $('inline-note').hidden = true;
     $('inline-note').style.left = '';
@@ -196,6 +221,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     inlineMark = null;
   }
   function openInlineNote(mark) {
+    hideNotePrompt();
     inlineMark = marks.find(item => item.id === mark.id) || mark;
     $('inline-note-quote').textContent = inlineMark.quote || '';
     $('inline-note-text').value = inlineMark.note || '';
@@ -209,6 +235,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       let top = frame.top + (rect.y + rect.height) * frame.height + 10;
       left = Math.max(12, Math.min(window.innerWidth - card.offsetWidth - 12, left));
       if (top + height > window.innerHeight - 12) top = Math.max(12, frame.top + rect.y * frame.height - height - 10);
+      top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
       card.style.left = left + 'px'; card.style.top = top + 'px';
     } else {
       card.style.left = '50%'; card.style.top = '110px'; card.style.transform = 'translateX(-50%)';
@@ -260,6 +287,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (!selected || selected.isCollapsed || !layer?.contains(selected.anchorNode) || !layer.contains(selected.focusNode)) return;
     const quote = selected.toString().trim(), bounds = frame.getBoundingClientRect(), rects = [];
     if (!quote) { selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
+    hideNotePrompt();
     for (const r of selected.getRangeAt(0).getClientRects()) {
       const x = Math.max(bounds.left, r.left), y = Math.max(bounds.top, r.top), right = Math.min(bounds.right, r.right), bottom = Math.min(bounds.bottom, r.bottom);
       if (right > x && bottom > y) rects.push({ x: (x - bounds.left) / bounds.width, y: (y - bounds.top) / bounds.height, width: (right - x) / bounds.width, height: (bottom - y) / bounds.height });
@@ -400,7 +428,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
       if (!selection) { $('reader-status').textContent = '请先选中 PDF 中的文字，再点颜色高亮。'; return; } const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; const createdMark = { ...value, id: created.id }; marks.push(createdMark); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在原文处添加笔记。'; openInlineNote(createdMark); }
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; const createdMark = { ...value, id: created.id }; marks.push(createdMark); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可添加文本标注。'; showNotePrompt(createdMark); }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
