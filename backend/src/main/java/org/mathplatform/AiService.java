@@ -193,7 +193,7 @@ public class AiService {
     }
     private static String reasoning(Chat body) {
         String value = body.reasoning() == null ? "" : body.reasoning().trim();
-        if (!Set.of("", "low", "medium", "high").contains(value)) throw new ApiProblem(400, "ai_invalid_chat");
+        if (value.length() > 64 || value.codePoints().anyMatch(c -> c < 32 || c == 127)) throw new ApiProblem(400, "ai_invalid_chat");
         return value;
     }
     private Map<String, Object> chatPayload(AiRepository.Provider provider, List<Map<String, String>> messages, boolean stream, String reasoning) {

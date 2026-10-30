@@ -136,7 +136,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   on($('ai-prompts-save'), 'click', () => savePrompts());
   on($('ai-prompts-reset'), 'click', () => { fillPromptFields(promptDefaults); savePrompts(promptDefaults); });
   on($('ai-settings-toggle'), 'click', () => { const form = $('ai-settings'); form.hidden = !form.hidden; $('ai-settings-toggle').setAttribute('aria-expanded', String(!form.hidden)); });
-  on($('ai-reasoning'), 'change', () => {
+  on($('ai-reasoning'), 'input', () => {
     reasoningEffort = $('ai-reasoning').value;
     try { localStorage.setItem('axiom.ai.reasoning', reasoningEffort); } catch { /* Optional preference. */ }
   });
@@ -179,7 +179,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     busy = true; controls(); status('正在向模型提问…');
     let assistant = null;
     try {
-      const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached, reasoning: reasoningEffort }, partial => {
+      const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached, reasoning: reasoningEffort.trim() }, partial => {
         if (closed) return;
         if (!assistant) { assistant = node('article', null, 'ai-message ai-assistant'); list.append(assistant); }
         assistant.replaceChildren(node('span', 'AI', 'ai-speaker'), renderAnswer(partial));
