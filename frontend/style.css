@@ -351,7 +351,10 @@ body.reading-page { overflow:hidden; }
 #reader-notes .reader-note-pane #selection-tools { display:none; }
 #reader-notes .reader-ai-pane { grid-row:3;border-top:0; }
 .notes-color-palette { display:none; }
-#annotation-list { display:flex;flex-direction:column;gap:8px; }
+#annotation-list { display:flex;flex-wrap:wrap;gap:8px; }
+.highlight-marker { width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid var(--highlight-border);border-radius:9px;background:var(--highlight-tint);color:#4a3a12;font:600 13px/1 system-ui;cursor:pointer; }
+.highlight-marker:hover { border-color:var(--blue); }
+.highlight-marker:focus-visible { outline:2px solid var(--blue);outline-offset:2px; }
 .highlight-row { display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #dce4f2;border-radius:8px;background:#fbfcff;cursor:pointer; }
 .highlight-row:hover { border-color:#b7c7e7;background:#f6f9ff; }
 .highlight-row-dot { width:6px;align-self:stretch;min-height:32px;border-radius:4px;background:var(--highlight-fill,#ffd94a);flex-shrink:0; }

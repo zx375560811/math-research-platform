@@ -178,12 +178,14 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   function notes() {
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '暂无高亮')); return; }
-    for (const mark of marks) {
-      const row = el('article', 'highlight-row'); row.dataset.annotation = mark.id;
-      const dot = el('span', 'highlight-row-dot'); dot.dataset.highlight = mark.color; dot.setAttribute('aria-hidden', 'true');
-      const body = el('div', 'highlight-row-body');
-      body.append(el('blockquote', '', mark.quote), el('p', mark.note ? 'highlight-row-note' : 'highlight-row-note muted', mark.note || '点击写笔记'), el('span', 'highlight-row-meta', `第 ${mark.page} 页 · 点击编辑`));
-      row.append(dot, body); row.addEventListener('click', () => openInlineNote(mark)); list.append(row);
+    for (const [index, mark] of marks.entries()) {
+      const number = index + 1;
+      const marker = el('button', 'highlight-marker', String(number)); marker.type = 'button';
+      marker.dataset.highlight = mark.color;
+      marker.title = `第 ${number} 个高亮 · 第 ${mark.page} 页 · ${(mark.note || mark.quote).slice(0, 100)}`;
+      marker.setAttribute('aria-label', `第 ${number} 个高亮，第 ${mark.page} 页`);
+      marker.addEventListener('click', () => openInlineNote(mark));
+      list.append(marker);
     }
   }
   function closeInlineNote() {
