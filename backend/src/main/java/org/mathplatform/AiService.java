@@ -30,7 +30,7 @@ import tools.jackson.databind.ObjectMapper;
 public class AiService {
     public record Message(String role, String content) {}
     public record Context(long document_id, int page, String quote) {}
-    public record Chat(String source, List<Message> messages, Context context) {}
+    public record Chat(String source, List<Message> messages, Context context, String reasoning) {}
     public record Answer(String reply, String warning) {}
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AiService.class);
     private final LibraryRepository library;
@@ -96,6 +96,7 @@ public class AiService {
     }
     Answer chat(String username, Chat body) throws java.sql.SQLException {
         var messages = buildMessages(body);
+        String reasoning = reasoning(body);
         var provider = settings.provider(body.source().equals("custom") ? username : null);
         if (!provider.available()) throw new ApiProblem(503, "ai_not_configured");
         URI url = endpoint(provider.baseUrl());
@@ -103,11 +104,12 @@ public class AiService {
         if (!slots.tryAcquire()) { active.remove(username); throw new ApiProblem(429, "ai_busy"); }
         try {
             settings.reserve(username, body.source().equals("default") ? provider.dailyLimit() : 0);
-            return complete(url, provider, messages);
+            return complete(url, provider, messages, reasoning);
         } finally { slots.release(); active.remove(username); }
     }
     void streamChat(String username, Chat body, HttpServletResponse out) throws java.sql.SQLException, IOException {
         var messages = buildMessages(body);
+        String reasoning = reasoning(body);
         var provider = settings.provider(body.source().equals("custom") ? username : null);
         if (!provider.available()) throw new ApiProblem(503, "ai_not_configured");
         URI url = endpoint(provider.baseUrl());
@@ -115,7 +117,7 @@ public class AiService {
         if (!slots.tryAcquire()) { active.remove(username); throw new ApiProblem(429, "ai_busy"); }
         try {
             settings.reserve(username, body.source().equals("default") ? provider.dailyLimit() : 0);
-            streamComplete(url, provider, messages, out);
+            streamComplete(url, provider, messages, reasoning, out);
         } finally { slots.release(); active.remove(username); }
     }
     private static String kind(tools.jackson.databind.JsonNode value) {
@@ -136,7 +138,7 @@ public class AiService {
         if (!slots.tryAcquire()) { active.remove(username); throw new ApiProblem(429, "ai_busy"); }
         try {
             settings.reserve(username, source.equals("default") ? provider.dailyLimit() : 0);
-            var answer=complete(url, provider, List.of(Map.of("role","system","content",instructions),Map.of("role","user","content",input)));
+            var answer=complete(url, provider, List.of(Map.of("role","system","content",instructions),Map.of("role","user","content",input)), "");
             if(!answer.warning().isEmpty())throw new ApiProblem(502,"ai_response_budget");
             return answer.reply();
         } finally { slots.release(); active.remove(username); }
@@ -189,7 +191,18 @@ public class AiService {
             public String resolveCanonicalHostname(String host) { return host; }
         };
     }
-    private Answer complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages) {
+    private static String reasoning(Chat body) {
+        String value = body.reasoning() == null ? "" : body.reasoning().trim();
+        if (!Set.of("", "low", "medium", "high").contains(value)) throw new ApiProblem(400, "ai_invalid_chat");
+        return value;
+    }
+    private Map<String, Object> chatPayload(AiRepository.Provider provider, List<Map<String, String>> messages, boolean stream, String reasoning) {
+        var payload = new java.util.LinkedHashMap<String, Object>();
+        payload.put("model", provider.model()); payload.put("messages", messages); payload.put("stream", stream);
+        if (!reasoning.isBlank()) payload.put("reasoning_effort", reasoning);
+        return payload;
+    }
+    private Answer complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages, String reasoning) {
         String path = base.toString().replaceAll("/+$", "");
         if (!path.endsWith("/chat/completions")) path += "/chat/completions";
         var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(resolverFor(base))
@@ -198,7 +211,7 @@ public class AiService {
                 .setDefaultRequestConfig(RequestConfig.custom().setResponseTimeout(Timeout.ofSeconds(180)).build()).build()) {
             var request = new HttpPost(path);
             request.setHeader("Authorization", "Bearer " + provider.key()); request.setHeader("Accept", "application/json");
-            request.setEntity(new StringEntity(json.writeValueAsString(Map.of("model", provider.model(), "messages", messages, "stream", false)), ContentType.APPLICATION_JSON));
+            request.setEntity(new StringEntity(json.writeValueAsString(chatPayload(provider, messages, false, reasoning)), ContentType.APPLICATION_JSON));
             var deadline = DEADLINES.schedule(() -> request.cancel(), 300, java.util.concurrent.TimeUnit.SECONDS);
             try { return client.execute(request, response -> {
                 int status = response.getCode();
@@ -216,7 +229,7 @@ public class AiService {
         } catch (ApiProblem failure) { throw failure; }
         catch (IOException | RuntimeException failure) { throw new ApiProblem(502, "ai_connection_failed"); }
     }
-    private void streamComplete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages, HttpServletResponse out) {
+    private void streamComplete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages, String reasoning, HttpServletResponse out) {
         String path = base.toString().replaceAll("/+$", "");
         if (!path.endsWith("/chat/completions")) path += "/chat/completions";
         var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(resolverFor(base))
@@ -225,7 +238,7 @@ public class AiService {
                 .setDefaultRequestConfig(RequestConfig.custom().setResponseTimeout(Timeout.ofSeconds(180)).build()).build()) {
             var request = new HttpPost(path);
             request.setHeader("Authorization", "Bearer " + provider.key()); request.setHeader("Accept", "text/event-stream, application/json");
-            request.setEntity(new StringEntity(json.writeValueAsString(Map.of("model", provider.model(), "messages", messages, "stream", true)), ContentType.APPLICATION_JSON));
+            request.setEntity(new StringEntity(json.writeValueAsString(chatPayload(provider, messages, true, reasoning)), ContentType.APPLICATION_JSON));
             var deadline = DEADLINES.schedule(() -> request.cancel(), 300, java.util.concurrent.TimeUnit.SECONDS);
             try { client.execute(request, response -> {
                 int status = response.getCode();

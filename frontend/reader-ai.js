@@ -20,7 +20,8 @@ function node(tag, text, cls) { const value = document.createElement(tag); if (t
 const promptActions = ['gap', 'counterexample', 'intuition', 'translate', 'summary', 'practice'];
 const promptIds = { gap: 'ai-prompt-gap', counterexample: 'ai-prompt-counterexample', intuition: 'ai-prompt-intuition', translate: 'ai-prompt-translate', summary: 'ai-prompt-summary', practice: 'ai-prompt-practice' };
 export function createReaderAi(getDocumentContext, onContextSent = () => {}, highlightActions = null) {
-  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false, promptTexts = {}, promptDefaults = {}, promptSaving = false;
+  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false, promptTexts = {}, promptDefaults = {}, promptSaving = false, reasoningEffort = '';
+  try { reasoningEffort = localStorage.getItem('axiom.ai.reasoning') || ''; } catch { /* Optional preference. */ }
   const storageKey = 'axiom.ai.chat:' + (location.hash.split('?')[0] || 'default');
   const requests = new Set(), events = [];
   const on = (target, name, handler) => { target.addEventListener(name, handler); events.push(() => target.removeEventListener(name, handler)); };
@@ -135,6 +136,10 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   on($('ai-prompts-save'), 'click', () => savePrompts());
   on($('ai-prompts-reset'), 'click', () => { fillPromptFields(promptDefaults); savePrompts(promptDefaults); });
   on($('ai-settings-toggle'), 'click', () => { const form = $('ai-settings'); form.hidden = !form.hidden; $('ai-settings-toggle').setAttribute('aria-expanded', String(!form.hidden)); });
+  on($('ai-reasoning'), 'change', () => {
+    reasoningEffort = $('ai-reasoning').value;
+    try { localStorage.setItem('axiom.ai.reasoning', reasoningEffort); } catch { /* Optional preference. */ }
+  });
   on($('ai-source'), 'change', async () => {
     const source = $('ai-source').value; if (source === 'custom' && !config.custom.available) { $('ai-settings').hidden = false; $('ai-settings-toggle').setAttribute('aria-expanded', 'true'); }
     await save(payload(source));
@@ -174,7 +179,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     busy = true; controls(); status('正在向模型提问…');
     let assistant = null;
     try {
-      const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached }, partial => {
+      const result = await request('/api/ai/chat', 'POST', { source, messages, context: attached, reasoning: reasoningEffort }, partial => {
         if (closed) return;
         if (!assistant) { assistant = node('article', null, 'ai-message ai-assistant'); list.append(assistant); }
         assistant.replaceChildren(node('span', 'AI', 'ai-speaker'), renderAnswer(partial));
@@ -216,7 +221,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   }
   $('ai-messages').replaceChildren();
   loadSession();
-  $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; controls(); status('正在加载 AI 设置…');
+  $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; $('ai-reasoning').value = reasoningEffort; controls(); status('正在加载 AI 设置…');
   request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value[value.source]?.available ? '' : '请先配置 API，再点发送。'); }).catch(error => status(error.message));
   return { setContext, setSelectionAvailable(value) { selectionAvailable = Boolean(value); controls(); }, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }
