@@ -200,7 +200,18 @@ public class LibraryRepository {
             try (var result = statement.executeQuery()) {
                 if (!result.next()) throw new ApiProblem(404, "not_found");
                 String stored = result.getString(1);
-                if (stored == null || !stored.matches("data/files/(?:upload|folder|series)-[A-Za-z0-9_-]+")) throw new ApiProblem(500, "file_unavailable");
+                if (stored == null) throw new ApiProblem(500, "file_unavailable");
+                if (stored.startsWith("external:")) {
+                    Path external = Path.of(stored.substring("external:".length())).toAbsolutePath().normalize();
+                    String root = System.getenv("MATH_EXTERNAL_ROOT");
+                    if (root != null && !root.isBlank()) {
+                        Path base = Path.of(root).toAbsolutePath().normalize();
+                        if (!external.startsWith(base)) throw new ApiProblem(500, "file_unavailable");
+                    }
+                    if (!Files.isRegularFile(external)) throw new ApiProblem(404, "file_unavailable");
+                    return external;
+                }
+                if (!stored.matches("data/files/(?:upload|folder|series)-[A-Za-z0-9_-]+")) throw new ApiProblem(500, "file_unavailable");
                 return Path.of(stored);
             }
         }

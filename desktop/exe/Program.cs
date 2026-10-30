@@ -283,6 +283,11 @@ namespace Axiom
             info.EnvironmentVariables["MATH_PORT"] = port.ToString();
             info.EnvironmentVariables["MATH_DB_PATH"] = Path.Combine(dataRoot, "data", "math.db");
             info.EnvironmentVariables["MATH_WEB_DIR"] = Path.Combine(appRoot, "frontend");
+            string externalRootFile = Path.Combine(dataRoot, "data", "external-root.txt");
+            if (File.Exists(externalRootFile)) {
+                string root = File.ReadAllText(externalRootFile).Trim();
+                if (root.Length > 0) info.EnvironmentVariables["MATH_EXTERNAL_ROOT"] = root;
+            }
             if (teacher) info.EnvironmentVariables["MATH_DESKTOP_TEACHER"] = "1";
 
             server = new Process();
