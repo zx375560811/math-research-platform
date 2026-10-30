@@ -98,12 +98,29 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     $('ai-provider-label').textContent = provider?.available ? provider.model : '尚未配置';
     $('ai-source').title = provider?.available ? `当前模型：${provider.model}` : '选择 API 来源';
   }
+  function refreshReasoningTiers() {
+    const provider = config?.[config.source] || {};
+    const model = String(provider.model || '').toLowerCase(), base = String(provider.base_url || '');
+    let tiers, note;
+    if (base.includes('api.deepseek.com') || model.startsWith('deepseek-')) {
+      tiers = ['low', 'high', 'max'];
+      note = '已识别 DeepSeek：可选 low / high / max，默认是 high。';
+    } else if (/^gpt-5|^o[1-4]/.test(model)) {
+      tiers = ['minimal', 'low', 'medium', 'high'];
+      note = '已识别推理模型：档位以服务商实际支持为准。';
+    } else {
+      tiers = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+      note = '未识别具体模型：可选择常用档位，也可以直接填写服务商档位。';
+    }
+    $('ai-reasoning-levels').replaceChildren(...tiers.map(value => { const option = document.createElement('option'); option.value = value; return option; }));
+    $('ai-reasoning-note').textContent = note;
+  }
   function populate() {
     $('ai-source').value = config.source;
     $('ai-base-url').value = config.custom.base_url || ''; $('ai-model').value = config.custom.model || '';
     $('ai-api-key').value = ''; $('ai-api-key').placeholder = config.custom.has_key ? '已保存，留空保持原密钥' : '请输入 API 密钥';
     $('ai-default-info').textContent = config.default.available ? `默认模型：${config.default.model}；每日最多 ${config.default.daily_limit} 次提问。` : '管理员尚未启用默认 API，可在此配置个人 API。';
-    controls();
+    refreshReasoningTiers(); controls();
   }
   const payload = (source, custom = config.custom) => ({ source, enabled: custom.enabled, base_url: custom.base_url || '', model: custom.model || '', api_key: '' });
   async function save(body) {
