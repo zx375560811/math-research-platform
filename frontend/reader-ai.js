@@ -5,6 +5,8 @@ const errors = {
   ai_invalid_url: '请输入公网 HTTPS API 地址，例如 https://api.example.com/v1。',
   ai_invalid_settings: '请填写 API 地址、模型和密钥；留空密钥会保留原密钥。',
   ai_provider_auth: 'API 密钥无效或权限不足，请检查设置。', ai_provider_limit: '服务商额度不足或请求过多，请稍后重试。',
+  ai_provider_payment: '模型账户余额不足，请充值或更换 API。', ai_provider_not_found: '模型名称或接口地址不存在，请检查模型名和 Base URL。',
+  ai_provider_rejected: '模型拒绝了请求参数，常见原因是推理档位不被该模型支持。请把推理强度留空后重试。',
   ai_connection_failed: '连接模型失败或等待超时，请检查地址后重试。', ai_provider_error: '模型服务返回错误，请检查模型名称和接口地址。',
   ai_response_invalid: '服务返回的数据缺少可读取的回答字段，请联系管理员查看 AI 诊断日志。',
   ai_response_non_json: '服务返回的不是 JSON 回答，请确认填写的是 API 调用地址。', ai_response_too_large: '服务返回的数据过大，请缩短问题或更换模型。',

@@ -202,6 +202,17 @@ public class AiService {
         if (!reasoning.isBlank()) payload.put("reasoning_effort", reasoning);
         return payload;
     }
+    private ApiProblem providerError(int status, org.apache.hc.core5.http.ClassicHttpResponse response) {
+        String detail = "";
+        try (var input = response.getEntity() == null ? null : response.getEntity().getContent()) {
+            if (input != null) { byte[] bytes = input.readNBytes(1200); detail = new String(bytes, StandardCharsets.UTF_8); }
+        } catch (IOException ignored) { /* Keep the status-only diagnostic. */ }
+        LOG.warn("AI provider returned status={} body={}", status, detail);
+        if (status == 402) return new ApiProblem(502, "ai_provider_payment");
+        if (status == 404) return new ApiProblem(502, "ai_provider_not_found");
+        if (status == 400 || status == 422) return new ApiProblem(502, "ai_provider_rejected");
+        return new ApiProblem(502, "ai_provider_error");
+    }
     private Answer complete(URI base, AiRepository.Provider provider, List<Map<String, String>> messages, String reasoning) {
         String path = base.toString().replaceAll("/+$", "");
         if (!path.endsWith("/chat/completions")) path += "/chat/completions";
@@ -217,7 +228,7 @@ public class AiService {
                 int status = response.getCode();
                 if (status == 401 || status == 403) throw new ApiProblem(502, "ai_provider_auth");
                 if (status == 429) throw new ApiProblem(429, "ai_provider_limit");
-                if (status < 200 || status >= 300 || response.getEntity() == null) throw new ApiProblem(502, "ai_provider_error");
+                if (status < 200 || status >= 300 || response.getEntity() == null) throw providerError(status, response);
                 byte[] bytes;
                 try (var input = response.getEntity().getContent()) { bytes = input.readNBytes(16777217); }
                 if (bytes.length > 16777216) throw responseProblem("ai_response_too_large", null);
@@ -244,7 +255,7 @@ public class AiService {
                 int status = response.getCode();
                 if (status == 401 || status == 403) throw new ApiProblem(502, "ai_provider_auth");
                 if (status == 429) throw new ApiProblem(429, "ai_provider_limit");
-                if (status < 200 || status >= 300 || response.getEntity() == null) throw new ApiProblem(502, "ai_provider_error");
+                if (status < 200 || status >= 300 || response.getEntity() == null) throw providerError(status, response);
                 out.setStatus(200);
                 out.setContentType("text/event-stream; charset=utf-8");
                 out.setHeader("Cache-Control", "no-store");
