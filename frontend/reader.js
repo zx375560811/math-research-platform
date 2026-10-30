@@ -59,7 +59,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   function setNotesCollapsed(value) {
     notesCollapsed = Boolean(value);
     $('reader-notes').classList.toggle('notes-collapsed', notesCollapsed);
-    notesToggle.textContent = notesCollapsed ? '展开' : '折叠';
+    $('reader-view').classList.toggle('notes-collapsed', notesCollapsed);
+    notesToggle.textContent = notesCollapsed ? '展开高亮' : '折叠';
     notesToggle.setAttribute('aria-expanded', String(!notesCollapsed));
     try { localStorage.setItem(notesKey, notesCollapsed ? '1' : '0'); } catch { /* Optional layout preference. */ }
   }
