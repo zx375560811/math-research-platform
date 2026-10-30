@@ -940,6 +940,8 @@ input::placeholder, textarea::placeholder { color: #65758a; opacity: 1; }
 .reader-heading-actions .button:hover:not(:disabled) { background: #fff; border-color: #b5c5df; }
 .reader-ai-pane>.reader-panel-heading h2 { background: var(--soft-blue); border-color: #d8e2f5; color: var(--accent-ink); font-weight: 600; }
 .ai-heading-actions .button { background: #fafbfd; }
+.ai-heading-actions .button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.ai-heading-actions .button.primary:hover:not(:disabled) { background: #304bb8; border-color: #304bb8; }
 .ai-chat-form { border-color: var(--field-line); }
 .ai-chat-form:focus-within { border-color: var(--blue); }
 
