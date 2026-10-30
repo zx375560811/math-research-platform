@@ -28,8 +28,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false, promptMark = null;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
-  const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
-  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 380 };
+  const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v2';
+  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth * .6 };
   try { const stored = JSON.parse(localStorage.getItem(widthKey)); for (const name of ['outline', 'notes']) if (Number.isFinite(stored?.[name]) && stored[name] >= 64 && stored[name] <= 3000) preferredWidths[name] = stored[name]; } catch { /* Layout preferences are optional. */ }
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
@@ -53,9 +53,9 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   on(window, 'blur', stopVertical);
   on(divider, 'keydown', event => { if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return; event.preventDefault(); setNoteRatio(event.key === 'Home' ? .1 : event.key === 'End' ? .75 : noteRatio + (event.key === 'ArrowDown' ? .05 : -.05)); saveNoteRatio(); });
   setNoteRatio(noteRatio); $('reader-ask-ai').disabled = true;
-  const notesToggle = $('reader-notes-toggle'), notesKey = 'math.reader.notes-collapsed.v1';
-  let notesCollapsed = false;
-  try { notesCollapsed = localStorage.getItem(notesKey) === '1'; } catch { /* Optional layout preference. */ }
+  const notesToggle = $('reader-notes-toggle'), notesKey = 'math.reader.notes-collapsed.v2';
+  let notesCollapsed = true;
+  try { const saved = localStorage.getItem(notesKey); if (saved === '0' || saved === '1') notesCollapsed = saved === '1'; } catch { /* Optional layout preference. */ }
   function setNotesCollapsed(value) {
     notesCollapsed = Boolean(value);
     $('reader-notes').classList.toggle('notes-collapsed', notesCollapsed);
