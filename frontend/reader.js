@@ -200,6 +200,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     $('inline-note-quote').textContent = inlineMark.quote || '';
     $('inline-note-text').value = inlineMark.note || '';
     $('inline-note-status').textContent = '';
+    $('inline-note-save').disabled = false; $('inline-note-delete').disabled = false;
     const card = $('inline-note'); card.hidden = false; card.style.transform = '';
     const page = pages.find(item => item.number === inlineMark.page), frame = page?.frame?.getBoundingClientRect(), rect = inlineMark.rects?.[0];
     if (frame && rect) {
@@ -225,8 +226,20 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     } catch (error) { if (!closed) $('inline-note-status').textContent = errorText(error); }
     finally { inlineSaving = false; $('inline-note-save').disabled = false; }
   }
+  async function deleteInlineNote() {
+    if (!inlineMark || inlineSaving) return;
+    inlineSaving = true; $('inline-note-save').disabled = true; $('inline-note-delete').disabled = true; $('inline-note-status').textContent = '正在删除…';
+    const mark = inlineMark;
+    try {
+      await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE');
+      if (closed) return;
+      marks = marks.filter(item => item.id !== mark.id); drafts.delete(mark.id); closeInlineNote(); notes(); paintHighlights(); $('reader-status').textContent = '高亮已删除';
+    } catch (error) { if (!closed) { $('inline-note-status').textContent = errorText(error); $('inline-note-save').disabled = false; $('inline-note-delete').disabled = false; } }
+    finally { inlineSaving = false; }
+  }
   on($('inline-note-close'), 'click', closeInlineNote);
   on($('inline-note-save'), 'click', saveInlineNote);
+  on($('inline-note-delete'), 'click', deleteInlineNote);
   on(scroll, 'scroll', () => { if (!$('inline-note').hidden) closeInlineNote(); }, { passive: true });
   on(document, 'click', event => {
     if (closed) return;
