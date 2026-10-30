@@ -25,7 +25,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false;
+  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
   const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
@@ -143,7 +143,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     for (const page of pages) {
       if (!page.rendered) continue; page.highlights.replaceChildren();
       for (const mark of marks.filter(m => m.page === page.number)) for (const r of mark.rects) {
-        const box = el('span', 'pdf-highlight ' + mark.color); box.style.left = r.x * 100 + '%'; box.style.top = r.y * 100 + '%'; box.style.width = r.width * 100 + '%'; box.style.height = r.height * 100 + '%'; box.dataset.annotation = mark.id; page.highlights.append(box);
+        const box = el('span', 'pdf-highlight ' + mark.color); box.style.left = r.x * 100 + '%'; box.style.top = r.y * 100 + '%'; box.style.width = r.width * 100 + '%'; box.style.height = r.height * 100 + '%'; box.dataset.annotation = mark.id; box.title = '点击编辑笔记'; box.addEventListener('click', () => openInlineNote(mark)); page.highlights.append(box);
       }
     }
   }
@@ -209,14 +209,60 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
       markers.append(summary); if (index === 29 && foldToggle) markers.append(foldToggle);
       const body = el('div', 'annotation-body');
       const jump = el('button', 'annotation-jump', `第 ${mark.page} 页 · 跳转`); jump.type = 'button'; jump.addEventListener('click', () => showPage(mark.page));
-      const quote = el('blockquote', '', mark.quote), note = el('textarea', 'annotation-note');
-      note.value = drafts.get(mark.id) ?? mark.note; note.maxLength = 4000; note.rows = 3; note.setAttribute('aria-label', '高亮笔记'); note.placeholder = '写下你的理解…'; note.addEventListener('input', () => drafts.set(mark.id, note.value));
-      const actions = el('div', 'annotation-actions'), save = el('button', 'button compact', '保存笔记'), remove = el('button', 'annotation-delete', '删除'); save.type = remove.type = 'button';
-      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`; row.hidden = true; summary.setAttribute('aria-expanded', 'false'); if (expandedMark === mark.id) expandedMark = null; $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
-      remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
-      actions.append(save, remove); body.append(jump, quote, note, actions); row.append(body); list.append(row);
+      const quote = el('blockquote', '', mark.quote), edit = el('button', 'button compact', '在原文处记笔记'), remove = el('button', 'annotation-delete', '删除'); edit.type = remove.type = 'button';
+      edit.addEventListener('click', () => openInlineNote(mark));
+      remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); if (inlineMark?.id === mark.id) closeInlineNote(); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
+      const actions = el('div', 'annotation-actions'); actions.append(edit, remove); body.append(jump, quote, actions); row.append(body); list.append(row);
     }
   }
+  function closeInlineNote() {
+    $('inline-note').hidden = true;
+    $('inline-note').style.left = '';
+    $('inline-note').style.top = '';
+    inlineMark = null;
+  }
+  function openInlineNote(mark) {
+    inlineMark = marks.find(item => item.id === mark.id) || mark;
+    $('inline-note-quote').textContent = inlineMark.quote || '';
+    $('inline-note-text').value = inlineMark.note || '';
+    $('inline-note-status').textContent = '';
+    const card = $('inline-note'); card.hidden = false; card.style.transform = '';
+    const page = pages.find(item => item.number === inlineMark.page), frame = page?.frame?.getBoundingClientRect(), rect = inlineMark.rects?.[0];
+    if (frame && rect) {
+      const height = card.offsetHeight || 190;
+      let left = frame.left + rect.x * frame.width;
+      let top = frame.top + (rect.y + rect.height) * frame.height + 10;
+      left = Math.max(12, Math.min(window.innerWidth - card.offsetWidth - 12, left));
+      if (top + height > window.innerHeight - 12) top = Math.max(12, frame.top + rect.y * frame.height - height - 10);
+      card.style.left = left + 'px'; card.style.top = top + 'px';
+    } else {
+      card.style.left = '50%'; card.style.top = '110px'; card.style.transform = 'translateX(-50%)';
+    }
+    $('inline-note-text').focus();
+  }
+  async function saveInlineNote() {
+    if (!inlineMark || inlineSaving) return;
+    inlineSaving = true; $('inline-note-save').disabled = true; $('inline-note-status').textContent = '正在保存…';
+    const mark = inlineMark, note = $('inline-note-text').value.trim();
+    try {
+      await write(`${endpoint}/annotations/${mark.id}`, { note }, 'PATCH');
+      if (closed) return;
+      mark.note = note; drafts.delete(mark.id); $('reader-status').textContent = '笔记已保存'; closeInlineNote(); notes(mark.id);
+    } catch (error) { if (!closed) $('inline-note-status').textContent = errorText(error); }
+    finally { inlineSaving = false; $('inline-note-save').disabled = false; }
+  }
+  on($('inline-note-close'), 'click', closeInlineNote);
+  on($('inline-note-save'), 'click', saveInlineNote);
+  on(scroll, 'scroll', () => { if (!$('inline-note').hidden) closeInlineNote(); }, { passive: true });
+  on(document, 'click', event => {
+    if (closed) return;
+    const frame = event.target.closest?.('.pdf-page'); if (!frame) return;
+    const selected = window.getSelection(); if (selected && !selected.isCollapsed) return;
+    const bounds = frame.getBoundingClientRect(), x = (event.clientX - bounds.left) / bounds.width, y = (event.clientY - bounds.top) / bounds.height;
+    const page = Number(frame.dataset.page);
+    const mark = marks.find(item => item.page === page && item.rects.some(r => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height));
+    if (mark) openInlineNote(mark);
+  });
   function captureSelection() {
     if (closed || layingOut) return;
     const selected = window.getSelection();
@@ -367,7 +413,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
       if (!selection) { $('reader-status').textContent = '请先选中 PDF 中的文字，再点颜色高亮。'; return; } const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; const createdMark = { ...value, id: created.id }; marks.push(createdMark); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在原文处添加笔记。'; openInlineNote(createdMark); }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
