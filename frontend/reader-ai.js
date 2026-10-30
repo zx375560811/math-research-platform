@@ -19,12 +19,19 @@ const errors = {
 function node(tag, text, cls) { const value = document.createElement(tag); if (text != null) value.textContent = text; if (cls) value.className = cls; return value; }
 const promptActions = ['gap', 'counterexample', 'intuition', 'translate', 'summary', 'practice'];
 const promptIds = { gap: 'ai-prompt-gap', counterexample: 'ai-prompt-counterexample', intuition: 'ai-prompt-intuition', translate: 'ai-prompt-translate', summary: 'ai-prompt-summary', practice: 'ai-prompt-practice' };
-export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
+export function createReaderAi(getDocumentContext, onContextSent = () => {}, highlightActions = null) {
   let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false, promptTexts = {}, promptDefaults = {}, promptSaving = false;
   const storageKey = 'axiom.ai.chat:' + (location.hash.split('?')[0] || 'default');
   const requests = new Set(), events = [];
   const on = (target, name, handler) => { target.addEventListener(name, handler); events.push(() => target.removeEventListener(name, handler)); };
   const status = text => { if (!closed) $('ai-status').textContent = text; };
+  function addSaveAction(article, text) {
+    if (!highlightActions?.saveReply || article.querySelector('.ai-message-actions')) return;
+    const actions = node('div', null, 'ai-message-actions');
+    const save = node('button', '保存到高亮', 'ai-save-highlight'); save.type = 'button'; save.title = '把这条 AI 回答追加到某条高亮的笔记';
+    save.addEventListener('click', () => { if (!closed) highlightActions.saveReply(text); });
+    actions.append(save); article.append(actions);
+  }
   function saveSession() {
     try {
       if (turns.length) sessionStorage.setItem(storageKey, JSON.stringify(turns));
@@ -42,7 +49,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
         history.push({ role: 'user', content: item.remembered }, { role: 'assistant', content: item.reply });
         const user = node('article', null, 'ai-message ai-user'); user.append(node('span', '你', 'ai-speaker'), node('p', item.question));
         if (item.page) user.append(node('small', `附带第 ${item.page} 页选段`));
-        const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(item.reply));
+        const assistant = node('article', null, 'ai-message ai-assistant'); assistant.append(node('span', 'AI', 'ai-speaker'), renderAnswer(item.reply)); addSaveAction(assistant, item.reply);
         list.append(user, assistant);
       }
     } catch { /* Ignore malformed cache. */ }
@@ -175,6 +182,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}) {
       if (closed) return;
       if (!assistant) { assistant = node('article', null, 'ai-message ai-assistant'); list.append(assistant); }
       assistant.replaceChildren(node('span', 'AI', 'ai-speaker'), renderAnswer(result.reply));
+      addSaveAction(assistant, result.reply);
       const remembered = attached ? `PDF 第 ${attached.page} 页选段：\n${attached.quote}\n问题：${question}` : question;
       history.push({ role: 'user', content: remembered }, { role: 'assistant', content: result.reply });
       turns.push({ question, page: attached?.page || null, remembered, reply: result.reply });

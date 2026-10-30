@@ -36,7 +36,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
   const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title, selection: selection ? { ...selection } : null }), () => {
     selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; ai.setSelectionAvailable(false); window.getSelection()?.removeAllRanges();
-  });
+  }, { saveReply: text => openHighlightPicker(text) });
   const divider = $('reader-ai-resize');
   function setNoteRatio(value) {
     noteRatio = Math.max(.1, Math.min(.75, value)); $('reader-notes').style.setProperty('--reader-note-height', `${noteRatio * 100}%`); divider.setAttribute('aria-valuenow', String(Math.round(noteRatio * 100)));
@@ -264,6 +264,45 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     } catch (error) { if (!closed) { $('inline-note-status').textContent = errorText(error); $('inline-note-save').disabled = false; $('inline-note-delete').disabled = false; } }
     finally { inlineSaving = false; }
   }
+  function closeHighlightPicker() {
+    $('highlight-picker').hidden = true;
+    $('highlight-picker-list').replaceChildren();
+    $('highlight-picker-status').textContent = '';
+  }
+  function openHighlightPicker(text) {
+    const picker = $('highlight-picker'), list = $('highlight-picker-list'), status = $('highlight-picker-status');
+    list.replaceChildren(); status.textContent = '';
+    if (!marks.length) {
+      status.textContent = '暂无高亮，请先在 PDF 中高亮一段文字。';
+    } else {
+      for (const mark of marks) {
+        const row = el('button', 'highlight-picker-row'); row.type = 'button';
+        const dot = el('span', 'highlight-picker-dot'); dot.dataset.highlight = mark.color;
+        const body = el('div', 'highlight-picker-body');
+        const index = marks.findIndex(item => item.id === mark.id) + 1;
+        body.append(el('p', '', mark.quote || '（无引用）'), el('small', '', `第 ${index} 个高亮 · 第 ${mark.page} 页`));
+        row.append(dot, body); row.addEventListener('click', () => saveAiReply(mark, text));
+        list.append(row);
+      }
+    }
+    picker.hidden = false;
+  }
+  async function saveAiReply(mark, text) {
+    const status = $('highlight-picker-status'), existing = (mark.note || '').trim();
+    const stamp = new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const header = `--- AI 回答 · ${stamp} ---\n`, separator = existing ? '\n\n' : '';
+    const room = 4000 - existing.length - separator.length - header.length;
+    if (room < 80) { status.textContent = '这条高亮的笔记已接近 4000 字，无法再保存。'; return; }
+    const full = String(text || '').trim();
+    const reply = full.length > room ? full.slice(0, room - 1) + '…' : full;
+    const note = existing + separator + header + reply;
+    try {
+      await write(`${endpoint}/annotations/${mark.id}`, { note }, 'PATCH'); if (closed) return;
+      mark.note = note; if (inlineMark?.id === mark.id) $('inline-note-text').value = note;
+      closeHighlightPicker(); notes(); $('reader-status').textContent = 'AI 回答已保存到高亮笔记';
+    } catch (error) { status.textContent = errorText(error); }
+  }
+  on($('highlight-picker-close'), 'click', closeHighlightPicker);
   on($('inline-note-close'), 'click', closeInlineNote);
   on($('inline-note-save'), 'click', saveInlineNote);
   on($('inline-note-delete'), 'click', deleteInlineNote);
