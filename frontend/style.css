@@ -1387,3 +1387,8 @@ body.ai-learning-entry-page { display:flex;flex-direction:column;min-height:100s
 .ai-message-actions { display:flex;align-items:center;gap:6px;margin-top:7px; }
 .ai-save-highlight { border:1px solid #d8e2f3;border-radius:999px;background:#fff;color:#4d6fa3;font-size:11px;padding:2px 8px;cursor:pointer; }
 .ai-save-highlight:hover { border-color:#a9bde0;background:#f2f7ff;color:#3557a4; }
+.ai-web-paste { position:fixed;z-index:36;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));padding:16px;border:1px solid #cfd9ea;border-radius:14px;background:#fff;box-shadow:0 24px 70px #182b4633; }
+.ai-web-paste-head { display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:14px;color:var(--ink); }
+.ai-web-paste textarea { width:100%;min-height:150px;resize:vertical;padding:9px;border:1px solid #d2ddeb;border-radius:8px;background:#fbfcff;color:var(--ink);font:13px/1.6 inherit; }
+.ai-web-paste textarea:focus { outline:2px solid #b9c9ee;outline-offset:1px; }
+.ai-web-paste .ai-heading-actions { margin-top:10px;justify-content:flex-end; }

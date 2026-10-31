@@ -35,6 +35,40 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     save.addEventListener('click', () => { if (!closed) highlightActions.saveReply(text); });
     actions.append(save); article.append(actions);
   }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch {
+      const area = document.createElement('textarea'); area.value = text;
+      area.style.position = 'fixed'; area.style.opacity = '0'; document.body.append(area); area.select();
+      try { return document.execCommand('copy'); } catch { return false; } finally { area.remove(); }
+    }
+  }
+  function openWebBridge(prompt = '') {
+    if (closed) return;
+    const selected = getDocumentContext()?.selection, question = $('ai-question').value.trim();
+    const text = [prompt, question, selected?.quote ? `选中内容：\n${selected.quote}` : ''].filter(Boolean).join('\n\n');
+    const opened = window.open('https://chat.deepseek.com/', '_blank'); if (opened) opened.opener = null;
+    copyText(text).then(ok => {
+      if (!text) status('已打开 DeepSeek 网页版；输入问题后点网页版可复制。');
+      else status(ok ? '已复制问题/选段，粘贴到 DeepSeek 网页即可。' : '网页已打开，但剪贴板不可用，请手动复制。');
+    });
+  }
+  function closeWebPaste() { $('ai-web-paste').hidden = true; $('ai-web-answer').value = ''; }
+  function openWebPaste() { if (closed) return; $('ai-web-paste').hidden = false; $('ai-web-answer').focus(); }
+  function addWebAnswer() {
+    if (closed) return;
+    const answer = $('ai-web-answer').value.trim(); if (!answer) { $('ai-web-answer').focus(); return; }
+    const list = $('ai-messages'); list.querySelector('.ai-empty')?.remove();
+    const question = $('ai-question').value.trim();
+    if (question) {
+      const user = node('article', null, 'ai-message ai-user'); user.append(node('span', '你', 'ai-speaker'), node('p', question));
+      list.append(user); history.push({ role: 'user', content: question });
+    }
+    const assistant = node('article', null, 'ai-message ai-assistant');
+    assistant.append(node('span', 'AI · 网页版', 'ai-speaker'), renderAnswer(answer)); addSaveAction(assistant, answer);
+    list.append(assistant); history.push({ role: 'assistant', content: answer }); turns.push({ question: question || '网页版回答', page: null, remembered: question || '', reply: answer }); saveSession();
+    $('ai-question').value = ''; closeWebPaste(); list.scrollTop = list.scrollHeight; status('网页版回答已加入，可保存到高亮。');
+  }
   function saveSession() {
     try {
       if (turns.length) sessionStorage.setItem(storageKey, JSON.stringify(turns));
@@ -154,6 +188,11 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   }
   on($('ai-prompts-save'), 'click', () => savePrompts());
   on($('ai-prompts-reset'), 'click', () => { fillPromptFields(promptDefaults); savePrompts(promptDefaults); });
+  on($('ai-web'), 'click', () => openWebBridge());
+  on($('ai-web-paste'), 'click', openWebPaste);
+  on($('ai-web-add'), 'click', addWebAnswer);
+  on($('ai-web-close'), 'click', closeWebPaste);
+  on($('ai-web-cancel'), 'click', closeWebPaste);
   on($('ai-settings-toggle'), 'click', () => { const form = $('ai-settings'); form.hidden = !form.hidden; $('ai-settings-toggle').setAttribute('aria-expanded', String(!form.hidden)); });
   on($('ai-reasoning'), 'input', () => {
     reasoningEffort = $('ai-reasoning').value;
@@ -232,6 +271,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     on(btn, 'click', () => {
       if (busy || saving || closed) return;
       const preset = mathPrompts[btn.dataset.aiPrompt]; if (!preset) return;
+      if (!config?.[config.source]?.available) { openWebBridge(preset.text); return; }
       if (!context) { const activeSelection = getDocumentContext()?.selection; if (activeSelection) setContext(activeSelection, false); }
       const input = $('ai-question'); input.value = promptTexts[btn.dataset.aiPrompt] || preset.text;
       if (preset.autoSubmit) $('ai-chat-form').requestSubmit();
