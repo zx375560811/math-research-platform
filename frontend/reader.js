@@ -35,7 +35,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
   const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title, selection: selection ? { ...selection } : null }), () => {
-    selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; ai.setSelectionAvailable(false); window.getSelection()?.removeAllRanges();
+    selection = null; $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; ai.setSelectionAvailable(false); window.getSelection()?.removeAllRanges();
   }, { saveReply: text => openHighlightPicker(text) });
   const divider = $('reader-ai-resize');
   function setNoteRatio(value) {
@@ -105,7 +105,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     // PDF.js also checks the initial response headers before enabling byte ranges.
     return { url: book.file_url, withCredentials: true, disableStream: true, disableAutoFetch: true };
   }
-  stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
+  stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true; showCopyButton(false);
   $('reader-save-status').textContent = trackProgress ? '' : '预览模式 · 不保存进度'; $('reader-save-status').classList.remove('save-error');
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
   $('reader-title').textContent = '正在打开教材…';
@@ -303,6 +303,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     } catch (error) { status.textContent = errorText(error); }
   }
   on($('highlight-picker-close'), 'click', closeHighlightPicker);
+  on($('pdf-copy-selection'), 'click', copySelectedText);
   on($('inline-note-close'), 'click', closeInlineNote);
   on($('inline-note-save'), 'click', saveInlineNote);
   on($('inline-note-delete'), 'click', deleteInlineNote);
@@ -316,6 +317,18 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const mark = marks.find(item => item.page === page && item.rects.some(r => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height));
     if (mark) openInlineNote(mark);
   });
+  function showCopyButton(show) { const button = $('pdf-copy-selection'); if (button) button.hidden = !show; }
+  async function copySelectedText() {
+    const text = selection?.quote || window.getSelection()?.toString().trim();
+    if (!text) { showCopyButton(false); return; }
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const area = document.createElement('textarea'); area.value = text;
+      area.style.position = 'fixed'; area.style.opacity = '0'; document.body.append(area); area.select();
+      try { document.execCommand('copy'); } finally { area.remove(); }
+    }
+    $('reader-status').textContent = '选中文字已复制';
+  }
   function captureSelection() {
     if (closed || layingOut) return;
     const selected = window.getSelection();
@@ -325,17 +338,17 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     // Keep the captured quote available while the user interacts with notes or the AI composer.
     if (!selected || selected.isCollapsed || !layer?.contains(selected.anchorNode) || !layer.contains(selected.focusNode)) { ai.setSelectionAvailable(false); return; }
     const quote = selected.toString().trim(), bounds = frame.getBoundingClientRect(), rects = [];
-    if (!quote) { selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
+    if (!quote) { selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; return; }
     hideNotePrompt();
     for (const r of selected.getRangeAt(0).getClientRects()) {
       const x = Math.max(bounds.left, r.left), y = Math.max(bounds.top, r.top), right = Math.min(bounds.right, r.right), bottom = Math.min(bounds.bottom, r.bottom);
       if (right > x && bottom > y) rects.push({ x: (x - bounds.left) / bounds.width, y: (y - bounds.top) / bounds.height, width: (right - x) / bounds.width, height: (bottom - y) / bounds.height });
     }
-    if (!rects.length) { selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
+    if (!rects.length) { selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; return; }
     expandedMark = null;
     for (const panel of $('annotation-list').querySelectorAll('.annotation-item')) panel.hidden = true;
     for (const button of $('annotation-list').querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-    selection = { page: Number(frame.dataset.page), quote, rects }; ai.setSelectionAvailable(true); ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false;
+    selection = { page: Number(frame.dataset.page), quote, rects }; ai.setSelectionAvailable(true); ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; showCopyButton(true);
   }
   function release(page) {
     try { page.renderTask?.cancel(); } catch {} try { page.textLayer?.cancel(); } catch {} page.renderTask = page.textLayer = null;
@@ -467,7 +480,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
       if (!selection) { $('reader-status').textContent = '请先选中 PDF 中的文字，再点颜色高亮。'; return; } const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; const createdMark = { ...value, id: created.id }; marks.push(createdMark); notes(created.id); paintHighlights(); selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可添加文本标注。'; showNotePrompt(createdMark); }
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; const createdMark = { ...value, id: created.id }; marks.push(createdMark); notes(created.id); paintHighlights(); selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可添加文本标注。'; showNotePrompt(createdMark); }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
@@ -493,14 +506,14 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
           document: docId ? { id: docId, title: book.title } : null
         }));
       } catch { /* Ignore sessionStorage errors. */ }
-      selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
+      selection = null; $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
       location.hash = '#/discussions/new';
     });
   }
   on(scroll, 'pointerdown', event => {
     if (event.button !== 0 || !event.target.closest('.textLayer')) return;
     selectionPointer = { x: event.clientX, y: event.clientY };
-    selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true;
+    selection = null; $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true;
   });
   on(document, 'pointerup', event => {
     if (!selectionPointer) return;
@@ -562,7 +575,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(handle, 'pointerdown', event => {
       if (event.button !== 0 || drag) return; event.preventDefault(); clearTimeout(resizeTimer);
       drag = { name, handle, pointerId: event.pointerId, startX: event.clientX, x: event.clientX, startWidth: $('reader-' + name).getBoundingClientRect().width, anchor: pdf && pages.length ? snapshot() : { page: 1, position: 0 } };
-      ++generation; layingOut = true; selection = null; $('selection-tools').hidden = true; for (const page of pages) { page.renderTask?.cancel(); page.textLayer?.cancel(); }
+      ++generation; layingOut = true; selection = null; $('selection-tools').hidden = true; showCopyButton(false); for (const page of pages) { page.renderTask?.cancel(); page.textLayer?.cancel(); }
       handle.setPointerCapture(event.pointerId); handle.classList.add('active'); layoutBox.classList.add('reader-resizing');
     });
     on(handle, 'pointermove', event => { if (!drag || drag.handle !== handle || event.pointerId !== drag.pointerId) return; drag.x = event.clientX; if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = null; previewDrag(); }); });
