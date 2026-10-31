@@ -175,6 +175,8 @@ namespace Axiom
         private string baseUrl;
         private int port;
         private bool closing;
+        private CoreWebView2Environment webViewEnvironment;
+        private WebViewForm webWindow;
 
         public MainForm()
         {
@@ -234,9 +236,9 @@ namespace Axiom
                 {
                     throw new Exception("未检测到 Microsoft Edge WebView2 运行时。请安装 WebView2 Runtime 后重试。");
                 }
-                CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(
+                webViewEnvironment = await CoreWebView2Environment.CreateAsync(
                     null, Path.Combine(dataRoot, "webview2"), null);
-                await browser.EnsureCoreWebView2Async(environment);
+                await browser.EnsureCoreWebView2Async(webViewEnvironment);
                 browser.ZoomFactor = 1.0;
 
                 browser.CoreWebView2.Settings.AreDevToolsEnabled = false;
@@ -336,7 +338,33 @@ namespace Axiom
         private void OnNewWindow(object sender, CoreWebView2NewWindowRequestedEventArgs args)
         {
             args.Handled = true;
-            OpenExternal(args.Uri);
+            if (DeepSeekUrl(args.Uri)) ShowWebWindow(args.Uri);
+            else OpenExternal(args.Uri);
+        }
+
+        internal static bool DeepSeekUrl(string value)
+        {
+            Uri uri;
+            return Uri.TryCreate(value, UriKind.Absolute, out uri)
+                && uri.Scheme == Uri.UriSchemeHttps
+                && (uri.Host.Equals("deepseek.com", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.EndsWith(".deepseek.com", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void ShowWebWindow(string uri)
+        {
+            if (webWindow == null || webWindow.IsDisposed)
+            {
+                webWindow = new WebViewForm(webViewEnvironment, uri);
+                webWindow.FormClosed += (sender, args) => { webWindow = null; };
+                webWindow.Show(this);
+            }
+            else
+            {
+                webWindow.Navigate(uri);
+                if (webWindow.WindowState == FormWindowState.Minimized) webWindow.WindowState = FormWindowState.Normal;
+                webWindow.Activate();
+            }
         }
 
         private void OnNavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs args)
@@ -417,6 +445,64 @@ namespace Axiom
             int value = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
             return value;
+        }
+    }
+
+    internal sealed class WebViewForm : Form
+    {
+        private readonly WebView2 browser = new WebView2();
+        private readonly CoreWebView2Environment environment;
+        private string pendingUri;
+        private bool closed;
+
+        public WebViewForm(CoreWebView2Environment environment, string uri)
+        {
+            this.environment = environment;
+            pendingUri = uri;
+            Text = "DeepSeek 网页版 · 手动复制";
+            Width = 1100;
+            Height = 820;
+            MinimumSize = new Size(720, 520);
+            StartPosition = FormStartPosition.CenterParent;
+            browser.Dock = DockStyle.Fill;
+            browser.Visible = false;
+            Controls.Add(browser);
+            Shown += OnShown;
+            FormClosed += (sender, args) => { closed = true; };
+        }
+
+        public void Navigate(string uri)
+        {
+            pendingUri = uri;
+            if (browser.CoreWebView2 != null) browser.CoreWebView2.Navigate(uri);
+        }
+
+        private async void OnShown(object sender, EventArgs e)
+        {
+            try
+            {
+                await browser.EnsureCoreWebView2Async(environment);
+                if (closed) return;
+                browser.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+                browser.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                browser.CoreWebView2.NewWindowRequested += (source, args) =>
+                {
+                    if (MainForm.DeepSeekUrl(args.Uri))
+                    {
+                        args.Handled = true;
+                        browser.CoreWebView2.Navigate(args.Uri);
+                    }
+                };
+                browser.CoreWebView2.Navigate(pendingUri);
+                browser.Visible = true;
+                browser.Focus();
+            }
+            catch (Exception failure)
+            {
+                MessageBox.Show("DeepSeek 网页版打开失败：" + failure.Message, "公理", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                Close();
+            }
         }
     }
 }
