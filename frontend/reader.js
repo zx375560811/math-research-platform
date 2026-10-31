@@ -577,9 +577,13 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (!drag) return;
     changeWidth(drag.name, drag.startWidth + (drag.x - drag.startX) * (drag.name === 'outline' ? 1 : -1));
     if (!pdf || !pages.length) return;
-    // Scale existing canvases immediately while dragging; rerender sharply on release.
+    // Scale only nearby pages during the drag; touching all pages is what makes huge books stutter.
     layingOut = true; stack.dataset.layout = 'pending';
-    for (const page of pages) { size(page); page.canvas.style.width = page.frame.style.width; page.canvas.style.height = page.frame.style.height; }
+    const anchorPage = Math.max(1, Math.min(pages.length, drag.anchor?.page || 1));
+    const first = Math.max(0, anchorPage - 4), last = Math.min(pages.length, anchorPage + 4);
+    for (let index = first; index < last; index++) {
+      const page = pages[index]; size(page); page.canvas.style.width = page.frame.style.width; page.canvas.style.height = page.frame.style.height;
+    }
     stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px'; endSpace();
     const page = pages[drag.anchor.page - 1]; if (page) scroll.scrollTop = top(page.frame) + drag.anchor.position * page.frame.clientHeight;
   }
