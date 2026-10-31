@@ -49,6 +49,16 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     const rect = pane.getBoundingClientRect();
     window.chrome.webview.postMessage(`web-bounds|${Math.round(rect.left)}|${Math.round(rect.top)}|${Math.round(rect.width)}|${Math.round(rect.height)}`);
   }
+  function setWebMode(open) {
+    webBridgeOpen = open;
+    const api = $('ai-mode-api'), web = $('ai-mode-web');
+    api.classList.toggle('active', !open); api.setAttribute('aria-pressed', String(!open));
+    web.classList.toggle('active', open); web.setAttribute('aria-pressed', String(open));
+  }
+  function closeWebMode() {
+    if (webBridgeOpen && window.chrome?.webview) { try { window.chrome.webview.postMessage('web-close'); } catch { /* Browser fallback. */ } }
+    setWebMode(false); status('已返回 AI 对话。');
+  }
   function openWebBridge(prompt = '') {
     if (closed) return;
     const selected = getDocumentContext()?.selection, question = $('ai-question').value.trim();
@@ -56,11 +66,12 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     const pane = document.querySelector('.reader-ai-pane');
     if (pane && window.chrome?.webview?.postMessage) {
       const rect = pane.getBoundingClientRect();
-      webBridgeOpen = true;
+      setWebMode(true);
       window.chrome.webview.postMessage(`open-web|${Math.round(rect.left)}|${Math.round(rect.top)}|${Math.round(rect.width)}|${Math.round(rect.height)}|https://chat.deepseek.com/`);
       status('网页版已在 AI 面板内打开。');
     } else {
       const opened = window.open('https://chat.deepseek.com/', '_blank'); if (opened) opened.opener = null;
+      setWebMode(false);
       status('网页版已在浏览器打开。');
     }
     copyText(text).then(ok => {
@@ -72,7 +83,7 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   if (window.ResizeObserver) new ResizeObserver(postWebBounds).observe(document.querySelector('.reader-ai-pane'));
   try {
     window.chrome?.webview?.addEventListener('message', event => {
-      if (event.data === 'web-closed') { webBridgeOpen = false; status('已关闭网页版。'); }
+      if (event.data === 'web-closed') { setWebMode(false); status('已关闭网页版。'); }
     });
   } catch { /* Browser fallback. */ }
   function closeWebPaste() { $('ai-web-paste').hidden = true; $('ai-web-answer').value = ''; }
@@ -210,7 +221,8 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   }
   on($('ai-prompts-save'), 'click', () => savePrompts());
   on($('ai-prompts-reset'), 'click', () => { fillPromptFields(promptDefaults); savePrompts(promptDefaults); });
-  on($('ai-web'), 'click', () => openWebBridge());
+  on($('ai-mode-api'), 'click', closeWebMode);
+  on($('ai-mode-web'), 'click', () => openWebBridge());
   on($('ai-web-paste'), 'click', openWebPaste);
   on($('ai-web-add'), 'click', addWebAnswer);
   on($('ai-web-close'), 'click', closeWebPaste);
