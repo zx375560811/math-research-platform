@@ -7,7 +7,7 @@ import { createLearning } from './learning.js';
 import { createLibrary } from './library.js';
 import { createSeries } from './series.js';
 const $ = id => document.getElementById(id);
-const state = { generation: 0, user: null, ready: false, returnTo: '#/', authBusy: false };
+const state = { generation: 0, user: null, ready: false, returnTo: '#/', authBusy: false, desktop: false };
 mountIcons();
 function clearAiSessionCache() {
   try {
@@ -33,9 +33,13 @@ async function authPost(path, body, method = 'POST') {
 function accountDisplay() {
   studyPlan.setUser(state.user?.username||null);
   discussion.setUser(state.user?.username||null);
-  $('admin-link').hidden = state.user?.role !== 'ADMIN';
-  $('auth-link').hidden = !!state.user; $('account-name').hidden = !state.user; $('logout-button').hidden = !state.user;
+  $('auth-link').hidden = state.desktop || !!state.user;
+  $('account-name').hidden = state.desktop || !state.user;
+  $('logout-button').hidden = state.desktop || !state.user;
   $('account-name').textContent = state.user ? state.user.username : '';
+  $('discussion-link').hidden = state.desktop;
+  const discussionCard = document.querySelector('.discussion-application');
+  if (discussionCard) discussionCard.hidden = state.desktop;
 }
 function friendly(error) { return error instanceof TypeError ? '连接失败，请检查连接后重试。' : error.message; }
 const studyPlan=createStudyPlan({api,write:authPost});
@@ -57,6 +61,8 @@ function route() {
   const inSeries=location.hash.startsWith('#/series');const inAi=location.hash.startsWith('#/apps/math-to-ai');
   const inPractical=location.hash.split('?')[0]==='#/apps/math-to-ai/practice';
   const inTheory=location.hash.startsWith('#/apps/math-to-ai/theory')||location.hash.startsWith('#/apps/math-to-ai/read/');
+  if (state.desktop && ['#/login', '#/register'].includes(location.hash)) { location.replace('#/'); return; }
+  if (state.desktop && (location.hash === '#/admin' || location.hash.startsWith('#/admin?'))) { location.replace('#/'); return; }
   if (!state.user && !['#/login', '#/register'].includes(location.hash)) { state.returnTo = location.hash || '#/'; location.replace('#/login'); route(); return; }
   if (location.hash === '#/admin' && state.user) { if (state.user.role === 'ADMIN') { location.replace('/admin'); return; } $('notice').textContent = '此账号没有管理员权限。'; $('notice').hidden = false; location.replace('#/'); return; }
   const inAuth = ['#/login', '#/register'].includes(location.hash); const registering = location.hash === '#/register';
@@ -82,7 +88,7 @@ function route() {
   window.scrollTo(0, 0);
 }
 async function init() {
-  try { const me = await api('/api/auth/me'); state.user = me.authenticated ? me.user : null; }
+  try { const me = await api('/api/auth/me'); state.user = me.authenticated ? me.user : null; state.desktop = me.desktop === true; }
   catch { state.user = null; }
   state.ready = true; accountDisplay(); route();
 }

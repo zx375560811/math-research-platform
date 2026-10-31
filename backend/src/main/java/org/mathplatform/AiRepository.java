@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
@@ -18,6 +19,18 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AiRepository {
+    static final List<String> PROMPT_ACTIONS = List.of("gap", "counterexample", "intuition", "translate", "summary", "practice");
+    static final Map<String, String> DEFAULT_PROMPTS;
+    static {
+        var prompts = new LinkedHashMap<String, String>();
+        prompts.put("gap", "请严格补全这段推导中省略的中间步骤（如“显然”、“易知”或跳过的计算），明确写出每一步所依据的定义、引理或定理及其适用条件。");
+        prompts.put("counterexample", "如果减弱或去掉这段命题/定理中的关键假设条件，结论是否仍然成立？请逐一分析关键条件的作用，并构造具体的数学反例说明为什么不能省略。");
+        prompts.put("intuition", "请跳出纯符号形式化推导，用几何直观、低维特例（如 ℝ²、ℝ³ 或有限维情形）或具体例子解释这段抽象概念/定理背后的核心数学动机与图像。");
+        prompts.put("translate", "请把选中的这段内容翻译成中文。保留数学符号、公式、定理编号、人名、书名和术语；公式用 LaTeX 表示；只输出译文，不要解释或总结。\n\n");
+        prompts.put("summary", "请用中文简洁总结这段内容的核心定义、主要结论和关键条件，分点列出，不补充原文没有的内容。");
+        prompts.put("practice", "请根据这段内容设计 2 道由易到难的练习题，覆盖关键概念和方法；先只给题目，不要给答案。");
+        DEFAULT_PROMPTS = Map.copyOf(prompts);
+    }
     record Provider(String baseUrl, String model, String key, boolean enabled, int dailyLimit) {
         boolean available() { return enabled && !baseUrl.isBlank() && !model.isBlank() && !key.isBlank(); }
         Map<String, Object> summary(boolean address) {
@@ -81,6 +94,30 @@ public class AiRepository {
     String source(String username) throws SQLException {
         try (var db = library.connect(true); var query = db.prepareStatement("SELECT source FROM ai_preferences WHERE username=?")) {
             query.setString(1, username); try (var row = query.executeQuery()) { return row.next() ? row.getString(1) : "default"; }
+        }
+    }
+    Map<String, String> prompts(String username) throws SQLException {
+        var values = new LinkedHashMap<String, String>(DEFAULT_PROMPTS);
+        try (var db = library.connect(true); var query = db.prepareStatement("SELECT action,prompt FROM ai_prompt_templates WHERE username=?")) {
+            query.setString(1, username);
+            try (var row = query.executeQuery()) {
+                while (row.next()) if (DEFAULT_PROMPTS.containsKey(row.getString(1))) values.put(row.getString(1), row.getString(2));
+            }
+        }
+        return values;
+    }
+    void savePrompts(String username, Map<String, String> prompts) throws SQLException {
+        try (var db = library.connect(false)) {
+            db.setAutoCommit(false);
+            try (var clear = db.prepareStatement("DELETE FROM ai_prompt_templates WHERE username=?")) {
+                clear.setString(1, username); clear.executeUpdate();
+            }
+            try (var insert = db.prepareStatement("INSERT INTO ai_prompt_templates(username,action,prompt) VALUES(?,?,?)")) {
+                for (String action : PROMPT_ACTIONS) {
+                    insert.setString(1, username); insert.setString(2, action); insert.setString(3, prompts.get(action)); insert.executeUpdate();
+                }
+            }
+            db.commit();
         }
     }
     void save(String username, Provider provider, String source) throws SQLException {

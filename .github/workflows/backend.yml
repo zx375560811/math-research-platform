@@ -61,6 +61,8 @@ jobs:
         run: python3 backend/tests/schema.py
       - name: Check online backup compatibility
         run: python3 backend/tests/backup.py
+      - name: Check single-user desktop mode
+        run: python3 backend/tests/desktop.py
       - name: Check direction document availability
         run: python3 backend/tests/direction_availability.py
       - name: Check Zotero batch import and resume

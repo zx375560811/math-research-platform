@@ -25,18 +25,18 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   let saved = '', desired = null, saving = false, layingOut = false, generation = 0, queue = Promise.resolve(), layoutSignature = '';
   let baseWidth = 612, baseHeight = 792;
   let drag = null, dragFrame = null, pendingAnchor = null;
-  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false;
+  let verticalDrag = null, noteRatio = .35, expandedMark = null, markersExpanded = false, inlineMark = null, inlineSaving = false, promptMark = null, selectionPointer = null;
   const heightKey = 'math.reader.panel-height.v1';
   try { const value = Number(localStorage.getItem(heightKey)); if (value >= .1 && value <= .75) noteRatio = value; } catch { /* Optional layout preference. */ }
-  const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v1';
-  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .26 : 380 };
+  const layoutBox = $('reader-view'), widthKey = 'math.reader.panel-widths.v2';
+  const preferredWidths = { outline: layoutBox.clientWidth <= 650 ? layoutBox.clientWidth * .2 : 220, notes: layoutBox.clientWidth * .6 };
   try { const stored = JSON.parse(localStorage.getItem(widthKey)); for (const name of ['outline', 'notes']) if (Number.isFinite(stored?.[name]) && stored[name] >= 64 && stored[name] <= 3000) preferredWidths[name] = stored[name]; } catch { /* Layout preferences are optional. */ }
   const pages = [], dimensions = new Map(), drafts = new Map(), events = [];
   const scroll = $('reader-scroll'), stack = $('pdf-pages');
   const on = (target, event, handler, options) => { target.addEventListener(event, handler, options); events.push(() => target.removeEventListener(event, handler, options)); };
   const ai = createReaderAi(() => ({ document_id: Number(book?.file_url?.match(/\/api\/documents\/(\d+)\/file/)?.[1]), title: book?.title, selection: selection ? { ...selection } : null }), () => {
-    selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
-  });
+    selection = null; $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; ai.setSelectionAvailable(false); window.getSelection()?.removeAllRanges();
+  }, { saveReply: text => openHighlightPicker(text) });
   const divider = $('reader-ai-resize');
   function setNoteRatio(value) {
     noteRatio = Math.max(.1, Math.min(.75, value)); $('reader-notes').style.setProperty('--reader-note-height', `${noteRatio * 100}%`); divider.setAttribute('aria-valuenow', String(Math.round(noteRatio * 100)));
@@ -53,6 +53,19 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   on(window, 'blur', stopVertical);
   on(divider, 'keydown', event => { if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return; event.preventDefault(); setNoteRatio(event.key === 'Home' ? .1 : event.key === 'End' ? .75 : noteRatio + (event.key === 'ArrowDown' ? .05 : -.05)); saveNoteRatio(); });
   setNoteRatio(noteRatio); $('reader-ask-ai').disabled = true;
+  const notesToggle = $('reader-notes-toggle'), notesKey = 'math.reader.notes-collapsed.v2';
+  let notesCollapsed = true;
+  try { const saved = localStorage.getItem(notesKey); if (saved === '0' || saved === '1') notesCollapsed = saved === '1'; } catch { /* Optional layout preference. */ }
+  function setNotesCollapsed(value) {
+    notesCollapsed = Boolean(value);
+    $('reader-notes').classList.toggle('notes-collapsed', notesCollapsed);
+    $('reader-view').classList.toggle('notes-collapsed', notesCollapsed);
+    notesToggle.textContent = notesCollapsed ? '展开高亮' : '折叠';
+    notesToggle.setAttribute('aria-expanded', String(!notesCollapsed));
+    try { localStorage.setItem(notesKey, notesCollapsed ? '1' : '0'); } catch { /* Optional layout preference. */ }
+  }
+  on(notesToggle, 'click', () => setNotesCollapsed(!notesCollapsed));
+  setNotesCollapsed(notesCollapsed);
   const errorText = error => error?.message || '文件加载失败，请重试。';
   function restart(whole = fullLoad) {
     if (closed) return;
@@ -92,7 +105,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     // PDF.js also checks the initial response headers before enabling byte ranges.
     return { url: book.file_url, withCredentials: true, disableStream: true, disableAutoFetch: true };
   }
-  stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true;
+  stack.replaceChildren(); $('annotation-list').replaceChildren(); $('selection-tools').hidden = true; showCopyButton(false);
   $('reader-save-status').textContent = trackProgress ? '' : '预览模式 · 不保存进度'; $('reader-save-status').classList.remove('save-error');
   $('reader-outline').replaceChildren(el('p', 'muted', '正在加载目录…'));
   $('reader-title').textContent = '正在打开教材…';
@@ -131,7 +144,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     for (const page of pages) {
       if (!page.rendered) continue; page.highlights.replaceChildren();
       for (const mark of marks.filter(m => m.page === page.number)) for (const r of mark.rects) {
-        const box = el('span', 'pdf-highlight ' + mark.color); box.style.left = r.x * 100 + '%'; box.style.top = r.y * 100 + '%'; box.style.width = r.width * 100 + '%'; box.style.height = r.height * 100 + '%'; box.dataset.annotation = mark.id; page.highlights.append(box);
+        const box = el('span', 'pdf-highlight ' + mark.color); box.style.left = r.x * 100 + '%'; box.style.top = r.y * 100 + '%'; box.style.width = r.width * 100 + '%'; box.style.height = r.height * 100 + '%'; box.dataset.annotation = mark.id; box.title = '点击编辑笔记'; box.addEventListener('click', () => openInlineNote(mark)); page.highlights.append(box);
       }
     }
   }
@@ -163,47 +176,177 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (anchor) { const result = layout(anchor), version = generation; result.then(() => { if (chosen && selection === chosen && !closed && version === generation) { selection = chosen; $('reader-ask-ai').disabled = false; $('selection-quote').textContent = chosen.quote; $('selection-tools').hidden = false; } }); }
   }
   applyPanelWidths();
-  function notes(openId = expandedMark) {
+  function notes() {
     const list = $('annotation-list'); list.replaceChildren();
     if (!marks.length) { list.append(el('p', 'muted', '暂无高亮')); return; }
-    expandedMark = marks.some(mark => mark.id === openId) ? openId : null;
-    const strip = el('div', 'annotation-marker-strip'), markers = el('div', 'annotation-markers'); markers.id = 'annotation-markers'; markers.style.setProperty('--marker-columns', String(Math.min(30, marks.length)));
-    if (expandedMark !== null && marks.findIndex(mark => mark.id === expandedMark) >= 30) markersExpanded = true;
-    markers.classList.toggle('expanded', markersExpanded); markers.setAttribute('role', 'group'); markers.setAttribute('aria-label', '高亮笔记编号'); strip.append(markers); list.append(strip);
-    let foldToggle = null;
-    if (marks.length > 30) {
-      const toggle = el('button', 'annotation-more'); toggle.type = 'button'; toggle.setAttribute('aria-controls', markers.id);
-      const label = () => { toggle.textContent = markersExpanded ? '收起' : '展开'; toggle.title = `其余 ${marks.length - 30} 条高亮`;  toggle.setAttribute('aria-expanded', String(markersExpanded)); };
-      label(); toggle.addEventListener('click', () => {
-        markersExpanded = !markersExpanded; markers.classList.toggle('expanded', markersExpanded); label();
-        if (!markersExpanded && marks.findIndex(mark => mark.id === expandedMark) >= 30) {
-          expandedMark = null; for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
-          for (const button of markers.querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-        }
-      }); foldToggle = toggle;
-    }
     for (const [index, mark] of marks.entries()) {
-      const row = el('article', 'annotation-item'); row.dataset.annotation = mark.id; row.id = `annotation-panel-${mark.id}`; row.hidden = expandedMark !== mark.id;
-      const summary = el('button', 'annotation-summary', String(index + 1)); summary.type = 'button'; summary.style.gridColumn = String(index % 30 + 1); summary.style.gridRow = String(Math.floor(index / 30) + 1); if (index >= 30) summary.dataset.extra = 'true'; summary.dataset.color = mark.color; summary.id = `annotation-marker-${mark.id}`;
-      summary.setAttribute('aria-controls', row.id); summary.setAttribute('aria-expanded', String(!row.hidden)); summary.setAttribute('aria-label', `笔记 ${index + 1}，第 ${mark.page} 页`); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`;
-      row.setAttribute('aria-labelledby', summary.id);
-      summary.addEventListener('click', () => {
-        selection = null; $('selection-tools').hidden = true; $('selection-quote').textContent = ''; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
-        const show = row.hidden; expandedMark = show ? mark.id : null;
-        for (const panel of list.querySelectorAll('.annotation-item')) panel.hidden = true;
-        for (const button of markers.querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-        row.hidden = !show; summary.setAttribute('aria-expanded', String(show));
-      });
-      markers.append(summary); if (index === 29 && foldToggle) markers.append(foldToggle);
-      const body = el('div', 'annotation-body');
-      const jump = el('button', 'annotation-jump', `第 ${mark.page} 页 · 跳转`); jump.type = 'button'; jump.addEventListener('click', () => showPage(mark.page));
-      const quote = el('blockquote', '', mark.quote), note = el('textarea', 'annotation-note');
-      note.value = drafts.get(mark.id) ?? mark.note; note.maxLength = 4000; note.rows = 3; note.setAttribute('aria-label', '高亮笔记'); note.placeholder = '写下你的理解…'; note.addEventListener('input', () => drafts.set(mark.id, note.value));
-      const actions = el('div', 'annotation-actions'), save = el('button', 'button compact', '保存笔记'), remove = el('button', 'annotation-delete', '删除'); save.type = remove.type = 'button';
-      save.addEventListener('click', async () => { save.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, { note: note.value }, 'PATCH'); if (closed) return; mark.note = note.value; drafts.delete(mark.id); summary.title = `第 ${mark.page} 页：${(mark.note || mark.quote).slice(0, 120)}`; row.hidden = true; summary.setAttribute('aria-expanded', 'false'); if (expandedMark === mark.id) expandedMark = null; $('reader-status').textContent = '笔记已保存'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { save.disabled = false; } });
-      remove.addEventListener('click', async () => { remove.disabled = true; try { await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE'); if (closed) return; marks = marks.filter(m => m.id !== mark.id); drafts.delete(mark.id); notes(); paintHighlights(); $('reader-status').textContent = '标注已删除'; } catch (error) { if (!closed) $('reader-status').textContent = errorText(error); remove.disabled = false; } });
-      actions.append(save, remove); body.append(jump, quote, note, actions); row.append(body); list.append(row);
+      const number = index + 1;
+      const marker = el('button', 'highlight-marker', String(number)); marker.type = 'button';
+      marker.dataset.highlight = mark.color;
+      marker.title = `第 ${number} 个高亮 · 第 ${mark.page} 页 · ${(mark.note || mark.quote).slice(0, 100)}`;
+      marker.setAttribute('aria-label', `第 ${number} 个高亮，第 ${mark.page} 页`);
+      marker.addEventListener('click', () => openInlineNote(mark));
+      list.append(marker);
     }
+  }
+  function hideNotePrompt() {
+    $('note-prompt').hidden = true;
+    $('note-prompt').style.left = '';
+    $('note-prompt').style.top = '';
+    promptMark = null;
+  }
+  function showNotePrompt(mark) {
+    promptMark = mark;
+    const prompt = $('note-prompt'); prompt.hidden = false; prompt.style.transform = '';
+    const page = pages.find(item => item.number === mark.page), frame = page?.frame?.getBoundingClientRect(), rect = mark.rects?.[0];
+    if (frame && rect) {
+      const height = prompt.offsetHeight || 34;
+      let left = frame.left + rect.x * frame.width;
+      let top = frame.top + (rect.y + rect.height) * frame.height + 8;
+      left = Math.max(12, Math.min(window.innerWidth - prompt.offsetWidth - 12, left));
+      if (top + height > window.innerHeight - 12) top = Math.max(12, frame.top + rect.y * frame.height - height - 8);
+      top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
+      prompt.style.left = left + 'px'; prompt.style.top = top + 'px';
+    } else {
+      prompt.style.left = '50%'; prompt.style.top = '110px'; prompt.style.transform = 'translateX(-50%)';
+    }
+  }
+  on($('note-prompt-add'), 'click', () => { const mark = promptMark; hideNotePrompt(); if (mark) openInlineNote(mark); });
+  on($('note-prompt-close'), 'click', hideNotePrompt);
+  on(scroll, 'scroll', () => { if (!$('note-prompt').hidden) hideNotePrompt(); }, { passive: true });
+  function closeInlineNote() {
+    $('inline-note').hidden = true;
+    $('inline-note').style.left = '';
+    $('inline-note').style.top = '';
+    inlineMark = null;
+  }
+  function openInlineNote(mark) {
+    hideNotePrompt();
+    inlineMark = marks.find(item => item.id === mark.id) || mark;
+    $('inline-note-quote').textContent = inlineMark.quote || '';
+    $('inline-note-text').value = inlineMark.note || '';
+    $('inline-note-status').textContent = '';
+    $('inline-note-save').disabled = false; $('inline-note-delete').disabled = false;
+    const card = $('inline-note'); card.hidden = false; card.style.transform = '';
+    const page = pages.find(item => item.number === inlineMark.page), frame = page?.frame?.getBoundingClientRect(), rect = inlineMark.rects?.[0];
+    if (frame && rect) {
+      const height = card.offsetHeight || 190;
+      let left = frame.left + rect.x * frame.width;
+      let top = frame.top + (rect.y + rect.height) * frame.height + 10;
+      left = Math.max(12, Math.min(window.innerWidth - card.offsetWidth - 12, left));
+      if (top + height > window.innerHeight - 12) top = Math.max(12, frame.top + rect.y * frame.height - height - 10);
+      top = Math.max(12, Math.min(window.innerHeight - height - 12, top));
+      card.style.left = left + 'px'; card.style.top = top + 'px';
+    } else {
+      card.style.left = '50%'; card.style.top = '110px'; card.style.transform = 'translateX(-50%)';
+    }
+    $('inline-note-text').focus();
+  }
+  async function saveInlineNote() {
+    if (!inlineMark || inlineSaving) return;
+    inlineSaving = true; $('inline-note-save').disabled = true; $('inline-note-status').textContent = '正在保存…';
+    const mark = inlineMark, note = $('inline-note-text').value.trim();
+    try {
+      await write(`${endpoint}/annotations/${mark.id}`, { note }, 'PATCH');
+      if (closed) return;
+      mark.note = note; drafts.delete(mark.id); $('reader-status').textContent = '笔记已保存'; closeInlineNote(); notes(mark.id);
+    } catch (error) { if (!closed) $('inline-note-status').textContent = errorText(error); }
+    finally { inlineSaving = false; $('inline-note-save').disabled = false; }
+  }
+  async function deleteInlineNote() {
+    if (!inlineMark || inlineSaving) return;
+    inlineSaving = true; $('inline-note-save').disabled = true; $('inline-note-delete').disabled = true; $('inline-note-status').textContent = '正在删除…';
+    const mark = inlineMark;
+    try {
+      await write(`${endpoint}/annotations/${mark.id}`, undefined, 'DELETE');
+      if (closed) return;
+      marks = marks.filter(item => item.id !== mark.id); drafts.delete(mark.id); closeInlineNote(); notes(); paintHighlights(); $('reader-status').textContent = '高亮已删除';
+    } catch (error) { if (!closed) { $('inline-note-status').textContent = errorText(error); $('inline-note-save').disabled = false; $('inline-note-delete').disabled = false; } }
+    finally { inlineSaving = false; }
+  }
+  function closeHighlightPicker() {
+    $('highlight-picker').hidden = true;
+    $('highlight-picker-list').replaceChildren();
+    $('highlight-picker-status').textContent = '';
+  }
+  function openHighlightPicker(text) {
+    const picker = $('highlight-picker'), list = $('highlight-picker-list'), status = $('highlight-picker-status');
+    list.replaceChildren(); status.textContent = '';
+    if (!marks.length) {
+      status.textContent = '暂无高亮，请先在 PDF 中高亮一段文字。';
+    } else {
+      for (const mark of marks) {
+        const row = el('button', 'highlight-picker-row'); row.type = 'button';
+        const dot = el('span', 'highlight-picker-dot'); dot.dataset.highlight = mark.color;
+        const body = el('div', 'highlight-picker-body');
+        const index = marks.findIndex(item => item.id === mark.id) + 1;
+        body.append(el('p', '', mark.quote || '（无引用）'), el('small', '', `第 ${index} 个高亮 · 第 ${mark.page} 页`));
+        row.append(dot, body); row.addEventListener('click', () => saveAiReply(mark, text));
+        list.append(row);
+      }
+    }
+    picker.hidden = false;
+  }
+  async function saveAiReply(mark, text) {
+    const status = $('highlight-picker-status'), existing = (mark.note || '').trim();
+    const stamp = new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const header = `--- AI 回答 · ${stamp} ---\n`, separator = existing ? '\n\n' : '';
+    const room = 4000 - existing.length - separator.length - header.length;
+    if (room < 80) { status.textContent = '这条高亮的笔记已接近 4000 字，无法再保存。'; return; }
+    const full = String(text || '').trim();
+    const reply = full.length > room ? full.slice(0, room - 1) + '…' : full;
+    const note = existing + separator + header + reply;
+    try {
+      await write(`${endpoint}/annotations/${mark.id}`, { note }, 'PATCH'); if (closed) return;
+      mark.note = note; if (inlineMark?.id === mark.id) $('inline-note-text').value = note;
+      closeHighlightPicker(); notes(); $('reader-status').textContent = 'AI 回答已保存到高亮笔记';
+    } catch (error) { status.textContent = errorText(error); }
+  }
+  on($('highlight-picker-close'), 'click', closeHighlightPicker);
+  on($('pdf-copy-selection'), 'click', copySelectedText);
+  on(scroll, 'scroll', () => { if (selection) positionCopyButton(); }, { passive: true });
+  window.addEventListener('resize', () => { if (selection) positionCopyButton(); });
+  on($('inline-note-close'), 'click', closeInlineNote);
+  on($('inline-note-save'), 'click', saveInlineNote);
+  on($('inline-note-delete'), 'click', deleteInlineNote);
+  on(scroll, 'scroll', () => { if (!$('inline-note').hidden) closeInlineNote(); }, { passive: true });
+  on(document, 'click', event => {
+    if (closed) return;
+    const frame = event.target.closest?.('.pdf-page'); if (!frame) return;
+    const selected = window.getSelection(); if (selected && !selected.isCollapsed) return;
+    const bounds = frame.getBoundingClientRect(), x = (event.clientX - bounds.left) / bounds.width, y = (event.clientY - bounds.top) / bounds.height;
+    const page = Number(frame.dataset.page);
+    const mark = marks.find(item => item.page === page && item.rects.some(r => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height));
+    if (mark) openInlineNote(mark);
+  });
+  function positionCopyButton() {
+    const button = $('pdf-copy-selection'); if (!button) return;
+    if (!selection?.rects?.length) { button.hidden = true; return; }
+    const frame = document.querySelector(`.pdf-page[data-page="${selection.page}"]`);
+    if (!frame) { button.hidden = true; return; }
+    const bounds = frame.getBoundingClientRect();
+    const last = selection.rects[selection.rects.length - 1];
+    const x = bounds.left + (last.x + last.width) * bounds.width;
+    const y = bounds.top + (last.y + last.height) * bounds.height;
+    button.hidden = false;
+    const width = button.offsetWidth || 48, height = button.offsetHeight || 28;
+    let left = x + 8;
+    if (left + width > innerWidth - 8) left = Math.max(8, x - width - 8);
+    let top = y + 6;
+    if (top + height > innerHeight - 8) top = Math.max(8, y - height - 6);
+    button.style.left = left + 'px'; button.style.top = top + 'px';
+  }
+  function showCopyButton(show) { const button = $('pdf-copy-selection'); if (!button) return; button.hidden = !show; if (show) positionCopyButton(); }
+  async function copySelectedText() {
+    const text = selection?.quote || window.getSelection()?.toString().trim();
+    if (!text) { showCopyButton(false); return; }
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const area = document.createElement('textarea'); area.value = text;
+      area.style.position = 'fixed'; area.style.opacity = '0'; document.body.append(area); area.select();
+      try { document.execCommand('copy'); } finally { area.remove(); }
+    }
+    $('reader-status').textContent = '选中文字已复制';
   }
   function captureSelection() {
     if (closed || layingOut) return;
@@ -212,18 +355,19 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const frame = element(selected?.anchorNode)?.closest('.pdf-page');
     const layer = frame?.querySelector('.textLayer');
     // Keep the captured quote available while the user interacts with notes or the AI composer.
-    if (!selected || selected.isCollapsed || !layer?.contains(selected.anchorNode) || !layer.contains(selected.focusNode)) return;
+    if (!selected || selected.isCollapsed || !layer?.contains(selected.anchorNode) || !layer.contains(selected.focusNode)) { ai.setSelectionAvailable(false); return; }
     const quote = selected.toString().trim(), bounds = frame.getBoundingClientRect(), rects = [];
-    if (!quote) { selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
+    if (!quote) { selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; return; }
+    hideNotePrompt();
     for (const r of selected.getRangeAt(0).getClientRects()) {
       const x = Math.max(bounds.left, r.left), y = Math.max(bounds.top, r.top), right = Math.min(bounds.right, r.right), bottom = Math.min(bounds.bottom, r.bottom);
       if (right > x && bottom > y) rects.push({ x: (x - bounds.left) / bounds.width, y: (y - bounds.top) / bounds.height, width: (right - x) / bounds.width, height: (bottom - y) / bounds.height });
     }
-    if (!rects.length) { selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; return; }
+    if (!rects.length) { selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; return; }
     expandedMark = null;
     for (const panel of $('annotation-list').querySelectorAll('.annotation-item')) panel.hidden = true;
     for (const button of $('annotation-list').querySelectorAll('.annotation-summary')) button.setAttribute('aria-expanded', 'false');
-    selection = { page: Number(frame.dataset.page), quote, rects }; ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; panel('notes', true, selection);
+    selection = { page: Number(frame.dataset.page), quote, rects }; ai.setSelectionAvailable(true); ai.updateContext(selection); $('reader-ask-ai').disabled = false; for (const button of document.querySelectorAll('[data-highlight]')) button.disabled = quote.length > 4000 || rects.length > 100; $('selection-quote').textContent = quote; $('selection-tools').hidden = false; showCopyButton(true);
   }
   function release(page) {
     try { page.renderTask?.cancel(); } catch {} try { page.textLayer?.cancel(); } catch {} page.renderTask = page.textLayer = null;
@@ -354,8 +498,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   for (const button of document.querySelectorAll('[data-highlight]')) {
     on(button, 'pointerdown', event => event.preventDefault());
     on(button, 'click', async () => {
-      if (!selection) return; const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
-      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; marks.push({ ...value, id: created.id }); notes(created.id); paintHighlights(); selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可在笔记面板添加笔记。'; }
+      if (!selection) { $('reader-status').textContent = '请先选中 PDF 中的文字，再点颜色高亮。'; return; } const value = { ...selection, color: button.dataset.highlight, note: '' }; button.disabled = true;
+      try { const created = await write(`${endpoint}/annotations`, value); if (closed) return; const createdMark = { ...value, id: created.id }; marks.push(createdMark); notes(created.id); paintHighlights(); selection = null; ai.setSelectionAvailable(false); $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges(); $('reader-status').textContent = '高亮已保存，可添加文本标注。'; showNotePrompt(createdMark); }
       catch (error) { if (!closed) $('reader-status').textContent = errorText(error); } finally { button.disabled = false; }
     });
   }
@@ -381,13 +525,39 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
           document: docId ? { id: docId, title: book.title } : null
         }));
       } catch { /* Ignore sessionStorage errors. */ }
-      selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
+      selection = null; $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true; window.getSelection()?.removeAllRanges();
       location.hash = '#/discussions/new';
     });
   }
   on(scroll, 'pointerdown', event => {
     if (event.button !== 0 || !event.target.closest('.textLayer')) return;
-    selection = null; $('selection-tools').hidden = true; $('reader-ask-ai').disabled = true;
+    selectionPointer = { x: event.clientX, y: event.clientY };
+    selection = null; $('selection-tools').hidden = true; showCopyButton(false); $('reader-ask-ai').disabled = true;
+  });
+  on(document, 'pointerup', event => {
+    if (!selectionPointer) return;
+    selectionPointer = null;
+    const current = window.getSelection();
+    if (!current || current.isCollapsed || !current.rangeCount) return;
+    const anchor = current.anchorNode?.nodeType === Node.ELEMENT_NODE ? current.anchorNode : current.anchorNode?.parentElement;
+    const frame = anchor?.closest('.pdf-page'), layer = frame?.querySelector('.textLayer');
+    if (!layer) return;
+    const spans = [...layer.querySelectorAll('span')].filter(span => span.textContent.trim()).map(span => {
+      const box = span.getBoundingClientRect(); return { span, box, text: span.firstChild };
+    }).filter(item => item.text);
+    const rows = spans.filter(item => event.clientY >= item.box.top - 3 && event.clientY <= item.box.bottom + 3);
+    const target = rows.find(item => event.clientX >= item.box.left - 3 && event.clientX <= item.box.right + 3)
+      || rows.sort((a, b) => Math.abs(event.clientX - (a.box.left + a.box.right) / 2) - Math.abs(event.clientX - (b.box.left + b.box.right) / 2))[0];
+    if (!target) return;
+    let endNode = target.text, endOffset = endNode.length;
+    const caret = document.caretRangeFromPoint?.(event.clientX, event.clientY);
+    if (caret && target.span.contains(caret.startContainer)) { endNode = caret.startContainer; endOffset = caret.startOffset; }
+    const range = current.getRangeAt(0);
+    try {
+      range.setEnd(endNode, endOffset);
+      if (range.collapsed) range.setStart(endNode, endOffset);
+      current.removeAllRanges(); current.addRange(range); captureSelection();
+    } catch { /* Keep the browser's selection if the range cannot be applied. */ }
   });
   on(document, 'selectionchange', captureSelection);
   on(scroll, 'scroll', () => {
@@ -407,9 +577,13 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     if (!drag) return;
     changeWidth(drag.name, drag.startWidth + (drag.x - drag.startX) * (drag.name === 'outline' ? 1 : -1));
     if (!pdf || !pages.length) return;
-    // Scale existing canvases immediately while dragging; rerender sharply on release.
+    // Scale only nearby pages during the drag; touching all pages is what makes huge books stutter.
     layingOut = true; stack.dataset.layout = 'pending';
-    for (const page of pages) { size(page); page.canvas.style.width = page.frame.style.width; page.canvas.style.height = page.frame.style.height; }
+    const anchorPage = Math.max(1, Math.min(pages.length, drag.anchor?.page || 1));
+    const first = Math.max(0, anchorPage - 4), last = Math.min(pages.length, anchorPage + 4);
+    for (let index = first; index < last; index++) {
+      const page = pages[index]; size(page); page.canvas.style.width = page.frame.style.width; page.canvas.style.height = page.frame.style.height;
+    }
     stack.style.width = Math.max(scroll.clientWidth - (innerWidth <= 650 ? 16 : 32), fitWidth()) + 'px'; endSpace();
     const page = pages[drag.anchor.page - 1]; if (page) scroll.scrollTop = top(page.frame) + drag.anchor.position * page.frame.clientHeight;
   }
@@ -424,7 +598,7 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     on(handle, 'pointerdown', event => {
       if (event.button !== 0 || drag) return; event.preventDefault(); clearTimeout(resizeTimer);
       drag = { name, handle, pointerId: event.pointerId, startX: event.clientX, x: event.clientX, startWidth: $('reader-' + name).getBoundingClientRect().width, anchor: pdf && pages.length ? snapshot() : { page: 1, position: 0 } };
-      ++generation; layingOut = true; selection = null; $('selection-tools').hidden = true; for (const page of pages) { page.renderTask?.cancel(); page.textLayer?.cancel(); }
+      ++generation; layingOut = true; selection = null; $('selection-tools').hidden = true; showCopyButton(false); for (const page of pages) { page.renderTask?.cancel(); page.textLayer?.cancel(); }
       handle.setPointerCapture(event.pointerId); handle.classList.add('active'); layoutBox.classList.add('reader-resizing');
     });
     on(handle, 'pointermove', event => { if (!drag || drag.handle !== handle || event.pointerId !== drag.pointerId) return; drag.x = event.clientX; if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = null; previewDrag(); }); });

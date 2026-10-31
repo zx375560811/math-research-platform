@@ -65,6 +65,26 @@ public class UserRepository implements UserDetailsService {
             }
         } catch (SQLException failure) { throw new org.springframework.security.authentication.InternalAuthenticationServiceException("Account storage unavailable", failure); }
     }
+    /** Desktop installations have one local administrator and no registration flow. */
+    void ensureLocalAccount(PasswordEncoder encoder) throws SQLException {
+        try (var connection = database.connect(false); var transaction = connection.createStatement()) {
+            transaction.execute("BEGIN IMMEDIATE");
+            try {
+                try (var user = connection.prepareStatement("INSERT OR IGNORE INTO users(username,password_hash) VALUES('local',?)")) {
+                    user.setString(1, encoder.encode(java.util.UUID.randomUUID().toString()));
+                    user.executeUpdate();
+                }
+                try (var admin = connection.prepareStatement("INSERT OR IGNORE INTO administrators(username) VALUES('local')")) {
+                    admin.executeUpdate();
+                }
+                transaction.execute("COMMIT");
+            } catch (SQLException failure) {
+                transaction.execute("ROLLBACK");
+                throw failure;
+            }
+        }
+    }
+
     public boolean isAdmin(String name) throws SQLException {
         try (var connection = database.connect(true); var statement = connection.prepareStatement("SELECT 1 FROM administrators WHERE username=?")) {
             statement.setString(1, name);

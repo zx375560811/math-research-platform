@@ -88,6 +88,18 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:18080:127.0.0.1:8080 root@你的
 
 浏览器访问 `http://127.0.0.1:18080/`。
 
+## Windows 单机客户端
+
+`desktop/exe/` 把平台打包为真正的 Windows EXE：用户双击 `Axiom.exe` 打开独立窗口（内置 WebView2，不经过浏览器、没有地址栏），窗口按 1440×900 设计宽度打开，保持各模块流程图原始比例。Java 服务和内置 JRE 在后台启动，数据、PDF、进度、高亮和笔记都在“我的文档\Axiom”，不需要服务器、账号、备案或登录。
+
+客户端不显示管理平台；AI 在阅读器右侧 AI 面板 → “设置” → “我的 API”里配置第三方 OpenAI 兼容接口。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File desktop/exe/build-exe.ps1
+```
+
+产物为 `.preview/dist/Axiom-Desktop-EXE-1.0.0.zip`，解压后双击 `Axiom.exe`。构建、目录和限制见 [desktop/README.md](desktop/README.md)。`desktop/build-client.ps1` 的浏览器壳版本保留作为调试/备用。
+
 ## 数学竞赛
 
 **上传本地竞赛教材**：文件名或子目录包含“数学分析”“高等代数”“解析几何”时，使用 `admin/import_competition_books.py` 自动入库并关联共同基础。包含“高等代数与解析几何”的合订教材只保存一份，同时关联两门课，不写入人工智能课程或系列书籍。文件按原体积导入，没有 20 MB 限制，已有文献按哈希复用。
