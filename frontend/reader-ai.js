@@ -22,7 +22,7 @@ function node(tag, text, cls) { const value = document.createElement(tag); if (t
 const promptActions = ['gap', 'counterexample', 'intuition', 'translate', 'summary', 'practice'];
 const promptIds = { gap: 'ai-prompt-gap', counterexample: 'ai-prompt-counterexample', intuition: 'ai-prompt-intuition', translate: 'ai-prompt-translate', summary: 'ai-prompt-summary', practice: 'ai-prompt-practice' };
 export function createReaderAi(getDocumentContext, onContextSent = () => {}, highlightActions = null) {
-  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false, promptTexts = {}, promptDefaults = {}, promptSaving = false, reasoningEffort = '';
+  let closed = false, config = null, context = null, history = [], turns = [], busy = false, saving = false, selectionAvailable = false, promptTexts = {}, promptDefaults = {}, promptSaving = false, reasoningEffort = '', webBridgeOpen = false;
   try { reasoningEffort = localStorage.getItem('axiom.ai.reasoning') || ''; } catch { /* Optional preference. */ }
   const storageKey = 'axiom.ai.chat:' + (location.hash.split('?')[0] || 'default');
   const requests = new Set(), events = [];
@@ -43,16 +43,38 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
       try { return document.execCommand('copy'); } catch { return false; } finally { area.remove(); }
     }
   }
+  function postWebBounds() {
+    if (!webBridgeOpen || closed) return;
+    const pane = document.querySelector('.reader-ai-pane'); if (!pane || !window.chrome?.webview) return;
+    const rect = pane.getBoundingClientRect();
+    window.chrome.webview.postMessage(`web-bounds|${Math.round(rect.left)}|${Math.round(rect.top)}|${Math.round(rect.width)}|${Math.round(rect.height)}`);
+  }
   function openWebBridge(prompt = '') {
     if (closed) return;
     const selected = getDocumentContext()?.selection, question = $('ai-question').value.trim();
     const text = [prompt, question, selected?.quote ? `选中内容：\n${selected.quote}` : ''].filter(Boolean).join('\n\n');
-    const opened = window.open('https://chat.deepseek.com/', '_blank'); if (opened) opened.opener = null;
+    const pane = document.querySelector('.reader-ai-pane');
+    if (pane && window.chrome?.webview?.postMessage) {
+      const rect = pane.getBoundingClientRect();
+      webBridgeOpen = true;
+      window.chrome.webview.postMessage(`open-web|${Math.round(rect.left)}|${Math.round(rect.top)}|${Math.round(rect.width)}|${Math.round(rect.height)}|https://chat.deepseek.com/`);
+      status('网页版已在 AI 面板内打开。');
+    } else {
+      const opened = window.open('https://chat.deepseek.com/', '_blank'); if (opened) opened.opener = null;
+      status('网页版已在浏览器打开。');
+    }
     copyText(text).then(ok => {
       if (!text) status('已打开 DeepSeek 网页版；输入问题后点网页版可复制。');
       else status(ok ? '已复制问题/选段，粘贴到 DeepSeek 网页即可。' : '网页已打开，但剪贴板不可用，请手动复制。');
     });
   }
+  window.addEventListener('resize', postWebBounds);
+  if (window.ResizeObserver) new ResizeObserver(postWebBounds).observe(document.querySelector('.reader-ai-pane'));
+  try {
+    window.chrome?.webview?.addEventListener('message', event => {
+      if (event.data === 'web-closed') { webBridgeOpen = false; status('已关闭网页版。'); }
+    });
+  } catch { /* Browser fallback. */ }
   function closeWebPaste() { $('ai-web-paste').hidden = true; $('ai-web-answer').value = ''; }
   function openWebPaste() { if (closed) return; $('ai-web-paste').hidden = false; $('ai-web-answer').focus(); }
   function addWebAnswer() {
@@ -282,5 +304,5 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   loadSession();
   $('ai-context').hidden = true; $('ai-settings').hidden = true; $('ai-settings-toggle').setAttribute('aria-expanded', 'false'); $('ai-question').value = ''; $('ai-api-key').value = ''; $('ai-reasoning').value = reasoningEffort; controls(); status('正在加载 AI 设置…');
   request('/api/ai/settings').then(value => { if (closed) return; config = value; populate(); status(value[value.source]?.available ? '' : '请先配置 API，再点发送。'); }).catch(error => status(error.message));
-  return { setContext, setSelectionAvailable(value) { selectionAvailable = Boolean(value); controls(); }, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
+  return { setContext, setSelectionAvailable(value) { selectionAvailable = Boolean(value); controls(); }, updateContext(value) { if (context) setContext(value, false); }, close() { closed = true; if (webBridgeOpen && window.chrome?.webview) { try { window.chrome.webview.postMessage('web-close'); } catch { /* Browser fallback. */ } } requests.forEach(controller => controller.abort()); events.forEach(remove => remove()); history = []; turns = []; context = null; config = null; $('ai-api-key').value = ''; $('ai-messages').replaceChildren(); } };
 }

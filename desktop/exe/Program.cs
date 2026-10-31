@@ -166,6 +166,9 @@ namespace Axiom
     internal sealed class MainForm : Form
     {
         private readonly WebView2 browser = new WebView2();
+        private readonly Panel webPanel = new Panel();
+        private readonly Panel webToolbar = new Panel();
+        private readonly WebView2 webBrowser = new WebView2();
         private readonly Label status = new Label();
         private Process server;
         private StreamWriter log;
@@ -177,6 +180,7 @@ namespace Axiom
         private bool closing;
         private CoreWebView2Environment webViewEnvironment;
         private WebViewForm webWindow;
+        private bool webPanelReady;
 
         public MainForm()
         {
@@ -200,6 +204,31 @@ namespace Axiom
             status.Font = new Font("Microsoft YaHei UI", 14F, FontStyle.Regular);
             Controls.Add(browser);
             Controls.Add(status);
+
+            webPanel.Visible = false;
+            webPanel.BorderStyle = BorderStyle.FixedSingle;
+            webPanel.BackColor = Color.White;
+            webToolbar.Dock = DockStyle.Top;
+            webToolbar.Height = 36;
+            webToolbar.BackColor = Color.FromArgb(246, 248, 252);
+            Label webTitle = new Label();
+            webTitle.Text = "DeepSeek 网页版";
+            webTitle.Dock = DockStyle.Left;
+            webTitle.Width = 200;
+            webTitle.TextAlign = ContentAlignment.MiddleLeft;
+            webTitle.Padding = new Padding(10, 0, 0, 0);
+            Button webClose = new Button();
+            webClose.Text = "关闭网页";
+            webClose.Dock = DockStyle.Right;
+            webClose.Width = 92;
+            webClose.FlatStyle = FlatStyle.System;
+            webClose.Click += (sender, args) => HideEmbeddedWeb();
+            webToolbar.Controls.Add(webTitle);
+            webToolbar.Controls.Add(webClose);
+            webBrowser.Dock = DockStyle.Fill;
+            webPanel.Controls.Add(webBrowser);
+            webPanel.Controls.Add(webToolbar);
+            Controls.Add(webPanel);
 
             Shown += OnShown;
             FormClosing += OnClosing;
@@ -245,6 +274,7 @@ namespace Axiom
                 browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 browser.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 browser.CoreWebView2.NewWindowRequested += OnNewWindow;
+                browser.CoreWebView2.WebMessageReceived += OnWebMessage;
                 browser.CoreWebView2.NavigationStarting += OnNavigationStarting;
                 browser.CoreWebView2.ProcessFailed += OnProcessFailed;
                 browser.CoreWebView2.Navigate(baseUrl);
@@ -338,8 +368,90 @@ namespace Axiom
         private void OnNewWindow(object sender, CoreWebView2NewWindowRequestedEventArgs args)
         {
             args.Handled = true;
-            if (DeepSeekUrl(args.Uri)) ShowWebWindow(args.Uri);
-            else OpenExternal(args.Uri);
+            OpenExternal(args.Uri);
+        }
+
+        private void OnWebMessage(object sender, CoreWebView2WebMessageReceivedEventArgs args)
+        {
+            string message = args.TryGetWebMessageAsString();
+            if (String.IsNullOrEmpty(message)) return;
+            string[] parts = message.Split(new char[] { '|' }, 6);
+            if (parts.Length == 6 && parts[0] == "open-web")
+            {
+                int x, y, width, height;
+                if (Int32.TryParse(parts[1], out x) && Int32.TryParse(parts[2], out y)
+                    && Int32.TryParse(parts[3], out width) && Int32.TryParse(parts[4], out height)
+                    && width > 100 && height > 100)
+                {
+                    webPanel.Bounds = ClampWebBounds(x, y, width, height);
+                    ShowEmbeddedWeb(parts[5]);
+                }
+            }
+            else if (parts.Length == 5 && parts[0] == "web-bounds" && webPanel.Visible)
+            {
+                int x, y, width, height;
+                if (Int32.TryParse(parts[1], out x) && Int32.TryParse(parts[2], out y)
+                    && Int32.TryParse(parts[3], out width) && Int32.TryParse(parts[4], out height)
+                    && width > 100 && height > 100)
+                    webPanel.Bounds = ClampWebBounds(x, y, width, height);
+            }
+            else if (message == "web-close")
+                HideEmbeddedWeb();
+        }
+
+        private Rectangle ClampWebBounds(int x, int y, int width, int height)
+        {
+            x = Math.Max(0, Math.Min(x, Math.Max(0, ClientSize.Width - 120)));
+            y = Math.Max(0, Math.Min(y, Math.Max(0, ClientSize.Height - 120)));
+            width = Math.Min(width, Math.Max(120, ClientSize.Width - x));
+            height = Math.Min(height, Math.Max(120, ClientSize.Height - y));
+            return new Rectangle(x, y, width, height);
+        }
+
+        private async void ShowEmbeddedWeb(string uri)
+        {
+            if (webViewEnvironment == null) return;
+            webPanel.Visible = true;
+            webPanel.BringToFront();
+            if (!webPanelReady)
+            {
+                try
+                {
+                    await webBrowser.EnsureCoreWebView2Async(webViewEnvironment);
+                    if (closing) return;
+                    webPanelReady = true;
+                    webBrowser.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                    webBrowser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+                    webBrowser.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                    webBrowser.CoreWebView2.NewWindowRequested += (sender, args) =>
+                    {
+                        if (DeepSeekUrl(args.Uri))
+                        {
+                            args.Handled = true;
+                            webBrowser.CoreWebView2.Navigate(args.Uri);
+                        }
+                    };
+                }
+                catch (Exception failure)
+                {
+                    webPanel.Visible = false;
+                    Fail(failure);
+                    return;
+                }
+            }
+            webBrowser.CoreWebView2.Navigate(uri);
+            webBrowser.Focus();
+        }
+
+        private void HideEmbeddedWeb()
+        {
+            webPanel.Visible = false;
+            try
+            {
+                if (browser.CoreWebView2 != null) browser.CoreWebView2.PostWebMessageAsString("web-closed");
+            }
+            catch { }
+            browser.Focus();
         }
 
         internal static bool DeepSeekUrl(string value)
