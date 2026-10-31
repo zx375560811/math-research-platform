@@ -218,9 +218,9 @@ namespace Axiom
             webTitle.TextAlign = ContentAlignment.MiddleLeft;
             webTitle.Padding = new Padding(10, 0, 0, 0);
             Button webBack = new Button();
-            webBack.Text = "AI 对话";
+            webBack.Text = "返回";
             webBack.Dock = DockStyle.Right;
-            webBack.Width = 86;
+            webBack.Width = 72;
             webBack.FlatStyle = FlatStyle.System;
             webBack.Click += (sender, args) => HideEmbeddedWeb();
             Button webClose = new Button();
@@ -420,7 +420,8 @@ namespace Axiom
             if (webViewEnvironment == null) return;
             webPanel.Visible = true;
             webPanel.BringToFront();
-            if (!webPanelReady)
+            bool first = !webPanelReady;
+            if (first)
             {
                 try
                 {
@@ -438,6 +439,7 @@ namespace Axiom
                             webBrowser.CoreWebView2.Navigate(args.Uri);
                         }
                     };
+                    webBrowser.CoreWebView2.Navigate(uri);
                 }
                 catch (Exception failure)
                 {
@@ -446,7 +448,6 @@ namespace Axiom
                     return;
                 }
             }
-            webBrowser.CoreWebView2.Navigate(uri);
             webBrowser.Focus();
         }
 
