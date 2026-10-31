@@ -223,6 +223,12 @@ namespace Axiom
             webBack.Width = 72;
             webBack.FlatStyle = FlatStyle.System;
             webBack.Click += (sender, args) => HideEmbeddedWeb();
+            Button webImport = new Button();
+            webImport.Text = "导入回答";
+            webImport.Dock = DockStyle.Right;
+            webImport.Width = 92;
+            webImport.FlatStyle = FlatStyle.System;
+            webImport.Click += (sender, args) => ImportClipboardAnswer();
             Button webClose = new Button();
             webClose.Text = "关闭网页";
             webClose.Dock = DockStyle.Right;
@@ -232,6 +238,7 @@ namespace Axiom
             webToolbar.Controls.Add(webTitle);
             webToolbar.Controls.Add(webBack);
             webToolbar.Controls.Add(webClose);
+            webToolbar.Controls.Add(webImport);
             webBrowser.Dock = DockStyle.Fill;
             webPanel.Controls.Add(webBrowser);
             webPanel.Controls.Add(webToolbar);
@@ -460,6 +467,28 @@ namespace Axiom
             }
             catch { }
             browser.Focus();
+        }
+
+        private void ImportClipboardAnswer()
+        {
+            string answer;
+            try { answer = Clipboard.ContainsText() ? Clipboard.GetText().Trim() : ""; }
+            catch (Exception failure)
+            {
+                MessageBox.Show("读取剪贴板失败：" + failure.Message, "公理", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (String.IsNullOrEmpty(answer))
+            {
+                MessageBox.Show("剪贴板里没有文字。先在 DeepSeek 网页里复制回答，再点“导入回答”。", "公理", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            HideEmbeddedWeb();
+            try
+            {
+                if (browser.CoreWebView2 != null) browser.CoreWebView2.PostWebMessageAsString("web-answer|" + answer);
+            }
+            catch { }
         }
 
         internal static bool DeepSeekUrl(string value)

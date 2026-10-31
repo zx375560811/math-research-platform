@@ -84,13 +84,14 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
   try {
     window.chrome?.webview?.addEventListener('message', event => {
       if (event.data === 'web-closed') { setWebMode(false); status('已关闭网页版。'); }
+      else if (typeof event.data === 'string' && event.data.startsWith('web-answer|')) appendWebAnswer(event.data.slice('web-answer|'.length));
     });
   } catch { /* Browser fallback. */ }
   function closeWebPaste() { $('ai-web-paste').hidden = true; $('ai-web-answer').value = ''; }
   function openWebPaste() { if (closed) return; $('ai-web-paste').hidden = false; $('ai-web-answer').focus(); }
-  function addWebAnswer() {
-    if (closed) return;
-    const answer = $('ai-web-answer').value.trim(); if (!answer) { $('ai-web-answer').focus(); return; }
+  function appendWebAnswer(value) {
+    if (closed) return false;
+    const answer = String(value || '').trim(); if (!answer) return false;
     const list = $('ai-messages'); list.querySelector('.ai-empty')?.remove();
     const question = $('ai-question').value.trim();
     if (question) {
@@ -100,7 +101,13 @@ export function createReaderAi(getDocumentContext, onContextSent = () => {}, hig
     const assistant = node('article', null, 'ai-message ai-assistant');
     assistant.append(node('span', 'AI · 网页版', 'ai-speaker'), renderAnswer(answer)); addSaveAction(assistant, answer);
     list.append(assistant); history.push({ role: 'assistant', content: answer }); turns.push({ question: question || '网页版回答', page: null, remembered: question || '', reply: answer }); saveSession();
-    $('ai-question').value = ''; closeWebPaste(); list.scrollTop = list.scrollHeight; status('网页版回答已加入，可保存到高亮。');
+    $('ai-question').value = ''; setWebMode(false); list.scrollTop = list.scrollHeight; status('网页回答已导入，可保存到高亮。');
+    return true;
+  }
+  function addWebAnswer() {
+    const answer = $('ai-web-answer').value.trim();
+    if (!appendWebAnswer(answer)) { $('ai-web-answer').focus(); return; }
+    closeWebPaste();
   }
   function saveSession() {
     try {
