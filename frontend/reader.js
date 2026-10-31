@@ -304,6 +304,8 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
   }
   on($('highlight-picker-close'), 'click', closeHighlightPicker);
   on($('pdf-copy-selection'), 'click', copySelectedText);
+  on(scroll, 'scroll', () => { if (selection) positionCopyButton(); }, { passive: true });
+  window.addEventListener('resize', () => { if (selection) positionCopyButton(); });
   on($('inline-note-close'), 'click', closeInlineNote);
   on($('inline-note-save'), 'click', saveInlineNote);
   on($('inline-note-delete'), 'click', deleteInlineNote);
@@ -317,7 +319,24 @@ export function openReader(id, { api, write, basePath = '/api/learning/books', b
     const mark = marks.find(item => item.page === page && item.rects.some(r => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height));
     if (mark) openInlineNote(mark);
   });
-  function showCopyButton(show) { const button = $('pdf-copy-selection'); if (button) button.hidden = !show; }
+  function positionCopyButton() {
+    const button = $('pdf-copy-selection'); if (!button) return;
+    if (!selection?.rects?.length) { button.hidden = true; return; }
+    const frame = document.querySelector(`.pdf-page[data-page="${selection.page}"]`);
+    if (!frame) { button.hidden = true; return; }
+    const bounds = frame.getBoundingClientRect();
+    const last = selection.rects[selection.rects.length - 1];
+    const x = bounds.left + (last.x + last.width) * bounds.width;
+    const y = bounds.top + (last.y + last.height) * bounds.height;
+    button.hidden = false;
+    const width = button.offsetWidth || 48, height = button.offsetHeight || 28;
+    let left = x + 8;
+    if (left + width > innerWidth - 8) left = Math.max(8, x - width - 8);
+    let top = y + 6;
+    if (top + height > innerHeight - 8) top = Math.max(8, y - height - 6);
+    button.style.left = left + 'px'; button.style.top = top + 'px';
+  }
+  function showCopyButton(show) { const button = $('pdf-copy-selection'); if (!button) return; button.hidden = !show; if (show) positionCopyButton(); }
   async function copySelectedText() {
     const text = selection?.quote || window.getSelection()?.toString().trim();
     if (!text) { showCopyButton(false); return; }
